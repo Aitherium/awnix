@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>awnix — a Linux you can hand to an agent</title>
+<meta name="description" content="A bootable, immutable Linux base for machines where software writes software. bootc + podman, no services, no account, no phone-home.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* A single deliberate visual world: a machine room at night. Ground is
+     graphite with a blue shift, the accent is aged brass — warm, elemental,
+     and specifically not the acid-green-on-black that every infra page uses. */
+  :root{
+    --ground:#14161a;
+    --surface:#1b1e24;
+    --surface-2:#22262e;
+    --line:#2c313a;
+    --text:#e9e6e0;
+    --muted:#8d939e;
+    --brass:#d4a05a;
+    --air:#7fa8c9;
+    --measure:68ch;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--text);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+    font-size:17px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+  a{color:var(--air);text-decoration:none;border-bottom:1px solid transparent}
+  a:hover{border-bottom-color:var(--air)}
+  a:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:2px}
+  code,pre{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace}
+
+  /* ── hero ─────────────────────────────────────────────────────────── */
+  header{padding:96px 0 64px;border-bottom:1px solid var(--line)}
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--brass);margin:0 0 20px;
+  }
+  h1{
+    font-family:"Instrument Serif",Georgia,serif;font-weight:400;
+    font-size:clamp(2.8rem,7vw,4.6rem);line-height:1.02;margin:0 0 22px;
+    text-wrap:balance;letter-spacing:-.01em;
+  }
+  h1 em{font-style:italic;color:var(--brass)}
+  .lede{font-size:clamp(1.05rem,2.2vw,1.28rem);color:var(--muted);max-width:var(--measure);margin:0 0 36px}
+  .lede strong{color:var(--text);font-weight:500}
+
+  /* The install command is the product demo, so it gets hero treatment. */
+  .cmd{
+    background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--brass);
+    border-radius:4px;padding:18px 20px;overflow-x:auto;font-size:14.5px;
+    display:flex;align-items:center;gap:14px;max-width:640px;
+  }
+  .cmd .prompt{color:var(--brass);user-select:none}
+  .cmd code{color:var(--text);white-space:pre}
+  .after{font-size:14px;color:var(--muted);margin:14px 0 0;font-family:"IBM Plex Mono",monospace}
+
+  /* ── the four problems: the spine of the argument ─────────────────── */
+  section{padding:72px 0;border-bottom:1px solid var(--line)}
+  h2{
+    font-family:"Instrument Serif",Georgia,serif;font-weight:400;
+    font-size:clamp(1.9rem,4vw,2.6rem);margin:0 0 14px;text-wrap:balance;
+  }
+  .sub{color:var(--muted);max-width:var(--measure);margin:0 0 44px}
+  .problems{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  @media(min-width:760px){.problems{grid-template-columns:1fr 1fr}}
+  .problem{background:var(--surface);padding:30px 28px}
+  .problem .n{
+    font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;
+    color:var(--brass);display:block;margin-bottom:12px;
+  }
+  .problem h3{font-size:1.12rem;font-weight:600;margin:0 0 10px;line-height:1.35}
+  .problem p{margin:0;color:var(--muted);font-size:15.5px}
+  .problem p strong{color:var(--text);font-weight:500}
+
+  .thesis{
+    margin-top:44px;padding:28px 30px;background:var(--surface-2);
+    border-radius:6px;border:1px solid var(--line);
+    font-family:"Instrument Serif",Georgia,serif;font-size:1.35rem;
+    line-height:1.45;max-width:var(--measure);
+  }
+  .thesis em{color:var(--brass);font-style:italic}
+
+  /* ── family ───────────────────────────────────────────────────────── */
+  .family{display:grid;gap:14px}
+  @media(min-width:720px){.family{grid-template-columns:1fr 1fr}}
+  .tool{
+    background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:22px 24px;transition:border-color .15s ease,transform .15s ease;
+  }
+  .tool:hover{border-color:var(--brass);transform:translateY(-1px)}
+  .tool h3{margin:0 0 8px;font-size:1rem}
+  .tool h3 a{
+    font-family:"IBM Plex Mono",monospace;font-weight:500;color:var(--text);
+    border-bottom:1px solid var(--line);
+  }
+  .tool h3 a:hover{color:var(--brass);border-bottom-color:var(--brass)}
+  .tool p{margin:0;color:var(--muted);font-size:14.8px}
+
+  /* ── the opinions table ───────────────────────────────────────────── */
+  .tbl{width:100%;border-collapse:collapse;margin-top:8px;font-size:15px}
+  .tbl th,.tbl td{text-align:left;padding:15px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+  .tbl th{
+    font-family:"IBM Plex Mono",monospace;font-weight:500;color:var(--brass);
+    white-space:nowrap;font-size:13.5px;width:1%;
+  }
+  .tbl td{color:var(--muted)}
+  .scroll{overflow-x:auto}
+
+  footer{padding:56px 0 80px;color:var(--muted);font-size:14.5px}
+  .foot-links{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">awnix</p>
+    <h1>A Linux you can hand to <em>an agent</em>.</h1>
+    <p class="lede">
+      Not a distro with an AI assistant bolted on. A bootable, immutable base for
+      machines where <strong>software writes software</strong> — and where you
+      still need to know what happened, undo it, and prove it.
+    </p>
+    <div class="cmd">
+      <span class="prompt">$</span>
+      <code>podman build -t awnix:latest -f Containerfile .</code>
+    </div>
+    <p class="after">That's the install. The OS <em>is</em> the container image.</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Give an agent real access and you inherit four problems</h2>
+    <p class="sub">Not eventually. On day one.</p>
+
+    <div class="problems">
+      <article class="problem">
+        <span class="n">01 / VISIBILITY</span>
+        <h3>It will change things you can't see</h3>
+        <p>Not maliciously — <strong>thoroughly</strong>. An immutable
+        <code>/usr</code> and atomic updates make every change a new image you can
+        diff, and a bad one is <code>bootc rollback</code>, not an evening.</p>
+      </article>
+
+      <article class="problem">
+        <span class="n">02 / CONCURRENCY</span>
+        <h3>It will run alongside other agents</h3>
+        <p>Two processes editing one file isn't a merge conflict, it's
+        <strong>lost work</strong>. Which is why the tooling has leases, and why
+        they're taken before the edit, not after.</p>
+      </article>
+
+      <article class="problem">
+        <span class="n">03 / FALLIBILITY</span>
+        <h3>It will be wrong sometimes</h3>
+        <p>The question was never whether. It's whether you <strong>find out
+        cheaply</strong>. Snapshots and verified artifacts turn "what did it
+        actually do" into a command instead of an investigation.</p>
+      </article>
+
+      <article class="problem">
+        <span class="n">04 / CREDENTIALS</span>
+        <h3>It will need credentials, and shouldn't get yours</h3>
+        <p>awnix ships <strong>no password at all</strong>. The account is locked,
+        access is by injected SSH key, and there's nothing to leak because nothing
+        was ever set.</p>
+      </article>
+    </div>
+
+    <p class="thesis">
+      On someone else's platform, all four are handled by trusting the platform.
+      awnix is the other bet: <em>you can verify everything, so you have to trust
+      nothing.</em>
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What's actually in it</h2>
+    <p class="sub">
+      podman, buildah, skopeo and crun for rootless containers. cloud-init, so a
+      key-only image is genuinely reachable. Cockpit on 9090 for a machine with no
+      desktop. firewalld with an <code>awnix</code> zone and <strong>zero ports
+      opened</strong> — opening one is a decision about what you're running, and a
+      base image that guesses will either block you or expose you.
+    </p>
+    <p class="sub" style="margin-bottom:34px">
+      No services. No agent. No account. What runs on top is yours.
+    </p>
+
+    <h2 style="font-size:1.5rem">Four opinions, each learned the expensive way</h2>
+    <div class="scroll">
+      <table class="tbl">
+        <tbody>
+          <tr>
+            <th>state under /var</th>
+            <td>An immutable <code>/usr</code> loses anything else on update.</td>
+          </tr>
+          <tr>
+            <th>a real healthcheck</th>
+            <td>Without one, a wedged container looks exactly like a healthy one to
+            every supervisor on the box.</td>
+          </tr>
+          <tr>
+            <th>Restart=unless-stopped</th>
+            <td>Nothing revives an exited container — and this still honours a
+            manual stop.</td>
+          </tr>
+          <tr>
+            <th>After=network-online</th>
+            <td>The difference between a network that is <em>configured</em> and one
+            that merely <em>exists</em>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The aw family</h2>
+    <p class="sub">
+      awnix is the ground floor. The rest stand alone — each installs on its own,
+      each works offline, none needs an account. The pattern, in one sentence:
+      <strong>every one replaces something you'd otherwise have to trust with
+      something you can check.</strong>
+    </p>
+
+    <div class="family">
+      <div class="tool">
+        <h3><a href="https://github.com/Aitherium/awgit">awgit</a></h3>
+        <p>git with <strong>leases</strong>, so two agents in one worktree don't
+        silently overwrite each other's work.</p>
+      </div>
+      <div class="tool">
+        <h3><a href="https://github.com/Aitherium/awgraph">awgraph</a></h3>
+        <p>A semantic code graph — AST + tree-sitter, call graphs. An agent reads
+        structure instead of grepping.</p>
+      </div>
+      <div class="tool">
+        <h3><a href="https://github.com/Aitherium/awseal">awseal</a></h3>
+        <p>Sign a directory so a stranger can verify it. The key that verifies is
+        <strong>not</strong> the key that forges.</p>
+      </div>
+      <div class="tool">
+        <h3><a href="https://github.com/Aitherium/awshare">awshare</a></h3>
+        <p>Publish an artifact and fetch it back <strong>verified</strong> —
+        content-addressed bundles.</p>
+      </div>
+      <div class="tool">
+        <h3><a href="https://github.com/Aitherium/awrelay">awrelay</a></h3>
+        <p>Agent messaging — findings, alerts, coordination — without a SaaS in
+        the middle.</p>
+      </div>
+      <div class="tool">
+        <h3><a href="https://github.com/Aitherium/awm">awm</a></h3>
+        <p>Scoped agent memory: <code>tenant:user:project</code>, so a write can't
+        leak across a boundary.</p>
+      </div>
+      <div class="tool">
+        <h3><a href="https://github.com/Aitherium/awrecover">awrecover</a></h3>
+        <p>Labelled snapshots, with a restore that <strong>fully lands or doesn't
+        land</strong>.</p>
+      </div>
+      <div class="tool">
+        <h3><a href="https://github.com/Aitherium/awnix">awnix</a></h3>
+        <p>The ground floor. Boots, runs containers rootlessly, updates atomically,
+        ships nothing else.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="border-bottom:none">
+  <div class="wrap">
+    <h2>Make it bootable</h2>
+    <p class="sub">One image, every format. AMI, ISO, qcow2, vmdk, raw.</p>
+    <div class="cmd" style="max-width:100%">
+      <code>podman run --rm -it --privileged \
+  -v /var/lib/containers/storage:/var/lib/containers/storage \
+  -v "$PWD/output":/output \
+  quay.io/centos-bootc/bootc-image-builder:latest \
+  --type ami --local awnix:latest</code>
+    </div>
+    <p class="after">Then <code>bootc upgrade</code> to stage, reboot to switch,
+    <code>bootc rollback</code> if it went badly.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <a href="https://github.com/Aitherium/awnix">Source</a>
+      <a href="https://github.com/Aitherium/awnix/blob/main/LICENSE">Apache-2.0</a>
+      <a href="https://containers.github.io/bootc/">bootc</a>
+    </div>
+    <p style="margin:0;max-width:var(--measure)">
+      awnix is the OS layer — deliberately small, deliberately opinionated about
+      the few things that are expensive to get wrong, and silent about everything
+      else.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
