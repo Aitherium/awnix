@@ -1,0 +1,50 @@
+# awnix service unit — TEMPLATE
+#
+# This is the SHAPE of a service on awnix, not a service. Render it with your
+# own values; awnix ships no units of its own, and that is deliberate — a base
+# image that hands you a fleet has decided what you are running.
+#
+#   {{ name }}      service name, e.g. myapp
+#   {{ image }}     a registry your host can actually pull from
+#   {{ port }}      host port to publish
+#
+# Install to /etc/containers/systemd/{{ name }}.container, then:
+#   systemctl daemon-reload && systemctl start {{ name }}
+
+[Unit]
+Description={{ name }}
+# Wait for the network to be genuinely configured, not merely present.
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName={{ name }}
+Image={{ image }}
+AutoUpdate=registry
+
+PublishPort={{ port }}:{{ port }}
+
+# State belongs under /var: bootc gives you an immutable /usr, so anything
+# written to the image root is lost on the next atomic update.
+Volume=/var/lib/awnix/{{ name }}:/data:Z
+
+Environment=TZ=UTC
+
+# A healthcheck is what makes the difference between "the process exists" and
+# "the service works". Without one, a wedged container looks identical to a
+# healthy one to every supervisor on the box.
+HealthCmd=/bin/sh -c "curl -fsS http://localhost:{{ port }}/health || exit 1"
+HealthInterval=30s
+HealthStartPeriod=60s
+HealthRetries=3
+
+[Service]
+# `no` is the wrong default for anything long-lived: nothing revives an exited
+# container, and a restart policy that honours a manual stop is what you want.
+Restart=unless-stopped
+# Give a slow first boot room. A start timeout shorter than the real startup
+# turns every cold start into a restart loop.
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target default.target
