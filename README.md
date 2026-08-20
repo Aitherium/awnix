@@ -126,28 +126,20 @@ sudo bootc rollback  # if it went badly
 
 ## The aw family
 
-awnix is the ground floor. The rest are standalone tools — each installs on its
-own, each works offline, none needs an account:
+Standalone tools that share one idea: **replace something you would otherwise have to _trust_ with something you can _check_.**
 
-| | |
-|---|---|
-| [**awgit**](https://github.com/Aitherium/awgit) | git with **leases**, so two agents in one worktree don't silently overwrite each other |
-| [**awgraph**](https://github.com/Aitherium/awgraph) | a semantic code graph — AST + tree-sitter, call graphs, so an agent reads structure instead of grepping |
-| [**awseal**](https://github.com/Aitherium/awseal) | sign a directory so a stranger can verify it. The key that verifies is not the key that forges |
-| [**awshare**](https://github.com/Aitherium/awshare) | publish an artifact and fetch it back **verified** — content-addressed bundles |
-| [**awrelay**](https://github.com/Aitherium/awrelay) | agent messaging: findings, alerts, coordination, without a SaaS in the middle |
-| [**awm**](https://github.com/Aitherium/awm) | scoped agent memory — `tenant:user:project`, so a write can't leak across a boundary |
-| [**awrecover**](https://github.com/Aitherium/awrecover) | labelled snapshots with a restore that **fully lands or doesn't land** |
+Each installs on its own, works offline, and needs no account.
 
-The pattern, if you want one sentence: *every one replaces a thing you'd
-otherwise have to trust with a thing you can check.*
+| | instead of trusting | you check |
+|---|---|---|
+| **awnix** _(you are here)_ | that the box is what you left it as | an immutable image you built, with atomic rollback |
+| [awnode](https://github.com/Aitherium/awnode) | a vendor's cloud with every prompt | a local gateway routing to backends you chose |
+| [awgit](https://github.com/Aitherium/awgit) | that no one else is editing this file | a lease, refused at commit time if you do not hold it |
+| [awgraph](https://github.com/Aitherium/awgraph) | that grep found everything | an AST + tree-sitter call graph an agent can traverse |
+| [awseal](https://github.com/Aitherium/awseal) | that the artifact came from who you think | an Ed25519 seal — the key that verifies is not the key that forges |
+| [awshare](https://github.com/Aitherium/awshare) | that the download is intact | content-addressed bundles, verified on fetch |
+| [awrelay](https://github.com/Aitherium/awrelay) | a SaaS in the middle of your agents | findings, alerts and coordination over your own transport |
+| [awm](https://github.com/Aitherium/awm) | that memory stayed in its lane | tenant:user:project scopes, so a write cannot cross a boundary |
+| [awrecover](https://github.com/Aitherium/awrecover) | that the restore worked | a restore that fully lands or does not land at all |
 
----
-
-## Scope
-
-awnix is the OS layer. Deliberately small, deliberately opinionated about the
-few things that are expensive to get wrong — credentials, state placement,
-restart behaviour — and silent about everything else.
-
-Apache-2.0. See [LICENSE](LICENSE).
+[**awnix**](https://github.com/Aitherium/awnix) is the ground floor — a bootable, immutable Linux base for machines where software writes software.
