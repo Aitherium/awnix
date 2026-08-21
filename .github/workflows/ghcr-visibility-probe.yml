@@ -1,0 +1,28 @@
+name: ghcr-visibility-probe
+# Settles ONE question no REST endpoint can answer, and it decides how awnix ships:
+# does a package CREATED by a workflow in this PUBLIC repo come out public?
+#
+# Measured 2026-08-21: a manual `podman push` from the build host creates the package
+# `internal` and UNLINKED even when it carries org.opencontainers.image.source, and
+# there is no PATCH for visibility (the endpoint 404s). A wrongly-created package can
+# only be deleted and remade -- which is why this probes with a scratch image rather
+# than discovering the answer from a 2.7GB ISO base.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Linux, X64]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: push a scratch image and let GHCR decide its visibility
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u '${{ github.actor }}' --password-stdin
+          d=$(mktemp -d); cd "$d"
+          printf 'FROM scratch\nLABEL org.opencontainers.image.source="https://github.com/%s"\n' '${{ github.repository }}' > Containerfile
+          podman build -q -t ghcr.io/aitherium/awnix-visibility-probe:ci .
+          podman push ghcr.io/aitherium/awnix-visibility-probe:ci
+          echo "pushed ok"
