@@ -41,7 +41,6 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         systemd-container \
         policycoreutils-python-utils \
         bash-completion man-pages \
-        nodejs npm \
     && dnf clean all && \
     ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
     ln -sf /usr/bin/pip3.11 /usr/bin/pip3
@@ -91,6 +90,15 @@ RUN pip3 install --no-cache-dir --disable-pip-version-check setuptools wheel
 # throttling clears: a git install is less reproducible than a version-pinned
 # wheel, which is the only reason each lives here and not there. Publish
 # awgit awgraph awrelay awshare first (they are the foundation), then the rest.
+# ONE ENTRY BELOW IS A BARE NAME, NOT A GIT URL, and it must stay that way.
+# `git+https://github.com/Aitherium/awm` installs the distribution
+# `aither-world-model`, whose module is `world_model` — a DIFFERENT product
+# living under the awm name. The awm BRICK is a portable scoped agent memory
+# (what the registry describes, and what the import proof below asserts), and it
+# is on PyPI. Measured 2026-08-20: installing from that repo produced a green
+# pip step, 18 successful wheels, and then `ModuleNotFoundError: No module
+# named 'awm'` — the pip log names `aither-world-model`, never awm, so nothing
+# in the output points at the cause.
 RUN pip3 install --no-cache-dir \
         git+https://github.com/Aitherium/awdk \
         git+https://github.com/Aitherium/awgit \
@@ -98,7 +106,7 @@ RUN pip3 install --no-cache-dir \
         git+https://github.com/Aitherium/awrelay \
         git+https://github.com/Aitherium/awshare \
         git+https://github.com/Aitherium/awseal \
-        git+https://github.com/Aitherium/awm \
+        awm \
         git+https://github.com/Aitherium/awrecover \
         git+https://github.com/Aitherium/awbrowse \
         git+https://github.com/Aitherium/awfind \
@@ -111,6 +119,24 @@ RUN pip3 install --no-cache-dir \
         git+https://github.com/Aitherium/awrepl \
         git+https://github.com/Aitherium/awresearch \
         git+https://github.com/Aitherium/awkno
+
+# ── Node 20, NOT the default ───────────────────────────────────────────────
+# Stream 9's default `nodejs` package is v16.20.2. `@aitherium/shell-cli`
+# declares `node >=18.0.0`, and one of its dependencies wants `>=20.17.0`.
+#
+# npm only WARNS on an engine mismatch -- it installs anyway, exits 0, and puts
+# the binary on PATH. So every cheap check passes (the package is present, the
+# shim resolves, `command -v awsh` succeeds) and the command fails the first
+# time a human runs it. Measured 2026-08-20: EBADENGINE on shell-cli,
+# @inquirer/prompts and marked, against node v16.20.2.
+#
+# The module stream has to be enabled BEFORE nodejs is installed, or dnf
+# resolves the default stream and enabling afterwards is a no-op.
+RUN dnf module reset -y nodejs && \
+    dnf module enable -y nodejs:20 && \
+    dnf install -y --setopt=install_weak_deps=False nodejs npm && \
+    dnf clean all && \
+    node --version
 
 # ── awsh (from npm, not pip) ────────────────────────────────────────────────
 # awsh is @aitherium/shell-cli on npm. PyPI has an unrelated awsh by a third
@@ -139,7 +165,12 @@ RUN npm install -g @aitherium/shell-cli && \
 # the command line.
 RUN mkdir -p /etc/awdk && \
     printf '[Unit]\nDescription=Aither World Development Kit daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/local/bin/awdk-daemon\nRestart=on-failure\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=multi-user.target\n' > /etc/systemd/system/awdk-daemon.service && \
-    systemctl daemon-reload && \
+    # NO `systemctl daemon-reload` here. There is no running systemd during a
+    # container build -- no PID 1, no D-Bus -- so it exits 1 and takes the whole
+    # RUN with it. Measured 2026-08-20: the image could not build at all.
+    # `systemctl enable` is fine offline (it just writes the wants/ symlink),
+    # which is why the cockpit and firewalld lines below have always worked
+    # without a reload. The reload happens on first boot, for free.
     systemctl enable awdk-daemon
 
 # ── Proof step ─────────────────────────────────────────────────────────────
@@ -148,10 +179,23 @@ RUN mkdir -p /etc/awdk && \
 # found by a user, not by a rebuild. Import checks catch missing modules; command
 # checks catch missing or misnamed console scripts; unit checks catch broken
 # systemd integration.
-RUN for m in awgit awgraph awrelay awshare awseal awm awrecover awbrowse awfind awnest awnboard awmail awreason awrecurse awprism awrepl awresearch awkno awdk; do python3 -c "import $m" || { echo "FATAL: $m did not install"; exit 1; }; done && echo "aw family (Python): all 19 import"
+# NOTE THE LAST ENTRY: `adk`, not `awdk`. A distribution name is not a module
+# name, and this list is of MODULES. The awdk distribution imports as `adk`
+# (measured: `pip install awdk` then `import awdk` -> ModuleNotFoundError,
+# `import adk` -> ok). The same trap cost a build one layer up, where the awm
+# git URL installed `aither-world-model` and provided no `awm` module at all.
+# Both failures look identical from the pip log, which reports success.
+RUN for m in awgit awgraph awrelay awshare awseal awm awrecover awbrowse awfind awnest awnboard awmail awreason awrecurse awprism awrepl awresearch awkno adk; do python3 -c "import $m" || { echo "FATAL: $m did not install"; exit 1; }; done && echo "aw family (Python): all 19 import"
 
 # Verify console scripts exist on PATH for the tools that provide them.
-RUN command -v awsh >/dev/null 2>&1 || { echo "FATAL: awsh not on PATH"; exit 1; } && echo "awsh: on PATH"
+# EXECUTE it, do not just resolve it. `command -v` proves a file exists on
+# PATH and nothing else -- and the way this breaks is an engine mismatch that
+# npm reports as a WARNING, so the shim is present and correct and the program
+# dies on first run. A resolve-only check passes on exactly that failure.
+RUN command -v awsh >/dev/null 2>&1 || { echo "FATAL: awsh not on PATH"; exit 1; } && \
+    awsh --version >/dev/null 2>&1 || awsh --help >/dev/null 2>&1 || \
+    { echo "FATAL: awsh is on PATH but cannot execute (check the node engine)"; exit 1; } && \
+    echo "awsh: on PATH and executes"
 
 # Verify awdk daemon unit file exists and is enabled.
 RUN systemctl is-enabled awdk-daemon >/dev/null 2>&1 || { echo "FATAL: awdk-daemon unit not enabled"; exit 1; } && echo "awdk-daemon: enabled"
