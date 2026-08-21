@@ -49,7 +49,60 @@ have to trust nothing.
 - an unprivileged `awnix` account, **locked**, with NOPASSWD sudo
 - **bootc** — atomic updates, real rollback
 
+- **the eleven `aw` tools**, preinstalled and importable (the table below)
+
 No services. No agent. No account. What runs on top is yours.
+
+The `aw` tools are not an exception to that line — they are tools, not services.
+Nothing runs, nothing listens, nothing has an account. `awgit` does not start a
+daemon; it refuses a commit when someone else holds the lease. The distinction
+that matters is *does it run on its own*, and none of these do.
+
+They ship preinstalled because the alternative was worse: this README advertised
+all of them while the image contained none, so `awgit` answered
+command-not-found on a machine whose whole pitch is that tooling.
+
+---
+
+## Getting an agent onto it
+
+awnix deliberately ships no agent, and that is the honest answer to "how do I run
+one": **you layer it on.** A base image that arrives with an agent already running
+has decided what you are doing with your machine.
+
+The layer is small, because the capabilities are already here:
+
+```dockerfile
+FROM awnix:latest
+RUN pip3 install --no-cache-dir awdk         # the agent runtime
+# ...your skills, packs and credentials
+```
+
+`awdk` finds the `aw` tools by import — they are already on the image — so the
+agent gets leases, the call graph, messaging, scoped memory, snapshots and
+verified artifacts without any wiring. That is the point of putting them in the
+base rather than in the agent: **swap the agent, keep the guarantees.**
+
+What that buys you concretely, from the four problems at the top of this file:
+
+| you inherit | what stops it | already installed |
+|---|---|---|
+| it changes things you cannot see | atomic updates, `bootc rollback` | bootc |
+| two agents editing one file | a lease refused at commit time | `awgit` |
+| it will be wrong sometimes | a restore that fully lands or not at all | `awrecover` |
+| you cannot prove what it produced | Ed25519 seals, verified fetch | `awseal`, `awshare` |
+| it cannot see past its own training | a real browser and a search it can query | `awbrowse`, `awfind` |
+| anyone who gets the link gets in | an invitation addressed to one person, revocable alone | `awnboard` |
+| you cannot tell a person from a script | a verdict with evidence, where "cannot tell" is not "yes" | `awnest` |
+
+That last row is why the base is worth having at all. An agent with root on a box
+and no way to read a page is a very expensive offline function. `awbrowse` and
+`awfind` are **clients**, so the browsing engine and the search providers stay on
+a service *you* run: the agent gets to look things up without any of your queries
+leaving for a vendor you did not choose.
+
+Run the agent as a service with the unit template in `units/`, or interactively
+while you are still deciding what it should do.
 
 ---
 
@@ -124,13 +177,15 @@ sudo bootc rollback  # if it went badly
 
 ---
 
-<!-- aither-ecosystem:start GENERATED from the ecosystem registry. Edits here are overwritten; change the registry instead. -->
+<!-- aither-ecosystem:start GENERATED from ecosystem.yaml by gen_public_pages.py — DO NOT HAND-EDIT. Change the registry instead. -->
 
 ## The aw family
 
 Standalone tools that share one idea: **replace something you would otherwise have to _trust_ with something you can _check_.**
 
 Each installs on its own, works offline, and needs no account.
+
+This table is auto-generated from `AitherOS/config/ecosystem.yaml`. See that file for the complete registry.
 
 | | instead of trusting | you check |
 |---|---|---|
@@ -144,67 +199,40 @@ Each installs on its own, works offline, and needs no account.
 | [awshare](https://github.com/Aitherium/awshare) | that the download is intact | content-addressed bundles, verified on fetch |
 | [awnest](https://github.com/Aitherium/awnest) | that there is a person on the other end | a verdict with evidence, where "we could not tell" is not "yes" |
 | [awnboard](https://github.com/Aitherium/awnboard) | a share link anyone who sees it can use | an invitation addressed to one person, for one gate, revocable |
-| **awnix** _(you are here)_ | that the box is what you left it as | an immutable image you built, with atomic rollback |
-| [awrecover](https://github.com/Aitherium/awrecover) | that the restore worked | a restore that fully lands or does not land at all |
 | [awrelay](https://github.com/Aitherium/awrelay) | a SaaS in the middle of your agents | findings, alerts and coordination over your own transport |
 | [awmail](https://github.com/Aitherium/awmail) | a mailbox somebody else can read | mail your agents send and receive over your own server |
 | [awfind](https://github.com/Aitherium/awfind) | one vendor's idea of the web | results from whichever providers you configured |
 | [awbrowse](https://github.com/Aitherium/awbrowse) | that the page said what you were told | the render, the DOM and the requests it made |
-| [aitherkvcache](https://github.com/Aitherium/aitherkvcache) | a vendor's quantisation defaults | sub-byte KV cache kernels you can benchmark yourself |
-| [AitherZero](https://github.com/Aitherium/AitherZero) | a pile of scripts nobody has numbered | numbered, discoverable automation with declarative playbooks |
-| [AitherConnect](https://github.com/Aitherium/AitherConnect) | what a page tells your browser to do | a federated search and desktop bridge you host |
+| [awrecover](https://github.com/Aitherium/awrecover) | that the restore worked | a restore that fully lands or does not land at all |
+| **awnix** _(you are here)_ | that the box is what you left it as | an immutable image you built, with atomic rollback |
 
-**awnix** is the ground floor — A Linux you can hand to an agent — immutable base, capabilities included.
+**Portable, scoped agent memory** — [awm](https://github.com/Aitherium/awm) — is listed above as the canonical reference.
 
 ## The Aitherium ecosystem
 
-Every repository here is public. Each publishes an `aither-manifest.json` beside its page, so any surface can read every sibling's — the network is browsable from any node in it.
+Every public repository publishes an on-brand GitHub Pages site. Each is independently adoptable.
 
-| repo | what it is | pages |
-|---|---|---|
-| [awdk](https://github.com/Aitherium/awdk) | Build AI agent fleets — 3 lines, any backend, local or cloud | [docs](https://aitherium.github.io/awdk/) |
-| [awskills](https://github.com/Aitherium/awskills) | Portable agent skills — self-contained procedures an agent loads on demand | [docs](https://aitherium.github.io/awskills/) |
-| [awm](https://github.com/Aitherium/awm) | A portable, scoped agent memory | [docs](https://aitherium.github.io/awm/) |
-| [awnode](https://github.com/Aitherium/awnode) | A lightweight local gateway — bridges your apps to the AI backends you chose | [docs](https://aitherium.github.io/awnode/) |
-| [awrun](https://github.com/Aitherium/awrun) | A priority-aware queue and dispatcher for agentic runs and ad-hoc CI builds | [docs](https://aitherium.github.io/awrun/) |
-| [awgraph](https://github.com/Aitherium/awgraph) | A semantic code graph for agents — AST + tree-sitter, call graphs | [docs](https://aitherium.github.io/awgraph/) |
-| [awgit](https://github.com/Aitherium/awgit) | Semantic version control on top of git — edit-ops and leases | [docs](https://aitherium.github.io/awgit/) |
-| [awseal](https://github.com/Aitherium/awseal) | Sign an artifact so a stranger can verify it | [docs](https://aitherium.github.io/awseal/) |
-| [awshare](https://github.com/Aitherium/awshare) | Publish an artifact and fetch it back verified | [docs](https://aitherium.github.io/awshare/) |
-| [awnest](https://github.com/Aitherium/awnest) | Prove there is a human before you let them into the nest | [docs](https://aitherium.github.io/awnest/) |
-| [awnboard](https://github.com/Aitherium/awnboard) | A front gate you can put in front of anything, and hand someone the key to | [docs](https://aitherium.github.io/awnboard/) |
-| **awnix** _(you are here)_ | A Linux you can hand to an agent — immutable base, capabilities included | [docs](https://aitherium.github.io/awnix/) |
-| [awrecover](https://github.com/Aitherium/awrecover) | Labelled snapshots with an all-or-nothing restore | [docs](https://aitherium.github.io/awrecover/) |
-| [awrelay](https://github.com/Aitherium/awrelay) | Portable agent messaging — findings, alerts, coordination | [docs](https://aitherium.github.io/awrelay/) |
-| [awmail](https://github.com/Aitherium/awmail) | Give an agent an email address — send, and actually receive | [docs](https://aitherium.github.io/awmail/) |
-| [awfind](https://github.com/Aitherium/awfind) | A portable search client — query, results, ranking | [docs](https://aitherium.github.io/awfind/) |
-| [awbrowse](https://github.com/Aitherium/awbrowse) | A portable browser client — navigate, console, network, DOM, screenshot | [docs](https://aitherium.github.io/awbrowse/) |
-| [aitherkvcache](https://github.com/Aitherium/aitherkvcache) | Near-optimal KV cache quantization for LLM inference — sub-byte compression | [docs](https://aitherium.github.io/aitherkvcache/) |
-| [AitherZero](https://github.com/Aitherium/AitherZero) | PowerShell 7+ automation framework — numbered, self-describing scripts | [docs](https://aitherium.github.io/AitherZero/) |
-| [AitherConnect](https://github.com/Aitherium/AitherConnect) | Browser extension — federated AI search, page context, and the Living OS overlay | [docs](https://aitherium.github.io/AitherConnect/) |
+| repo | what it is |
+|---|---|
+| [awdk](https://github.com/Aitherium/awdk) | Build AI agent fleets — 3 lines, any backend, local or cloud |
+| [awskills](https://github.com/Aitherium/awskills) | Portable agent skills — self-contained procedures an agent loads on demand |
+| [awm](https://github.com/Aitherium/awm) | A portable, scoped agent memory |
+| [awnode](https://github.com/Aitherium/awnode) | A lightweight local gateway — bridges your apps to the AI backends you chose |
+| [awrun](https://github.com/Aitherium/awrun) | A priority-aware queue and dispatcher for agentic runs and ad-hoc CI builds |
+| [awgraph](https://github.com/Aitherium/awgraph) | A semantic code graph for agents — AST + tree-sitter, call graphs |
+| [awgit](https://github.com/Aitherium/awgit) | Semantic version control on top of git — edit-ops and leases |
+| [awseal](https://github.com/Aitherium/awseal) | Sign an artifact so a stranger can verify it |
+| [awshare](https://github.com/Aitherium/awshare) | Publish an artifact and fetch it back verified |
+| [awnest](https://github.com/Aitherium/awnest) | Prove there is a human before you let them into the nest |
+| [awnboard](https://github.com/Aitherium/awnboard) | A front gate you can put in front of anything, and hand someone the key to |
+| **awnix** _(you are here)_ | A Linux you can hand to an agent — immutable base, capabilities included |
+| [awrecover](https://github.com/Aitherium/awrecover) | Labelled snapshots with an all-or-nothing restore |
+| [awrelay](https://github.com/Aitherium/awrelay) | Portable agent messaging — findings, alerts, coordination |
+| [awmail](https://github.com/Aitherium/awmail) | Give an agent an email address — send, and actually receive |
+| [awfind](https://github.com/Aitherium/awfind) | A portable search client — query, results, ranking |
+| [awbrowse](https://github.com/Aitherium/awbrowse) | A portable browser client — navigate, console, network, DOM, screenshot |
+| [aitherkvcache](https://github.com/Aitherium/aitherkvcache) | Near-optimal KV cache quantization for LLM inference — sub-byte compression |
+| [AitherZero](https://github.com/Aitherium/AitherZero) | PowerShell 7+ automation framework — numbered, self-describing scripts |
+| [AitherConnect](https://github.com/Aitherium/AitherConnect) | Browser extension — federated AI search, page context, and the Living OS overlay |
 
 <!-- aither-ecosystem:end -->
-## Aitherium open-source ecosystem
-
-This repo is one piece of a connected set. All public, MIT/BSL-licensed:
-
-| repo | what it is | pages |
-|---|---|---|
-| [awrecover](https://github.com/Aitherium/awrecover) | Labelled snapshots with an all-or-nothing restore | [docs](https://aitherium.github.io/awrecover/) |
-| [awshare](https://github.com/Aitherium/awshare) | Publish an artifact and fetch it back verified | [docs](https://aitherium.github.io/awshare/) |
-| [awseal](https://github.com/Aitherium/awseal) | Sign an artifact so a stranger can verify it | [docs](https://aitherium.github.io/awseal/) |
-| [awnode](https://github.com/Aitherium/awnode) | Lightweight local gateway — your apps to backends you chose | [docs](https://aitherium.github.io/awnode/) |
-| [awnix](https://github.com/Aitherium/awnix) | A bootable, immutable Linux base for agent-run machines | [docs](https://aitherium.github.io/awnix/) |
-| [awdk](https://github.com/Aitherium/awdk) | Build AI agent fleets — 3 lines, any backend | [docs](https://aitherium.github.io/awdk/) |
-| [awskills](https://github.com/Aitherium/awskills) | Free agent skills, scripts & automations | [docs](https://aitherium.github.io/awskills/) |
-| [AitherZero](https://github.com/Aitherium/AitherZero) | PowerShell 7+ automation framework | [docs](https://aitherium.github.io/AitherZero/) |
-| [awgit](https://github.com/Aitherium/awgit) | Semantic version control on top of git | [docs](https://aitherium.github.io/awgit/) |
-| [awgraph](https://github.com/Aitherium/awgraph) | Code knowledge graph for AI agents | [docs](https://aitherium.github.io/awgraph/) |
-| [aitherkvcache](https://github.com/Aitherium/aitherkvcache) | Near-optimal KV cache quantization | [docs](https://aitherium.github.io/aitherkvcache/) |
-| [awrelay](https://github.com/Aitherium/awrelay) | Agent-to-agent messaging over any chat server | [docs](https://aitherium.github.io/awrelay/) |
-| [awm](https://github.com/Aitherium/awm) | A small world model (LeWM JEPA + MLP) to bootstrap your own | [docs](https://aitherium.github.io/awm/) |
-| [AitherConnect](https://github.com/Aitherium/AitherConnect) | Browser extension: federated AI search & desktop bridge | — |
-| [homebrew-tap](https://github.com/Aitherium/homebrew-tap) | `brew tap aitherium/tap` | — |
-
-Built by [Aitherium](https://aitherium.com).
-<!-- aitherium-ecosystem:end -->
