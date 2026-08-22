@@ -1,0 +1,139 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# awnix — the public OS layer
+# A Linux you can hand to an agent: immutable base, capabilities included.
+#
+# NOT Containerfile.base. That file is the AitherOS *commercial appliance*
+# base (Ollama, Cockpit, a 272-port firewall, an `aither` service account) —
+# awnix is the opposite by design: "No services. No agent. No account."
+# (AitherOS/config/ecosystem.yaml, awnix entry). Capabilities go in the base
+# (the seven aw* tools below); the AGENT layers on top separately (three
+# lines in a Dockerfile — see the agent-runner layer this base is built for).
+# Putting the agent in the base instead would mean swapping agents loses
+# every guarantee the base provides.
+#
+# Build: podman build -t awnix-base:latest -f Containerfile.awnix .
+# Licence: Apache-2.0 (same as all seven aw* packages this image bakes in —
+# see AitherOS/config/awnix_boundary.yaml for the precedent reasoning).
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM quay.io/centos-bootc/centos-bootc:stream9
+
+# cloud-init is what makes a key-only box reachable on AWS/Hetzner/etc — it
+# injects the launch keypair. Same reasoning as Containerfile.base (D-2070):
+# no password AND no key path is unreachable, not secure.
+RUN dnf install -y --setopt=install_weak_deps=False cloud-init \
+    && systemctl enable cloud-init cloud-init-local cloud-config cloud-final \
+    && dnf clean all
+
+# Rootless podman only. No --privileged anywhere in this image, no NOPASSWD
+# sudoers entry of any kind baked in here — see the security note in the
+# awrun plan's Phase 15/16: docker/podman-group-equivalent-to-root and
+# blanket NOPASSWD sudo are the same hole with extra steps, and awnix's own
+# "no agent, no account" philosophy is the wrong place to compromise on it.
+RUN dnf install -y --setopt=install_weak_deps=False \
+        podman buildah skopeo crun \
+        slirp4netns fuse-overlayfs \
+        git curl jq \
+    && dnf clean all
+
+# CentOS Stream 9's DEFAULT `python3` is 3.9.25 (kept old on purpose — it's
+# the system python dnf/yum depend on, never touch it). All seven aw* tools
+# declare `requires-python >= 3.10` (measured live 2026-08-20: pip on 3.9
+# reports "Could not find a version that satisfies the requirement awgit
+# (from versions: none)" even though the PyPI index answers fine — every
+# candidate wheel is silently filtered by the python-version constraint, and
+# pip's error names no version rather than the real cause). RHEL/CentOS 9
+# ships python3.11 as an ADDITIONAL package for exactly this case.
+RUN dnf install -y --setopt=install_weak_deps=False python3.11 python3.11-pip \
+    && dnf clean all
+
+COPY storage.conf /etc/containers/storage.conf
+
+# The aw* tools — installed from PyPI (the real, published packages), never
+# COPYed from the monorepo. Copying source would couple a public, forkable
+# base image to our tree; pip installing the same artifact anyone else gets
+# is what "standalone" means (aw-family doctrine: "Client, not lift").
+# ecosystem.yaml's own awrecover entry documents `pip install awrecover` as
+# the real install command — that claim was checked live 2026-08-20 and is
+# CURRENTLY FALSE for 2 of the 7: `awrecover` and `awseal` both 404 on
+# PyPI (awgit, awgraph, awrelay, awm, awshare are all real, HTTP 200).
+# Installing only what's actually published — per this codebase's own
+# "absent is a status, not an omission" doctrine (aw-family.md) — rather
+# than silently dropping the gap or blocking the whole build on it.
+RUN python3.11 -m pip install --no-cache-dir \
+        awgit awgraph awrelay awm awshare
+
+# ...and the two that are NOT on PyPI, from source. That TODO is now closed.
+#
+# The gap was never readiness. PyPI caps how many projects an account may create and
+# we ran out of slots, so `awrecover` and `awseal` 404 on the index while being
+# perfectly real, with public repos at github.com/Aitherium (both verified 200 on
+# 2026-08-21). Reading that 404 as 'not ready yet' is what left this image shipping
+# FIVE of the seven aw* tools while its own LABEL below claims seven.
+#
+# Pinned to a branch rather than floating on a default: an image that resolves
+# differently on every rebuild is not immutable, which is the one property awnix
+# sells. Bump these deliberately.
+#
+# `git` is installed above, so a git+https target resolves without another layer.
+RUN python3.11 -m pip install --no-cache-dir \
+        "git+https://github.com/Aitherium/awrecover.git@main" \
+        "git+https://github.com/Aitherium/awseal.git@main"
+
+# ── first-boot setup ────────────────────────────────────────────────────────────────
+# The thing that turns "an image that builds" into "an OS someone can install": the
+# questions every Linux asks after install -- hostname, which optional components, and
+# whether to link this box to a fleet. All three are declinable, because awnix's whole
+# posture is "No services. No agent. No account." and a setup that demanded an account
+# to finish would contradict the product.
+#
+# The component menu is PROBED at runtime, never printed from a hardcoded list.
+# Measured 2026-08-21: only 10 of the 26 aw* packages in the monorepo are on PyPI, and
+# the missing ones (awrun, awtunnel, awiam, awseal, awrecover...) sound exactly as real
+# as the present ones. A first-boot menu offering a `pip install` that 404s is the worst
+# possible place for the ONB003 class -- it is the user's first five minutes with the OS.
+COPY awnix-setup.py /usr/bin/awnix-setup
+COPY awnix-setup.service /usr/lib/systemd/system/awnix-setup.service
+RUN chmod 0755 /usr/bin/awnix-setup     && systemctl enable awnix-setup.service
+
+# ── identity ────────────────────────────────────────────────────────────────────────
+# Booted in WSL2 on 2026-08-21 and it said `PRETTY_NAME="CentOS Stream 9"`. True about
+# the lineage and useless as identity: nothing a user or a script reads said awnix, so
+# `bootc status`, a support question and any telemetry all name the upstream rather than
+# what was installed.
+#
+# /usr/lib/os-release, NOT /etc: in this image /etc/os-release is a symlink to it
+# (verified live). Writing /etc/ would replace the symlink with a second file that can
+# then disagree with the first.
+#
+# 🚨 ID STAYS `centos`. Setting ID=awnix broke the ISO build outright:
+# bootc-image-builder resolves its distro definition from ID + VERSION_ID
+# ("could not find def file for distro awnix-9"), has no --distro override, and
+# does NOT fall back to ID_LIKE -- that was already set to "centos rhel fedora"
+# and it failed anyway. ID is a toolchain key, not a label. The identity a person
+# sees is NAME and PRETTY_NAME, and those say awnix without breaking the build.
+#
+# VERSION_ID stays "9" and ID_LIKE names the family DELIBERATELY. dnf's $releasever,
+# package scripts and ansible's os_family all key on those; an awnix-flavoured
+# VERSION_ID would be truthful about us and wrong for every consumer that uses it to
+# resolve a repository.
+RUN . /usr/lib/os-release \
+    && printf '%s\n' \
+        'NAME="awnix"' \
+        'ID=centos' \
+        'ID_LIKE="centos rhel fedora"' \
+        'VERSION="9 (awnix)"' \
+        'VERSION_ID="9"' \
+        'PLATFORM_ID="platform:el9"' \
+        'PRETTY_NAME="awnix (built on CentOS Stream 9)"' \
+        'ANSI_COLOR="0;36"' \
+        'HOME_URL="https://github.com/Aitherium/awnix"' \
+        'DOCUMENTATION_URL="https://github.com/Aitherium/awnix"' \
+        'BUG_REPORT_URL="https://github.com/Aitherium/awnix/issues"' \
+        'AWNIX_BUILT_ON="${PRETTY_NAME}"' \
+        > /usr/lib/os-release.new \
+    && mv /usr/lib/os-release.new /usr/lib/os-release \
+    && grep -q '^NAME="awnix"$' /usr/lib/os-release
+
+LABEL com.aitheros.layer="awnix-base" \
+      com.aitheros.description="awnix — immutable Linux + the seven aw* tools, no services/agent/account" \
+      org.opencontainers.image.licenses="Apache-2.0"
