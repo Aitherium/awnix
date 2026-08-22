@@ -3,16 +3,21 @@ name: ghcr-visibility-probe
 # does a package CREATED by a workflow in this PUBLIC repo come out public?
 #
 # Measured 2026-08-21: a manual `podman push` from the build host creates the package
-# `internal` and UNLINKED even when it carries org.opencontainers.image.source, and
-# there is no PATCH for visibility (the endpoint 404s). A wrongly-created package can
-# only be deleted and remade -- which is why this probes with a scratch image rather
-# than discovering the answer from a 2.7GB ISO base.
+# `internal` and UNLINKED even carrying org.opencontainers.image.source, and there is
+# no PATCH for visibility (the endpoint 404s) -- a wrongly-created package can only be
+# deleted and remade. Hence a scratch image, not a 2.7GB ISO base.
+#
+# Deliberately GitHub-HOSTED. The org's self-hosted groups both set
+# allows_public_repositories=false, so a self-hosted job from this public repo sits
+# QUEUED FOREVER beside an idle runner with no error -- measured 9 minutes. Widening
+# that is an org-wide security change (fork PRs would execute on shared runners) and
+# is not worth an ISO lane.
 on:
   workflow_dispatch:
 
 jobs:
   probe:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -20,9 +25,9 @@ jobs:
       - name: push a scratch image and let GHCR decide its visibility
         run: |
           set -euo pipefail
-          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u '${{ github.actor }}' --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
           d=$(mktemp -d); cd "$d"
-          printf 'FROM scratch\nLABEL org.opencontainers.image.source="https://github.com/%s"\n' '${{ github.repository }}' > Containerfile
-          podman build -q -t ghcr.io/aitherium/awnix-visibility-probe:ci .
-          podman push ghcr.io/aitherium/awnix-visibility-probe:ci
+          printf 'FROM scratch\nLABEL org.opencontainers.image.source="https://github.com/%s"\n' '${{ github.repository }}' > Dockerfile
+          docker build -q -t ghcr.io/aitherium/awnix-visibility-probe:ci .
+          docker push ghcr.io/aitherium/awnix-visibility-probe:ci
           echo "pushed ok"
