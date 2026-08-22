@@ -55,7 +55,9 @@ jobs:
           echo "after:  $(df -BG --output=avail / | tail -1)"
 
       - name: login to ghcr
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
 
       - name: build the chain and push the three public variants
         env:
@@ -110,14 +112,17 @@ jobs:
           WANT: ${{ github.event.inputs.variant || 'all' }}
         run: |
           set -euo pipefail
+          accept='application/vnd.oci.image.index.v1+json'
+          accept="$accept,application/vnd.docker.distribution.manifest.v2+json"
           fail=0
           for repo in awnix awnix-ai awnix-full; do
             if [ "$WANT" != "all" ] && [ "$WANT" != "$repo" ]; then continue; fi
-            tok=$(curl -sf "https://ghcr.io/token?scope=repository:aitherium/$repo:pull&service=ghcr.io" \
+            scope="repository:aitherium/$repo:pull"
+            tok=$(curl -sf "https://ghcr.io/token?scope=$scope&service=ghcr.io" \
                   | python3 -c 'import sys,json;print(json.load(sys.stdin).get("token",""))')
             code=$(curl -s -o /dev/null -w '%{http_code}' \
                    -H "Authorization: Bearer $tok" \
-                   -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.v2+json' \
+                   -H "Accept: $accept" \
                    "https://ghcr.io/v2/aitherium/$repo/manifests/latest")
             if [ "$code" = "200" ]; then
               echo "  ok        $repo anonymously pullable"
