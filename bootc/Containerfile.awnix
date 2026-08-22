@@ -17,6 +17,31 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 FROM quay.io/centos-bootc/centos-bootc:stream9
 
+# IMPORT THE SIGNING KEY BEFORE ANY dnf, and do not disable the check.
+#
+# Measured 2026-08-21 on the AWS build lane: the python3.11 step failed with
+#   Public key for python3.11-3.11.13-10.el9.x86_64.rpm is not installed
+#   GPG Keys are configured as: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+#   Error: GPG check FAILED
+# The repo config points at a key the rpm database has not imported, so dnf downloads
+# every package successfully and then refuses all of them.
+#
+# Placed HERE rather than at the failing step: this file has three dnf installs and
+# runner-ai has another. Only one failed, which invites fixing that one -- and then the
+# next repo needing the same key fails later, at a step that looks unrelated. One
+# import before the first install covers every subsequent layer, because the rpm
+# database persists across them.
+#
+# `--nogpgcheck` would make this green in one character and is the wrong fix: awnix is
+# an operating system people BOOT, and disabling signature verification while building
+# it leaves the shipped image's provenance resting on nothing. Import the key already
+# on disk instead -- same trust root, actually checked.
+#
+# `|| true`: a base image that has ALREADY imported it is not an error. If the import
+# genuinely failed, the installs below still fail the GPG check -- loudly and for the
+# right reason -- so this cannot mask the thing it exists to fix.
+RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial || true
+
 # cloud-init is what makes a key-only box reachable on AWS/Hetzner/etc — it
 # injects the launch keypair. Same reasoning as Containerfile.base (D-2070):
 # no password AND no key path is unreachable, not secure.
