@@ -200,6 +200,48 @@ RUN command -v awsh >/dev/null 2>&1 || { echo "FATAL: awsh not on PATH"; exit 1;
 # Verify awdk daemon unit file exists and is enabled.
 RUN systemctl is-enabled awdk-daemon >/dev/null 2>&1 || { echo "FATAL: awdk-daemon unit not enabled"; exit 1; } && echo "awdk-daemon: enabled"
 
+# ── The aw family ──────────────────────────────────────────────────────────
+# The reason this image exists. The README's table promises seven tools, and
+# until now the image shipped NONE of them: it installed python3-pip and stopped.
+# A base image whose whole pitch is "a Linux you can hand to an agent" that
+# answers `awgit` with command-not-found is advertising something it does not
+# ship -- the same defect as a documented API route that was never written.
+#
+#   awgit      no one else is editing this file  -- a lease, refused at commit time
+#   awgraph    grep found everything             -- an AST + call graph to traverse
+#   awrelay    a SaaS between your agents        -- findings/alerts on your transport
+#   awshare    the download is intact            -- content-addressed, verified on fetch
+#   awseal     the artifact is from who you think -- Ed25519; verify key != sign key
+#   awm        memory stayed in its lane         -- tenant:user:project scopes
+#   awrecover  the restore worked                -- lands fully or not at all
+#   awbrowse   a page said what you were told   -- the render, DOM and requests
+#   awfind     one vendor's idea of the web     -- providers you configured
+#   awnest     there is a person on the other end -- a verdict, with evidence
+#   awnboard   a share link anyone can use      -- an addressed, revocable gate
+#   awmail     an agent that cannot write back -- send and receive, no domain
+#
+# --no-cache-dir because this is an immutable image: a pip cache baked into /usr
+# is dead weight in every layer and every rollback.
+RUN pip3 install --no-cache-dir         awgit awgraph awrelay awshare
+
+# awm, awseal and awrecover are installed FROM GIT, not PyPI, and this is
+# temporary. All three are written, tested and mirrored publicly, but PyPI
+# answered `429 Too many new projects created` to every publish attempt on
+# 2026-08-19 -- an account-level throttle on NEW project names (existing projects
+# update fine, which is why the four above resolve). Pinning the image build to
+# PyPI for them would mean shipping an awnix that cannot install its own tooling.
+#
+# The repos are public and the install is real, so the image ships what the README
+# promises today. MOVE THESE UP INTO THE PyPI LINE ABOVE the moment they publish:
+# a git install is less reproducible than a version-pinned wheel, which is the only
+# reason it is not the permanent answer.
+RUN pip3 install --no-cache-dir         git+https://github.com/Aitherium/awseal         git+https://github.com/Aitherium/awm         git+https://github.com/Aitherium/awrecover         git+https://github.com/Aitherium/awbrowse         git+https://github.com/Aitherium/awfind         git+https://github.com/Aitherium/awnest         git+https://github.com/Aitherium/awnboard         git+https://github.com/Aitherium/awmail
+
+# Prove the tools are actually THERE. A pip step that resolved is not the same
+# claim as a binary on PATH -- and this image is immutable, so a missing tool is
+# found by a user, not by a rebuild.
+RUN for m in awgit awgraph awrelay awshare awseal awm awrecover awbrowse awfind awnest awnboard awmail; do         python3 -c "import $m" || { echo "FATAL: $m did not install"; exit 1; };     done && echo "aw family: all 12 import"
+
 # ── Rootless podman ────────────────────────────────────────────────────────
 COPY storage.conf /etc/containers/storage.conf
 RUN echo "awnix:100000:65536" >> /etc/subuid && \
