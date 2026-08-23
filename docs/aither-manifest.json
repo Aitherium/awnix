@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1",
+  "name": "awnix",
+  "description": "A Linux you can hand to an agent — immutable base, capabilities included.",
+  "url": "https://aitherium.github.io/awnix/",
+  "repository": "https://github.com/Aitherium/awnix",
+  "kind": "base",
+  "status": "public",
+  "adopt": "Boot one throwaway box and try to make a change you cannot reproduce.",
+  "pairs_with": [
+    "awdk",
+    "awrecover",
+    "awnode"
+  ],
+  "includes": [
+    "awgit",
+    "awgraph",
+    "awrelay",
+    "awm",
+    "awrecover",
+    "awseal",
+    "awshare"
+  ],
+  "metrics": {
+    "files": {
+      "value": 7,
+      "as_of": "2026-08-22T18:47:19-07:00"
+    },
+    "tests": {
+      "value": 0,
+      "as_of": "2026-08-22T18:47:19-07:00"
+    }
+  }
+}
