@@ -1,0 +1,152 @@
+# The awnix variants, and which of them may leave this machine.
+#
+# Five images are maintained from one chain. Four are public; ONE MUST NEVER BE
+# PUBLISHED, and that is a property enforced by `check_awnix_variants.py`, not a thing
+# people remember. The whole reason this file exists as config rather than four
+# hand-run podman commands is that "don't publish that one" is exactly the instruction
+# that survives until the day someone is in a hurry.
+#
+#   awnix        the public base            -- immutable Linux + the seven aw* tools
+#   awnix-ai     + llama.cpp + catalogue    -- inference, models fetched on first use
+#   awnix-full   + the entire aw* stack     -- all 26 packages, nothing held back
+#   gobbonet-appliance  GobboNet + awdk + stack -- Bonsai baked in, boots offline
+#   aitheros     + the commercial platform  -- INTERNAL, never published
+#
+# Each builds on the one before it, so a fix in the base reaches all four. That is the
+# point of the chain and the reason the appliance was rebased onto awnix on 2026-08-21:
+# before that it was a parallel stack and carried none of the aw* tools.
+
+version: 1
+
+registry: ghcr.io/aitherium
+
+variants:
+  awnix:
+    image: localhost/awnix-base:latest
+    containerfile: Containerfile.awnix
+    layer: base
+    publish: true
+    repo: awnix
+    iso: true
+    iso_tag_prefix: awnix-iso
+    what: "Immutable Linux with the seven aw* tools. No services, no agent, no account."
+
+  awnix-ai:
+    image: localhost/awnix-runner-ai:latest
+    containerfile: Containerfile.awnix-runner-ai
+    layer: runner-ai
+    publish: true
+    repo: awnix-ai
+    iso: true
+    iso_tag_prefix: awnix-iso-ai
+    what: >-
+      awnix plus a llama.cpp runtime and the model catalogue. Weights are never baked --
+      a 27B is larger than the whole ISO -- so they are fetched on first use, sized to
+      the hardware.
+
+  awnix-full:
+    image: localhost/awnix-full:latest
+    containerfile: Containerfile.awnix-full
+    layer: full
+    publish: true
+    repo: awnix-full
+    iso: true
+    iso_tag_prefix: awnix-iso-full
+    what: >-
+      Every aw* package that exists -- 10 from PyPI, 16 from source, because PyPI
+      project limits rather than readiness keep the rest off the index. The
+      batteries-included variant for someone who wants the whole toolkit without
+      choosing.
+
+  gobbonet-appliance:
+    image: localhost/gobbonet-appliance:latest
+    containerfile: Containerfile.gobbonet-appliance
+    layer: gobbonet
+    publish: true
+    repo: gobbonet-appliance
+    iso: true
+    iso_tag_prefix: awnix-iso-gobbonet
+    what: >-
+      GobboNet as the face, awdk underneath, Bonsai 1.7B and 4B BAKED IN so a first
+      boot answers with no network. Built on runner-ai because awnix-full ships the
+      GobboNet UI with no inference and awnix-ai ships inference with no UI -- an
+      appliance needs both halves. Not the Living Desktop: one app, its runtime, and
+      the tools to extend it.
+
+  garg-appliance:
+    image: localhost/garg-appliance:latest
+    containerfile: Containerfile.garg-appliance
+    layer: garg
+    publish: false
+    publish_refusal: >-
+      Written 2026-08-24 as the self-service fallback for garg.aitherium.com
+      (single-origin outage: PC hard-crash took the whole hosted fleet down
+      together, no redundant edge). `podman build` now passes CLEAN and self-
+      verifies for real -- "garg-appliance: qdrant up, baked model loads and
+      answers", image tagged localhost/garg-appliance:test -- after three real
+      bugs found by actually building it (not just writing it): .dockerignore
+      blanket-excluded .DEPLOYMENT/ so the firstboot script never reached the
+      image; two identical `FROM localhost/awnix-runner-ai:latest` lines were
+      two separate stages, silently discarding the aw* stack + qdrant install;
+      qdrant's gnu release needs a newer glibc than the base OS ships (same
+      class gobbonet-appliance already worked around for llama-server), fixed
+      by switching to the musl static build. Still NOT boot-tested as an actual
+      appliance (ISO build, first real boot, garg-firstboot.service exercised
+      outside a build-time RUN step) -- flip to publish: true and add repo/iso
+      only after that.
+    what: >-
+      GargBot Professional, self-hosted -- awnix + local llama-server + local qdrant +
+      the real gargbot backend (baked from ghcr.io/aitherium/aitheros-gargbot, not a
+      vendored copy, so it cannot drift from prod) + the garg.yaml brain pack.
+      garg-firstboot.service wires all three together on every boot. Lets a customer
+      run their own garg-api entirely off our infrastructure.
+
+  # ── PRIVATE ─────────────────────────────────────────────────────────────────────────
+  # Built and released like the others -- to exactly ONE destination, and never a public
+  # one. `publish: false` would have been the wrong model: it says "never push this",
+  # which tells anyone following the rule not to build the release lane that SHOULD
+  # exist. The requirement is a destination, not a prohibition.
+  aitheros-cloud:
+    image: localhost/aitheros-bootc-cloud:latest
+    containerfile: Containerfile.aitheros
+    build_arg_base: localhost/aitheros-bootc-base:latest
+    build_arg_default_target: multi-user.target
+    layer: appliance-cloud
+    publish: private
+    repo: aitheros-bootc-cloud
+    registry: ghcr.io/aitherium
+    release_repo: Aitherium/AitherOS
+    iso: false
+    publish_refusal: >-
+      Same refusal as `aitheros`: it carries the commercial platform and the control
+      plane. This variant differs from that one ONLY in its base -- it skips the
+      desktop and GPU layers -- so every reason `aitheros` may not be published
+      applies here unchanged. Do not read "cloud" as "public"; it is the same
+      software on a headless base.
+    what: >-
+      The sovereign AitherOS replica for a headless cloud box (AWS m5.xlarge, a VM,
+      WSL2, or any Linux with no GPU). Same Containerfile as `aitheros`, built from
+      aitheros-bootc-base so it skips @gnome-desktop + firefox and the multi-GB
+      CUDA toolkit, neither of which a GPU-less server can use. GPU inference is
+      NOT lost -- it is rented on demand (vast.ai / Lambda) and reached over the
+      mesh, rather than baked into an image that would then only boot on a GPU box.
+
+  aitheros:
+    image: localhost/aitheros-bootc:latest
+    containerfile: Containerfile.aitheros
+    layer: appliance
+    publish: private
+    repo: aitheros-bootc
+    registry: ghcr.io/aitherium
+    release_repo: Aitherium/AitherOS
+    iso: true
+    iso_tag_prefix: aitheros-iso
+    publish_refusal: >-
+      Never to a PUBLIC destination. It carries the 272-service platform, the Living
+      Desktop, Cockpit, the aither service account, a firewall zone naming our internal
+      ports, and the control plane -- how we deploy and operate, which is the business
+      rather than the OS. awnix_boundary.yaml already draws the line: awnix is Apache-2.0
+      and public, AitherOS is commercial. Measured 2026-08-21: every aitheros-* container
+      package under the org is already private, and Aitherium/AitherOS is a private repo,
+      so this follows the convention rather than inventing one.
+    what: "The full AitherOS appliance on awnix. Private registry and customer media."

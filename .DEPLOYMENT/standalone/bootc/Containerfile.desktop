@@ -1,0 +1,35 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# AitherOS Bootc — Desktop Layer (GNOME)
+# Adds GNOME desktop for workstation / demo deployments
+#
+# Build: podman build -t aitheros-bootc-desktop:latest -f Containerfile.desktop .
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM localhost/aitheros-bootc-base:latest
+
+RUN dnf install -y --setopt=install_weak_deps=False \
+        @gnome-desktop \
+        gnome-terminal nautilus firefox \
+        xdg-utils mesa-dri-drivers \
+    && dnf clean all
+
+# Auto-login aither user
+RUN mkdir -p /etc/gdm && \
+    echo -e "[daemon]\nAutomaticLoginEnable=True\nAutomaticLogin=aither" \
+    > /etc/gdm/custom.conf
+
+# awnix's first-boot setup owns tty1 (TTYPath=/dev/tty1, Before=getty@tty1) and
+# so does GDM once the default target is graphical with auto-login. Two things
+# claiming one console is not a race worth having, and the appliance does not
+# need that flow: it provisions through cloud-init and aitheros-identity, and
+# the interactive component picker is meaningless on an image whose components
+# are already baked.
+#
+# Masked rather than deleted, so `awnix-setup` is still on PATH and can be run
+# by hand -- the hostname and fleet-link steps are useful on an appliance too,
+# just not as a boot-blocking prompt behind a login screen.
+RUN systemctl mask awnix-setup.service
+
+RUN systemctl set-default graphical.target
+
+LABEL com.aitheros.layer="desktop" \
+      com.aitheros.description="AitherOS bootc desktop — GNOME workstation"

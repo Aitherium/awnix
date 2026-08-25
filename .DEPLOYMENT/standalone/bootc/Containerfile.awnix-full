@@ -1,0 +1,218 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# awnix-full — every aw* package there is
+#
+# Build: podman build -t awnix-full:latest -f Containerfile.awnix-full .
+#        (requires awnix-base:latest)
+# Licence: Apache-2.0, same as the packages it carries.
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# The base ships SEVEN tools: the ones a stranger needs to be handed a machine an agent
+# can work in. This ships all TWENTY-EIGHT, for someone who wants the whole toolkit
+# without choosing which pieces they will want later.
+#
+# TWO SOURCES, AND THE SPLIT IS NOT ABOUT MATURITY. Ten are on PyPI and sixteen are not
+# -- because PyPI caps how many projects an account may create and we ran out of slots,
+# not because those sixteen are unfinished. Every one has a public repo under
+# github.com/Aitherium (all verified 200 on 2026-08-21), and reading a 404 on the index
+# as "not ready" is what kept eleven of them unreachable from this image family.
+FROM localhost/awnix-base:latest
+
+# Published to PyPI. Faster, pinned, and needs neither git nor a compiler at build time,
+# so it goes first and stays a separate layer from the source installs below -- a PyPI
+# outage and a GitHub outage should not invalidate each other's cache.
+#
+# awgit awgraph awrelay awm awshare are already in the base; the rest are added here.
+RUN python3.11 -m pip install --no-cache-dir \
+        awdk awnode awprism awreason awrecurse awrepl awsync \
+    && python3.11 -m pip list 2>/dev/null | grep -qi '^awprism' \
+    || (echo "awprism did not install" >&2; exit 1)
+
+# WHY awsh IS NOT ON THAT LINE, and why adding it would have been worse than
+# leaving it out.
+#
+# awsh is the shell -- "your terminal answers you" -- and it was measured 2026-08-22
+# as MISSING from every awnix variant, which is a real gap in the batteries-included
+# image. The obvious fix is to append `awsh` to the pip line above. Do not.
+#
+#   pypi.org/project/awsh      -> j-martin's "SSH into your EC2 instances", v1.0.12.
+#                                 An unrelated third party owns the name.
+#   npmjs.com/package/awsh     -> 404.
+#   github.com/Aitherium/awsh  -> ours, but carries no pyproject.toml/setup.py at all.
+#
+# So `pip install awsh` installs A STRANGER'S PACKAGE into the appliance, succeeds,
+# and leaves an `awsh` on PATH that does something else entirely. pip exits 0 and the
+# import assert below would pass -- there IS a module -- so nothing downstream can
+# tell the difference. That is dependency confusion arriving through a fix.
+#
+# Ours ships on npm as @aitherium/shell-cli, which is installed in the node layer
+# below.
+#
+# 🪤 AND THE PUBLISHED ONE DOES NOT PROVIDE AN `awsh` COMMAND -- YET.
+#
+# The SOURCE package (.PRODUCTS/.AITHERSHELL/cli) is named `awsh` at v1.18.0 and
+# declares bins awsh/awshell/aither/aither-shell. What is PUBLISHED is older:
+# @aitherium/shell-cli@1.16.1, declaring only aither/aither-shell.
+#
+# The gap is a broken publish lane, not a missing feature. sync-awsh.yml ran
+# three times on 2026-08-22 and failed all three in its test step, because
+# `node --test "test/**/*.test.ts"` only globs on Node 21+ and the job pins no
+# node version -- so on Node 20 the pattern is a literal path and the run dies
+# with "Could not find .../test/**/*.test.ts" while 40+ test files sit in git.
+# Fixed there; until a green run publishes v1.18.0, this image installs what the
+# registry actually has.
+#
+# Asserting `awsh` below today would fail the build; shipping without asserting
+# would put an advertised command in this image that is not a declared console
+# script -- the ONB002 defect, which fails on a stranger's machine with
+# `command not found` after everything reported success.
+#
+# So the shell ships under the names the REGISTRY actually has today. When a
+# green sync-awsh run publishes v1.18.0, add `awsh` to the assertion below in
+# the same commit that makes it true -- never before. The gap closes by
+# publishing the bin, not by editing this file.
+
+# ── node, for the one aw* tool that is not a Python package ───────────────
+# nodejs is NOT in the base and this is the only thing that needs it, so it goes
+# here rather than one layer down: the base ships standalone tools with no
+# runtime, deliberately, and adding a JS runtime there changes what awnix IS.
+#
+# It is a real size cost on a variant whose own harness scores MB-per-delivered
+# -tool (score_awnix.py), and it is taken knowingly: -full is the
+# batteries-included variant and the interactive shell is the most user-facing
+# thing in the family.
+RUN dnf install -y nodejs npm \
+    && npm install -g @aitherium/shell-cli \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf
+# Assert the COMMANDS resolve, not that npm exited 0. A global npm install
+# creates the shim regardless, so `npm i -g` succeeds and the command can still
+# be missing or unrunnable -- and the difference only shows up on the user's
+# machine, at the moment they reach for the thing they installed this variant to
+# get. Both declared bins are checked; if upstream ever adds `awsh`, add it here
+# in the same commit that makes it real.
+RUN command -v aither && command -v aither-shell \
+    || (echo "@aitherium/shell-cli installed but its commands do not resolve" >&2; exit 1)
+
+# WHY awdk IS HERE, and why its absence was invisible.
+#
+# awfind and awbrowse were already installed in this variant and NOTHING IN
+# THE IMAGE CALLED THEM, because the thing that calls them is the agent
+# runtime -- awdk -- which was in no awnix image at all. Measured 2026-08-21:
+# awnix had neither, awnix-full had the tools and not the runtime. Every
+# signal said the family had shipped; the capability had not.
+#
+# It goes in -full and NOT in the base on purpose. The base ships standalone
+# tools with no agent runtime, deliberately -- putting an agent engine there
+# changes what awnix IS. -full is the batteries-included variant, which is
+# exactly where a runtime belongs.
+
+# From source. Pinned to a branch rather than floating on a default: an image that
+# resolves differently on every rebuild is not immutable, which is the one property
+# awnix sells. Bump these deliberately.
+#
+# awrecover and awseal are already in the base (it needs all seven); the rest are here.
+# `git` is installed in the base, so a git+https target resolves without another layer.
+RUN python3.11 -m pip install --no-cache-dir \
+        "git+https://github.com/Aitherium/awbac.git@main" \
+        "git+https://github.com/Aitherium/awbrowse.git@main" \
+        "git+https://github.com/Aitherium/awdit.git@main" \
+        "git+https://github.com/Aitherium/awfind.git@main" \
+        "git+https://github.com/Aitherium/awiam.git@main" \
+        "git+https://github.com/Aitherium/awkno.git@main" \
+        "git+https://github.com/Aitherium/awmail.git@main" \
+        "git+https://github.com/Aitherium/awnboard.git@main" \
+        "git+https://github.com/Aitherium/awnest.git@main" \
+        "git+https://github.com/Aitherium/awnet.git@main" \
+        "git+https://github.com/Aitherium/awpredict.git@main" \
+        "git+https://github.com/Aitherium/awresearch.git@main" \
+        "git+https://github.com/Aitherium/awrun.git@main" \
+        "git+https://github.com/Aitherium/awtunnel.git@main"
+
+# Assert the whole set IMPORTS, not merely that pip exited 0. A package can install and
+# fail to import -- a missing runtime dep, a namespace collision -- and the difference
+# only shows up on the user's machine, at the moment they reach for the thing they
+# installed this variant to get.
+# NO HEREDOC. `RUN python3.11 - <<'PY'` is BuildKit syntax; podman/buildah
+# does not support it and never consumes the body -- it parses each Python
+# line as a Containerfile INSTRUCTION and dies on the first one:
+#     Error: building at STEP "IMPORT ": Unknown instruction: "IMPORT"
+# The error names an instruction that does not exist rather than the
+# heredoc, so it never leads back here. This is why awnix-full never built.
+#
+# Unchanged in substance: every package must IMPORT, not merely have been
+# pip-installed. Names that differ from their distribution are listed by
+# IMPORT name -- awdk imports as `adk`; awnode was confirmed by installing
+# it and listing the top-level modules, not assumed.
+RUN python3.11 -c "import importlib.util, sys; mods='awgit awgraph awrelay awm awshare awrecover awseal adk awnode awprism awreason awrecurse awrepl awsync awbac awbrowse awdit awfind awiam awkno awmail awnboard awnest awnet awpredict awresearch awrun awtunnel'.split(); missing=[m for m in mods if importlib.util.find_spec(m) is None]; sys.exit('awnix-full: these installed but do not import: ' + ', '.join(missing)) if missing else print('awnix-full: all %d aw* packages import' % len(mods))"
+
+LABEL com.aitheros.layer="awnix-full" \
+      com.aitheros.base="awnix" \
+      com.aitheros.description="awnix + every aw* package (28)" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+# PowerShell 7 comes from the BASE (Containerfile.awnix) -- owner decision:
+# pwsh 7 by default everywhere. It was briefly installed here instead, which
+# would have given it to this variant and to none of the others. Two copies of
+# an install drift; one place is why the runner and appliance lines have it too.
+
+# From OUR FORK, not upstream: the fork carries the changes that make GobboNet
+# work anywhere other than the author's exact setup -- an overridable listen
+# port, a loopback fallback when the LAN bind wants Administrator, a health
+# probe that recognises an OpenAI-compatible backend, and a model name that is
+# not hardcoded to llama-server's one-model assumption. Upstream on its own
+# cannot start in this image.
+#
+# sync-gobbonet-fork.yml keeps that fork current with the vendored tree; without
+# it this clone would pin the image to whatever the fork last happened to hold.
+ARG GOBBONET_REF=main
+RUN git clone --depth 1 --branch "${GOBBONET_REF}" \
+        https://github.com/wizzense/GobboNet.git /opt/gobbonet \
+    && rm -rf /opt/gobbonet/.git \
+    && test -f /opt/gobbonet/chat.html \
+    && test -d /opt/gobbonet/js
+
+# Assert it can actually START, not merely that files landed. A tree that copied
+# and a server that runs are different facts, and the difference only shows up
+# on the user's machine.
+#
+# This block USED TO SAY exactly that and then run:
+#
+#   pwsh -c "[ScriptBlock]::Create((Get-Content fileserver.ps1)); 'parses'"
+#
+# which proves the file is syntactically valid PowerShell and nothing else. It
+# binds no port, serves no byte, and never opens chat.html -- an image whose
+# server cannot start passed it every time. The comment was right; the command
+# under it was a different, much weaker question.
+#
+# It also used the wrong launcher. awdk is installed above and ships
+# `adk gobbonet`: pure Python, no PowerShell anywhere in its execution path,
+# and the SAME command a stranger runs on their own machine -- so the image is
+# no longer a second way of starting this app that only we can debug. pwsh
+# stays installed for the things that genuinely need it; GobboNet no longer
+# does.
+#
+# Verified in a clean Debian container before this landed: awdk from PyPI, the
+# fork cloned to /opt/gobbonet, `adk gobbonet --ui /opt/gobbonet` -> chat.html
+# 200 and js/24-boot.js 200, with pwsh ABSENT from the image.
+RUN set -eu; \
+    adk gobbonet --ui /opt/gobbonet --port 8080 --no-open >/tmp/gobbonet.log 2>&1 & \
+    ok=0; \
+    for i in $(seq 1 40); do \
+        code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/chat.html || echo 000); \
+        if [ "$code" = "200" ]; then ok=1; break; fi; \
+        sleep 2; \
+    done; \
+    if [ "$ok" != "1" ]; then \
+        echo 'GobboNet did not serve chat.html — the image would ship a UI that never starts'; \
+        cat /tmp/gobbonet.log; \
+        exit 1; \
+    fi; \
+    curl -sf -o /dev/null http://127.0.0.1:8080/js/24-boot.js || { \
+        echo 'chat.html served but its scripts did not — a blank page for the user'; exit 1; }; \
+    echo 'gobbonet: serves chat.html and its assets'
+# ═══════════════════════════════════════════════════════════════════════════════
+# awnix-full — every aw* package there is
+#
+# Build: podman build -t awnix-full:latest -f Containerfile.awnix-full .
+#        (requires awnix-base:latest)
+# Licence: Apache-2.0, same as the packages it carries.

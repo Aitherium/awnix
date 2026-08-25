@@ -1,0 +1,89 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# AitherOS Bootc — Base Layer
+# awnix + Podman Compose + Cockpit + Ollama + the AitherOS service account
+#
+# Build: podman build -t aitheros-bootc-base:latest -f Containerfile.base .
+#        (requires awnix-base:latest — `build_awnix_images.py --layer base`)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# 🚨 THIS LAYER IS BUILT ON awnix, AND UNTIL 2026-08-21 IT WAS NOT.
+#
+# Both this chain and awnix started `FROM quay.io/centos-bootc/centos-bootc:stream9`
+# and installed an overlapping set of packages, so there were TWO parallel bootc
+# stacks from one upstream base that shared nothing. That directly contradicted
+# awnix's own documented layering, which is written into Containerfile.awnix:
+#
+#     awnix        immutable OS + the seven aw tools      <- capabilities
+#       +awdk      three lines in a Dockerfile            <- the bare agent VM
+#         +yours   skills, packs, credentials
+#
+# The point of that shape is that CAPABILITIES live in the base, so you can swap
+# the agent and keep the guarantees. A parallel chain gets none of it: the
+# appliance had no aw* tools at all, and every awnix fix had to be made twice or
+# (in practice) once and forgotten.
+#
+# What this layer no longer does, because awnix already does it: cloud-init,
+# podman/buildah/skopeo/crun, slirp4netns, fuse-overlayfs, curl, git, jq,
+# storage.conf, and python3.11. Removing those is the whole diff — nothing here
+# is dropped, it is inherited.
+FROM localhost/awnix-base:latest
+
+# podman-compose lives in EPEL, not the stream9 bootc base repos. Measured
+# 2026-08-19: this build failed with "Unable to find a match: podman-compose",
+# which is why no bootc base image had ever been produced here -- and so why
+# no ISO or AMI ever had either. It cannot simply be dropped: the appliance's
+# own control plane calls it (aitheros-ctl.sh, aitheros-update.sh) and the
+# ansible playbook lists it, so removing it moves the failure from build time
+# to the customer's first `aitheros-ctl build`.
+RUN dnf install -y --setopt=install_weak_deps=False epel-release || \
+    dnf install -y --setopt=install_weak_deps=False \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+
+# `python3`/`python3-pip` is the SYSTEM 3.9, kept deliberately alongside awnix's
+# 3.11: Containerfile.aitheros runs `pip3 install pyyaml`, and dnf itself depends
+# on the system interpreter. awnix adds 3.11 because the aw* tools require >=3.10;
+# it does not replace 3.9, and neither does this.
+RUN dnf install -y --setopt=install_weak_deps=False \
+        podman-compose \
+        wget openssl \
+        firewalld \
+        cockpit cockpit-podman cockpit-storaged \
+        python3 python3-pip \
+        systemd-container \
+        policycoreutils-python-utils \
+        bash-completion man-pages \
+    && dnf clean all
+
+# Create aither user (the appliance's service account — awnix deliberately has
+# no account of its own, which is why this belongs here and not one layer down)
+RUN useradd -m -G wheel -s /bin/bash -c "AitherOS Service Account" aither && \
+    loginctl enable-linger aither 2>/dev/null || true
+
+# Rootless subuid/subgid for that account. awnix ships storage.conf; this adds
+# only the mapping for the user it just created.
+RUN echo "aither:100000:65536" >> /etc/subuid && \
+    echo "aither:100000:65536" >> /etc/subgid
+
+# Create directory tree
+RUN mkdir -p /var/lib/aitheros/{library,secrets,models,memory,training,redis,postgres,strata,backups,output,minio,knowledge,graphs,sessions} && \
+    mkdir -p /var/log/aitheros /etc/aither/secrets /opt/aitheros && \
+    chown -R aither:aither /var/lib/aitheros /var/log/aitheros /opt/aitheros /etc/aither && \
+    chmod 700 /etc/aither/secrets
+
+# Install Ollama
+RUN curl -fsSL https://ollama.com/install.sh | sh
+
+# Enable base services
+RUN systemctl enable cockpit.socket && \
+    systemctl enable firewalld && \
+    systemctl enable ollama
+
+# Firewall zone
+RUN firewall-offline-cmd --new-zone=aitheros 2>/dev/null || true && \
+    for port in 3000 8001 8080 8081 8082 8090 8111 8121 8136 8139 9090; do \
+        firewall-offline-cmd --zone=aitheros --add-port=${port}/tcp 2>/dev/null || true; \
+    done
+
+LABEL com.aitheros.layer="base" \
+      com.aitheros.base="awnix" \
+      com.aitheros.description="AitherOS bootc base — awnix + Podman Compose + Cockpit"

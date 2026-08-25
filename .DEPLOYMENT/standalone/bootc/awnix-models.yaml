@@ -1,0 +1,119 @@
+# awnix model catalogue — what a booted box may fetch, and from where.
+#
+# Config, not code. Adding a model is an entry here; nothing in the serve script or the
+# image changes. That is the AitherZero shape and it is the point: the previous version
+# hardcoded ONE model (Bonsai-27B, 6833 MB) directly in a shell script, so "run something
+# smaller" or "run one of our own models" meant editing the launcher.
+#
+# THE DEFAULT IS BONSAI AND ONLY BONSAI. The fleet models below are real and reachable,
+# and they are opt-in: they are ours, several are 5-20 GB, and a first boot should not
+# pull one because it happened to be listed. Choose with `--model <id>` or BONSAI_SIZE /
+# AWNIX_MODEL.
+#
+# SIZES ARE MEASURED, NOT ESTIMATED. Every size_mb below was read from the actual artifact
+# on 2026-08-21 (HTTP 200 + content-length, or the release asset list). A catalogue that
+# guesses is worse than none: the selector sizes a model against real memory, so a wrong
+# number is a wrong OOM.
+
+version: 1
+
+sources:
+  huggingface:
+    kind: direct
+    base: "https://huggingface.co/prism-ml/"
+    # Public, no credential. The proven lane -- AitherVeil's own install-bonsai.sh has
+    # fetched from here live.
+  aitherkvcache:
+    kind: github-release
+    repo: "Aitherium/aitherkvcache"
+    base: "https://github.com/Aitherium/aitherkvcache/releases/download/"
+    # OUR mirror. Assets are split into ~1811 MB `.partN` slices because a GitHub release
+    # asset is capped at 2 GiB -- the same wall the awnix ISO hit. Anything with
+    # `parts:` is concatenated back in order before use, and the join is verified
+    # against sha256 when one is recorded.
+
+# ── the default ladder ──────────────────────────────────────────────────────────────
+# Bonsai only. The selector takes the LARGEST whose weights fit HALF the detected
+# budget -- half because llama.cpp needs room for the KV cache and context on top, and
+# a model that loads then dies mid-generation is worse than one that never loaded.
+defaults:
+  ladder: [bonsai-1.7b, bonsai-4b, bonsai-8b, bonsai-27b]
+  # A deliberate floor: below this, refuse and say so rather than thrashing swap.
+  min_budget_mb: 900
+
+models:
+  bonsai-1.7b:
+    source: huggingface
+    path: "Ternary-Bonsai-1.7B-gguf/resolve/main/Ternary-Bonsai-1.7B-Q2_0.gguf"
+    file: "Ternary-Bonsai-1.7B-Q2_0.gguf"
+    size_mb: 441
+    quant: Q2_0
+    note: "Runs on a phone-class GPU or plain CPU. The floor of the ladder."
+
+  bonsai-4b:
+    source: huggingface
+    path: "Ternary-Bonsai-4B-gguf/resolve/main/Ternary-Bonsai-4B-Q2_0.gguf"
+    file: "Ternary-Bonsai-4B-Q2_0.gguf"
+    size_mb: 1025
+    quant: Q2_0
+    note: "The 4 GB-card model — a GTX 1050 Ti lands here."
+
+  bonsai-8b:
+    source: huggingface
+    path: "Ternary-Bonsai-8B-gguf/resolve/main/Ternary-Bonsai-8B-Q2_0.gguf"
+    file: "Ternary-Bonsai-8B-Q2_0.gguf"
+    size_mb: 2081
+    quant: Q2_0
+
+  bonsai-27b:
+    source: huggingface
+    path: "Ternary-Bonsai-27B-gguf/resolve/main/Ternary-Bonsai-27B-Q2_0.gguf"
+    file: "Ternary-Bonsai-27B-Q2_0.gguf"
+    size_mb: 6833
+    quant: Q2_0
+    note: "Wants ~14 GB to be comfortable. Was the unconditional default until 2026-08-21."
+
+  # ── the fleet models: OPT-IN, never reached by the default ladder ─────────────────
+  # Real, measured, and ours. Listed so a booted box can run what the fleet runs without
+  # anyone re-deriving a URL -- not so a first boot pulls 20 GB unasked.
+  orchestrator:
+    source: aitherkvcache
+    release: "fleet-orchestrator-q4"
+    file: "aither-orchestrator-Q4_K_M.gguf"
+    parts: 3
+    size_mb: 4792
+    quant: Q4_K_M
+    opt_in: true
+    note: "The fleet's general executor."
+
+  gemma4-12b:
+    source: aitherkvcache
+    release: "fleet-gemma4-12b-q4"
+    file: "gemma4-12b-Q4_K_M.gguf"
+    parts: 5
+    size_mb: 7303
+    quant: Q4_K_M
+    opt_in: true
+    note: "Dense 12B."
+
+  qwen36-27b:
+    source: aitherkvcache
+    release: "fleet-qwen36-27b-q4"
+    file: "qwen36-27b-Q4_K_M.gguf"
+    parts: 5
+    size_mb: 9055
+    quant: Q4_K_M
+    opt_in: true
+
+  deepseek-v4-flash:
+    source: aitherkvcache
+    release: "fleet-deepseek-v4flash-iq2m"
+    file: "DeepSeek-V4-Flash-0731-UD-IQ2_M-00002-of-00003.gguf"
+    parts: 12
+    size_mb: 21732
+    quant: UD-IQ2_M
+    opt_in: true
+    note: >-
+      Sharded 00001-of-00003 .. 00003-of-00003, and the middle shard is itself split
+      into 12 parts. Large; measured 18.2 tok/s on the fleet and COMPUTE-bound rather
+      than bandwidth-bound, so a small GPU does not rescue it.

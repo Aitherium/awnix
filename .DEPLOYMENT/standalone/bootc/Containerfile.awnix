@@ -1,0 +1,295 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# awnix — the public OS layer
+# A Linux you can hand to an agent: immutable base, capabilities included.
+#
+# NOT Containerfile.base. That file is the AitherOS *commercial appliance*
+# base (Ollama, Cockpit, a 272-port firewall, an `aither` service account) —
+# awnix is the opposite by design: "No services. No agent. No account."
+# (AitherOS/config/ecosystem.yaml, awnix entry). Capabilities go in the base
+# (the twelve aw* tools below); the AGENT layers on top separately (three
+# lines in a Dockerfile — see the agent-runner layer this base is built for).
+# Putting the agent in the base instead would mean swapping agents loses
+# every guarantee the base provides.
+#
+# Build: podman build -t awnix-base:latest -f Containerfile.awnix .
+# Licence: Apache-2.0 (same as all twelve aw* packages this image bakes in —
+# see AitherOS/config/awnix_boundary.yaml for the precedent reasoning).
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM quay.io/centos-bootc/centos-bootc:stream9
+
+# IMPORT THE SIGNING KEY BEFORE ANY dnf, and do not disable the check.
+#
+# Measured 2026-08-21 on the AWS build lane: the python3.11 step failed with
+#   Public key for python3.11-3.11.13-10.el9.x86_64.rpm is not installed
+#   GPG Keys are configured as: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+#   Error: GPG check FAILED
+# The repo config points at a key the rpm database has not imported, so dnf downloads
+# every package successfully and then refuses all of them.
+#
+# Placed HERE rather than at the failing step: this file has three dnf installs and
+# runner-ai has another. Only one failed, which invites fixing that one -- and then the
+# next repo needing the same key fails later, at a step that looks unrelated. One
+# import before the first install covers every subsequent layer, because the rpm
+# database persists across them.
+#
+# `--nogpgcheck` would make this green in one character and is the wrong fix: awnix is
+# an operating system people BOOT, and disabling signature verification while building
+# it leaves the shipped image's provenance resting on nothing. Import the key already
+# on disk instead -- same trust root, actually checked.
+#
+# `|| true`: a base image that has ALREADY imported it is not an error. If the import
+# genuinely failed, the installs below still fail the GPG check -- loudly and for the
+# right reason -- so this cannot mask the thing it exists to fix.
+RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial || true
+
+# cloud-init is what makes a key-only box reachable on AWS/Hetzner/etc — it
+# injects the launch keypair. Same reasoning as Containerfile.base (D-2070):
+# no password AND no key path is unreachable, not secure.
+RUN dnf install -y --setopt=install_weak_deps=False cloud-init \
+    && systemctl enable cloud-init cloud-init-local cloud-config cloud-final \
+    && dnf clean all
+
+# Rootless podman only. No --privileged anywhere in this image, no NOPASSWD
+# sudoers entry of any kind baked in here — see the security note in the
+# awrun plan's Phase 15/16: docker/podman-group-equivalent-to-root and
+# blanket NOPASSWD sudo are the same hole with extra steps, and awnix's own
+# "no agent, no account" philosophy is the wrong place to compromise on it.
+RUN dnf install -y --setopt=install_weak_deps=False \
+        podman buildah skopeo crun \
+        slirp4netns fuse-overlayfs \
+        git curl jq unzip \
+    && dnf clean all
+
+# CentOS Stream 9's DEFAULT `python3` is 3.9.25 (kept old on purpose — it's
+# the system python dnf/yum depend on, never touch it). All twelve aw* tools
+# declare `requires-python >= 3.10` (measured live 2026-08-20: pip on 3.9
+# reports "Could not find a version that satisfies the requirement awgit
+# (from versions: none)" even though the PyPI index answers fine — every
+# candidate wheel is silently filtered by the python-version constraint, and
+# pip's error names no version rather than the real cause). RHEL/CentOS 9
+# ships python3.11 as an ADDITIONAL package for exactly this case.
+RUN dnf install -y --setopt=install_weak_deps=False python3.11 python3.11-pip \
+    && dnf clean all
+
+# ── PowerShell 7 and AitherZero, in the BASE ────────────────────────────────
+#
+# Owner decision 2026-08-21: pwsh 7 by DEFAULT, everywhere -- local, cloud and
+# every automation. Every image in this family derives from this file
+# (awnix-full, awnix-runner, awnix-runner-ai, base -> desktop -> gpu-nvidia ->
+# aitheros), so installing it here is the only place that means ALL of them.
+# It was briefly added to awnix-full alone, which would have left the runner
+# and appliance lines without it and made 'pwsh is available' true in one
+# variant and false in the rest -- the kind of difference nobody notices until
+# a script runs on the wrong box.
+#
+# AitherZero is a PowerShell 7 module (PowerShellVersion = '7.0'), so it cannot
+# be here without pwsh; the two arrive together or not at all. Installed to the
+# shared module path so `Import-Module AitherZero` resolves with no profile
+# edit and no PSModulePath juggling -- a repo root on PSModulePath is its own
+# documented tax.
+#
+# Both PINNED: an image that resolves differently on every rebuild is not
+# immutable, which is the property awnix sells. The RPM URL is verified to
+# exist before pinning rather than guessed -- a 404 here fails the build long
+# after it started.
+ARG PWSH_VERSION=7.4.6
+# ARCH-AWARE, and NOT by parameterising the RPM URL — which is the obvious fix
+# and a broken one. The base image is genuinely multi-arch (verified 2026-08-23:
+# quay.io/centos-bootc/centos-bootc:c9s publishes linux/amd64, linux/arm64,
+# ppc64le and s390x), so this RPM line was the only thing pinning awnix to
+# x86_64. But PowerShell publishes **no aarch64 RPM**: measured for 7.4.6,
+#   powershell-7.4.6-1.rh.x86_64.rpm    -> 200
+#   powershell-7.4.6-1.rh.aarch64.rpm   -> 404
+#   powershell-7.4.6-1.rh.arm64.rpm     -> 404
+#   powershell-7.4.6-linux-arm64.tar.gz -> 200
+# so `s/x86_64/${TARGETARCH}/` produces a 404 that fails the build long after it
+# started — the exact failure this block's own comment warns about. arm64 takes
+# the tarball instead.
+#
+# x86_64 keeps the RPM path unchanged on purpose: it is the verified, pinned,
+# shipping path, and rewriting it to the tarball for symmetry would risk the
+# only build that currently works in order to tidy the one that does not.
+ARG TARGETARCH
+RUN set -eux; \
+    case "${TARGETARCH:-amd64}" in \
+      amd64|x86_64) \
+        dnf install -y --setopt=install_weak_deps=False \
+          "https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/powershell-${PWSH_VERSION}-1.rh.x86_64.rpm" \
+        && dnf clean all ;; \
+      arm64|aarch64) \
+        dnf install -y --setopt=install_weak_deps=False tar gzip libicu openssl-libs \
+        && dnf clean all \
+        && mkdir -p /opt/microsoft/powershell/7 \
+        && curl -fsSL -o /tmp/pwsh.tar.gz \
+             "https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/powershell-${PWSH_VERSION}-linux-arm64.tar.gz" \
+        && tar zxf /tmp/pwsh.tar.gz -C /opt/microsoft/powershell/7 \
+        && rm -f /tmp/pwsh.tar.gz \
+        && chmod +x /opt/microsoft/powershell/7/pwsh \
+        && ln -sf /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh ;; \
+      *) echo "awnix: unsupported TARGETARCH '${TARGETARCH}'" >&2; exit 1 ;; \
+    esac; \
+    pwsh --version
+
+# From the published RELEASE, not a clone of the repo's default branch.
+#
+# `Aitherium/AitherZero` is a CURATED PARTIAL mirror: its own SYNC-MANIFEST.yaml
+# syncs `library/automation-scripts` for seven safe categories and nothing else,
+# so the tree carries no `AitherZero.psd1` and no `.psm1` ANYWHERE -- measured,
+# not assumed. Cloning it into a Modules directory produces a directory that is
+# not a module, and the next line dies with "no valid module file was found in
+# any module directory".
+#
+# This image did exactly that until the layers were RUN against the real base.
+# Every cheap signal was green: the repo exists, the clone succeeds, the layer
+# is well-formed, and the module imports fine on a developer machine -- from a
+# copy of the PRIVATE monorepo tree installed there, which is not what this
+# image would have had. Reading the Containerfile cannot see it, and checking
+# that the URL resolves cannot see it. Only building it can.
+#
+# The release zip carries AitherZero.psd1 and AitherZero.psm1 at its ROOT, which
+# is what a PowerShell module directory has to look like. It is public,
+# versioned and pinnable -- a branch is none of those.
+ARG AITHERZERO_VERSION=2.3.5
+RUN curl -fsSL -o /tmp/aitherzero.zip \
+        "https://github.com/Aitherium/AitherZero/releases/download/v${AITHERZERO_VERSION}/AitherZero-${AITHERZERO_VERSION}.zip" \
+    && mkdir -p /usr/local/share/powershell/Modules/AitherZero \
+    && unzip -q /tmp/aitherzero.zip -d /usr/local/share/powershell/Modules/AitherZero \
+    && rm -f /tmp/aitherzero.zip
+
+# (An AZ_LINUX_PLUGIN_GUARD sed lived here until 2026-08-22, patching the
+#  published module because every release up to 2.3.4 failed to import on
+#  any host with no plugins directory. v2.3.5 carries the fix -- verified
+#  importing UNPATCHED in this base image -- so the patch is gone with the
+#  pin above. Re-pinning BELOW 2.3.5 reintroduces the bug; the
+#  Import-Module assertion below is what will tell you.)
+
+# Assert it IMPORTS, not merely that files landed. A module that unpacked and a
+# module that loads are different facts, and the difference otherwise shows up
+# on the user's machine at the moment they reach for it.
+RUN pwsh -NoProfile -Command "Import-Module AitherZero -ErrorAction Stop; \
+    (Get-Module AitherZero).Version.ToString()"
+
+COPY storage.conf /etc/containers/storage.conf
+
+# The aw* tools — installed from PyPI (the real, published packages), never
+# COPYed from the monorepo. Copying source would couple a public, forkable
+# base image to our tree; pip installing the same artifact anyone else gets
+# is what "standalone" means (aw-family doctrine: "Client, not lift").
+# ecosystem.yaml's own awrecover entry documents `pip install awrecover` as
+# the real install command — that claim was checked live 2026-08-20 and is
+# CURRENTLY FALSE for 2 of the 7: `awrecover` and `awseal` both 404 on
+# PyPI (awgit, awgraph, awrelay, awm, awshare are all real, HTTP 200).
+# Installing only what's actually published — per this codebase's own
+# "absent is a status, not an omission" doctrine (aw-family.md) — rather
+# than silently dropping the gap or blocking the whole build on it.
+RUN python3.11 -m pip install --no-cache-dir \
+        awgit awgraph awrelay awm awshare
+
+# ...and the two that are NOT on PyPI, from source. That TODO is now closed.
+#
+# The gap was never readiness. PyPI caps how many projects an account may create and
+# we ran out of slots, so `awrecover` and `awseal` 404 on the index while being
+# perfectly real, with public repos at github.com/Aitherium (both verified 200 on
+# 2026-08-21). Reading that 404 as 'not ready yet' is what left this image shipping
+# FIVE of the seven aw* tools while its own LABEL below claims seven.
+#
+# Pinned to a branch rather than floating on a default: an image that resolves
+# differently on every rebuild is not immutable, which is the one property awnix
+# sells. Bump these deliberately.
+#
+# `git` is installed above, so a git+https target resolves without another layer.
+RUN python3.11 -m pip install --no-cache-dir \
+        "git+https://github.com/Aitherium/awrecover.git@main" \
+        "git+https://github.com/Aitherium/awseal.git@main"
+
+# ── the senses, plus the two that guard and wake things ─────────────────────────────
+#
+# awvoice (hear/speak), awvision (see an image), awscreen (see this machine),
+# awwall (egress allowlist, fail-closed) and awrise (wake on a schedule). Built
+# 2026-08-24 and mirrored the same day.
+#
+# Same git+https shape and the same reason as the two above: PyPI caps how many
+# projects an account may create, these have no slot, so the index 404s while the
+# code is real and the repos are public.
+#
+# WHY THESE FIVE AND NOT A LONGER LIST. An image that installs a tool nobody can
+# reach is the failure this file already records about ITSELF -- it shipped FIVE of
+# seven while claiming seven. So the rule is: a name goes in this block only once
+# its repo answers an UNAUTHENTICATED clone. All five were cloned and their
+# pyproject.toml confirmed BEFORE this line was written. A private repo answers 404
+# to that clone exactly like a repo that does not exist, and the build then dies
+# ~15 minutes in with a message naming neither cause.
+#
+# Asserted now, not just described: AitherOS/dev/tools/check_awnix_ships_claim.py
+# ANS001 compares the count this file ADVERTISES against the count it INSTALLS, and
+# ANS002 --online checks every target here still resolves. Add a name here and the
+# "aw* tools" count in the comments must move with it, or the gate says so.
+#
+# Pinned to @main deliberately, like the two above: an image that resolves
+# differently on every rebuild is not immutable, which is the one property awnix
+# sells.
+RUN python3.11 -m pip install --no-cache-dir \
+        "git+https://github.com/Aitherium/awvoice.git@main" \
+        "git+https://github.com/Aitherium/awvision.git@main" \
+        "git+https://github.com/Aitherium/awscreen.git@main" \
+        "git+https://github.com/Aitherium/awrise.git@main" \
+        "git+https://github.com/Aitherium/awwall.git@main"
+
+# ── first-boot setup ────────────────────────────────────────────────────────────────
+# The thing that turns "an image that builds" into "an OS someone can install": the
+# questions every Linux asks after install -- hostname, which optional components, and
+# whether to link this box to a fleet. All three are declinable, because awnix's whole
+# posture is "No services. No agent. No account." and a setup that demanded an account
+# to finish would contradict the product.
+#
+# The component menu is PROBED at runtime, never printed from a hardcoded list.
+# Measured 2026-08-21: only 10 of the 26 aw* packages in the monorepo are on PyPI, and
+# the missing ones (awrun, awtunnel, awiam, awseal, awrecover...) sound exactly as real
+# as the present ones. A first-boot menu offering a `pip install` that 404s is the worst
+# possible place for the ONB003 class -- it is the user's first five minutes with the OS.
+COPY awnix-setup.py /usr/bin/awnix-setup
+COPY awnix-setup.service /usr/lib/systemd/system/awnix-setup.service
+RUN chmod 0755 /usr/bin/awnix-setup     && systemctl enable awnix-setup.service
+
+# ── identity ────────────────────────────────────────────────────────────────────────
+# Booted in WSL2 on 2026-08-21 and it said `PRETTY_NAME="CentOS Stream 9"`. True about
+# the lineage and useless as identity: nothing a user or a script reads said awnix, so
+# `bootc status`, a support question and any telemetry all name the upstream rather than
+# what was installed.
+#
+# /usr/lib/os-release, NOT /etc: in this image /etc/os-release is a symlink to it
+# (verified live). Writing /etc/ would replace the symlink with a second file that can
+# then disagree with the first.
+#
+# 🚨 ID STAYS `centos`. Setting ID=awnix broke the ISO build outright:
+# bootc-image-builder resolves its distro definition from ID + VERSION_ID
+# ("could not find def file for distro awnix-9"), has no --distro override, and
+# does NOT fall back to ID_LIKE -- that was already set to "centos rhel fedora"
+# and it failed anyway. ID is a toolchain key, not a label. The identity a person
+# sees is NAME and PRETTY_NAME, and those say awnix without breaking the build.
+#
+# VERSION_ID stays "9" and ID_LIKE names the family DELIBERATELY. dnf's $releasever,
+# package scripts and ansible's os_family all key on those; an awnix-flavoured
+# VERSION_ID would be truthful about us and wrong for every consumer that uses it to
+# resolve a repository.
+RUN . /usr/lib/os-release \
+    && printf '%s\n' \
+        'NAME="awnix"' \
+        'ID=centos' \
+        'ID_LIKE="centos rhel fedora"' \
+        'VERSION="9 (awnix)"' \
+        'VERSION_ID="9"' \
+        'PLATFORM_ID="platform:el9"' \
+        'PRETTY_NAME="awnix (built on CentOS Stream 9)"' \
+        'ANSI_COLOR="0;36"' \
+        'HOME_URL="https://github.com/Aitherium/awnix"' \
+        'DOCUMENTATION_URL="https://github.com/Aitherium/awnix"' \
+        'BUG_REPORT_URL="https://github.com/Aitherium/awnix/issues"' \
+        'AWNIX_BUILT_ON="${PRETTY_NAME}"' \
+        > /usr/lib/os-release.new \
+    && mv /usr/lib/os-release.new /usr/lib/os-release \
+    && grep -q '^NAME="awnix"$' /usr/lib/os-release
+
+LABEL com.aitheros.layer="awnix-base" \
+      com.aitheros.description="awnix — immutable Linux + the twelve aw* tools, no services/agent/account" \
+      org.opencontainers.image.licenses="Apache-2.0"

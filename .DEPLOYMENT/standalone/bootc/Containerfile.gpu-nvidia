@@ -1,0 +1,28 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# AitherOS Bootc — GPU Layer (NVIDIA)
+# Adds NVIDIA drivers + Container Toolkit + CDI for GPU inference
+#
+# Build: podman build -t aitheros-bootc-gpu:latest -f Containerfile.gpu-nvidia .
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM localhost/aitheros-bootc-desktop:latest
+
+# NVIDIA driver repo
+RUN dnf config-manager --add-repo \
+        https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo && \
+    dnf install -y --setopt=install_weak_deps=False \
+        nvidia-driver nvidia-driver-cuda \
+        cuda-toolkit \
+    && dnf clean all
+
+# NVIDIA Container Toolkit
+RUN curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo \
+        | tee /etc/yum.repos.d/nvidia-container-toolkit.repo && \
+    dnf install -y nvidia-container-toolkit && \
+    dnf clean all
+
+# Generate CDI spec (will be regenerated on boot with actual hardware)
+RUN mkdir -p /etc/cdi && \
+    nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml 2>/dev/null || true
+
+LABEL com.aitheros.layer="gpu-nvidia" \
+      com.aitheros.description="AitherOS bootc GPU — NVIDIA drivers + CDI"

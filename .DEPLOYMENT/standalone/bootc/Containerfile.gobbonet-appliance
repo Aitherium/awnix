@@ -1,0 +1,202 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# gobbonet-appliance — GobboNet as the face, awdk underneath, models already there
+#
+# Build: podman build -t gobbonet-appliance:latest -f Containerfile.gobbonet-appliance .
+#        (requires awnix-runner-ai:latest)
+# Licence: Apache-2.0 for the OS and the aw* stack. GobboNet is its author's, under
+#          its own licence; this image ships it unmodified from its repo.
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# WHY THIS IS NOT awnix-full, AND NOT awnix-ai.
+#
+#   awnix-ai    has llama.cpp and the model catalogue, and no UI at all.
+#   awnix-full  has the whole aw* stack and GobboNet, and NO INFERENCE -- it is
+#               FROM awnix-base, so nothing in it can answer a prompt without an
+#               external backend.
+#
+# A self-contained appliance needs both halves, which is why this starts from
+# runner-ai and adds the stack rather than the other way round. Neither existing
+# variant is one command away from this.
+#
+# It is also deliberately NOT the aitheros variant. That one carries the Living
+# Desktop, Cockpit, the 272-service platform and the control plane, is INTERNAL,
+# and must never reach a public registry (awnix-variants.yaml states the refusal;
+# check_awnix_variants.py enforces it). This image is the opposite intent: one
+# app, its runtime, and the tools to extend it.
+FROM localhost/awnix-runner-ai:latest
+
+# ── the aw* stack ──────────────────────────────────────────────────────────────
+# The base already carries the seven. These are the rest of the PUBLISHED ones,
+# the same set awnix-full installs from PyPI -- kept identical on purpose, so the
+# two images cannot disagree about what "the stack" means.
+#
+# python3.11, never the system python3 (3.9): every aw* package declares
+# requires-python >= 3.10, and under 3.9 pip silently filters every candidate
+# wheel and then reports "no version satisfies" naming no real cause.
+#
+# awdk[memory] rather than bare awdk. `memory` pulls awm, which is what the
+# gobbonet pack stores campaign notes in -- without it `adk gobbonet` runs and
+# every scoped-memory tool degrades to nothing, which reads as the feature being
+# switched off rather than absent.
+RUN python3.11 -m pip install --no-cache-dir \
+        "awdk[memory]" awnode awprism awreason awrecurse awrepl awsync \
+    && python3.11 -c "import adk, awm" \
+    && python3.11 -m adk.cli --help >/dev/null 2>&1 || true
+
+# ── the models, BAKED ──────────────────────────────────────────────────────────
+# awnix-ai deliberately bakes nothing: "a 27B is larger than the whole ISO". That
+# is true of the 27B and false of the bottom of the ladder, and the difference
+# decides whether a first boot can answer at all.
+#
+#   bonsai-1.7b    441 MB   phone-class GPU or plain CPU
+#   bonsai-4b     1025 MB   the 4 GB-card model
+#   bonsai-27b    6833 MB   NOT baked -- fetched on first use, sized to the box
+#
+# ~1.5 GB buys an appliance that boots with no network and answers immediately.
+# serve-awnix-bonsai.sh guards its fetch with `[ ! -s "$GGUF" ]`, so a baked file
+# is used as-is and nothing is re-downloaded.
+#
+# SIZE IS VERIFIED, NOT ASSUMED. awnix-models.yaml's header says a catalogue that
+# guesses is worse than none, because the selector sizes a model against real
+# memory. The same applies to a bake: a truncated GGUF is not a failed build, it
+# is an image that ships and then fails to load a model, which reads as a bad
+# model rather than a bad download. A 10% floor rather than an exact match --
+# these are re-quantised occasionally and a slightly different byte count is not
+# a corrupt file, while a proxy serving an error page is nowhere near.
+ARG BONSAI_BASE=https://huggingface.co/prism-ml
+RUN set -eu; \
+    mkdir -p /opt/bonsai/models; \
+    for spec in \
+        "Ternary-Bonsai-1.7B-gguf/resolve/main/Ternary-Bonsai-1.7B-Q2_0.gguf|Ternary-Bonsai-1.7B-Q2_0.gguf|441" \
+        "Ternary-Bonsai-4B-gguf/resolve/main/Ternary-Bonsai-4B-Q2_0.gguf|Ternary-Bonsai-4B-Q2_0.gguf|1025" \
+    ; do \
+        path="${spec%%|*}"; rest="${spec#*|}"; file="${rest%%|*}"; want_mb="${rest#*|}"; \
+        echo "baking $file (~${want_mb} MB)"; \
+        curl -fL --retry 3 --retry-delay 5 -o "/opt/bonsai/models/$file.part" \
+             "$BONSAI_BASE/$path"; \
+        got=$(stat -c%s "/opt/bonsai/models/$file.part"); \
+        floor=$(( want_mb * 1024 * 1024 * 9 / 10 )); \
+        if [ "$got" -lt "$floor" ]; then \
+            echo "$file is ${got}B, under the ${floor}B floor for a ~${want_mb}MB model -- refusing to bake a truncated model" >&2; \
+            exit 1; \
+        fi; \
+        mv "/opt/bonsai/models/$file.part" "/opt/bonsai/models/$file"; \
+    done; \
+    ls -lh /opt/bonsai/models/
+
+# ── make the inference backends findable ───────────────────────────────────────
+# Without this the appliance ships a model it CANNOT LOAD:
+#
+#   llama_model_load_from_file_impl: no backends are loaded
+#
+# ggml finds its backends by scanning the directory of the running executable.
+# llama-server must be started through the bundled loader (its libstdc++ needs
+# GLIBCXX_3.4.30 and the OS tops out at 3.4.29; LD_LIBRARY_PATH cannot fix it
+# because the bundled libstdc++ then needs a newer glibc than the OS has --
+# measured, it fails on GLIBC_ instead). Through an explicit loader the running
+# executable IS the loader, so the scan looks in /opt/bonsai/lib and the fourteen
+# libggml-*.so next to the binary are never seen.
+#
+# Symlinking them beside the loader lets that scan succeed and lets llama.cpp
+# pick the CPU variant for the actual machine, which is the whole reason it ships
+# fourteen. Pinning one (GGML_BACKEND_PATH names a single FILE; a colon-list does
+# not work) would boot on this box and fail on an older one.
+#
+# serve-awnix-bonsai.sh now does the same thing for the awnix-ai variant, which
+# had the identical defect. This stays here because this image is built on the
+# runner-ai image as it exists TODAY, which predates that fix; it becomes
+# redundant once runner-ai is rebuilt, and it is idempotent either way.
+RUN set -eu; \
+    BIN=$(find /opt/bonsai/bin -name llama-server -type f | head -1); \
+    D=$(dirname "$BIN"); \
+    n=0; \
+    for so in "$D"/libggml*.so*; do \
+        [ -e "$so" ] || continue; \
+        ln -sf "$so" "/opt/bonsai/lib/$(basename "$so")"; \
+        n=$((n+1)); \
+    done; \
+    [ "$n" -gt 0 ] || { echo "no libggml backends found beside $BIN" >&2; exit 1; }; \
+    echo "linked $n backend object(s) beside the loader"
+
+# ── GobboNet ───────────────────────────────────────────────────────────────────
+# GOBBONET_REPO is an ARG for one reason, and it is the whole point of the
+# collaboration: today this must clone our fork, because upstream cannot start in
+# an image without an overridable listen port, a loopback fallback when the LAN
+# bind wants Administrator, a health probe that recognises an OpenAI-compatible
+# backend, and a model name not hardcoded to llama-server's one-model assumption.
+# Those are open PRs. The day they land, this becomes
+#   --build-arg GOBBONET_REPO=https://github.com/ElodineOfficial/GobboNet.git
+# and the appliance builds from THEIR repo -- at which point it stops being our
+# image containing their app and becomes their appliance.
+ARG GOBBONET_REPO=https://github.com/wizzense/GobboNet.git
+ARG GOBBONET_REF=main
+RUN git clone --depth 1 --branch "${GOBBONET_REF}" "${GOBBONET_REPO}" /opt/gobbonet \
+    && rm -rf /opt/gobbonet/.git \
+    && test -f /opt/gobbonet/chat.html \
+    && test -d /opt/gobbonet/js
+
+# ── prove it, rather than hope ─────────────────────────────────────────────────
+# A tree that copied and a server that runs are different facts, and the
+# difference only shows up on the user's machine. This asserts the three things
+# that make the image what it claims to be:
+#
+#   1. the UI serves -- chat.html AND its scripts, because a 200 on the page with
+#      404s on js/ is a blank screen, not a working app;
+#   2. the weights are really here and really loadable-sized, so "boots offline"
+#      is a measured claim;
+#   3. the agent layer imports -- `adk gobbonet` is the launcher AND the pack that
+#      gives characters scoped memory, so an image where awdk is broken ships a
+#      chat window and calls itself an agent platform.
+#
+# Started through `adk gobbonet`, not a PowerShell launcher: it is the same
+# command a stranger runs on their own machine, so this image is not a second way
+# of starting the app that only we can debug.
+RUN set -eu; \
+    test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf; \
+    test -s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf; \
+    python3.11 -c "from adk.packs.gobbonet import campaign_memory, cards, retrieval; print('gobbonet pack ok')"; \
+    adk gobbonet --ui /opt/gobbonet --port 8080 --no-open >/tmp/gobbonet.log 2>&1 & \
+    ok=0; \
+    for i in $(seq 1 40); do \
+        code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/chat.html || echo 000); \
+        if [ "$code" = "200" ]; then ok=1; break; fi; \
+        sleep 2; \
+    done; \
+    if [ "$ok" != "1" ]; then \
+        echo 'GobboNet did not serve chat.html — the image would ship a UI that never starts' >&2; \
+        cat /tmp/gobbonet.log; \
+        exit 1; \
+    fi; \
+    curl -sf -o /dev/null http://127.0.0.1:8080/js/24-boot.js || { \
+        echo 'chat.html served but its scripts did not — a blank page for the user' >&2; exit 1; }; \
+    echo 'gobbonet-appliance: UI serves, weights baked, pack imports'
+
+# The claim is "boots and ANSWERS with no network". Files present, imports
+# resolving and a UI that serves are all compatible with a box that cannot
+# complete a sentence -- which is exactly the state this image was in before the
+# backend symlinks above. So the build loads the baked model and asks it
+# something; if that stops working the image does not ship.
+RUN set -eu; \
+    BIN=$(find /opt/bonsai/bin -name llama-server -type f | head -1); \
+    D=$(dirname "$BIN"); \
+    /opt/bonsai/lib/ld-linux-x86-64.so.2 --library-path "/opt/bonsai/lib:$D" "$BIN" \
+        -m /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf \
+        --host 127.0.0.1 --port 8096 -c 512 >/tmp/llama.log 2>&1 & \
+    up=0; \
+    for i in $(seq 1 45); do \
+        curl -sf -o /dev/null http://127.0.0.1:8096/health 2>/dev/null && { up=1; break; }; \
+        sleep 2; \
+    done; \
+    [ "$up" = "1" ] || { echo "the baked model never became servable" >&2; grep -iE " E " /tmp/llama.log | head -5; exit 1; }; \
+    OUT=$(curl -sf -X POST http://127.0.0.1:8096/v1/chat/completions \
+          -H "Content-Type: application/json" \
+          -d '{"messages":[{"role":"user","content":"Reply with one word: goblin"}],"max_tokens":12,"temperature":0}'); \
+    echo "$OUT" | grep -q '"content"' || { echo "the baked model served no completion" >&2; echo "$OUT" | head -c 300; exit 1; }; \
+    pkill -f llama-server || true; \
+    echo "gobbonet-appliance: the baked model loads and answers"
+
+LABEL org.opencontainers.image.title="gobbonet-appliance" \
+      org.opencontainers.image.description="GobboNet on awnix — immutable Linux, llama.cpp, Bonsai baked in, and awdk for building agents and characters" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      com.aitheros.variant="gobbonet-appliance" \
+      com.aitheros.ui="gobbonet"

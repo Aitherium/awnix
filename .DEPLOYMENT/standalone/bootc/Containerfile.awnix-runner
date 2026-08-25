@@ -1,0 +1,49 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# awnix-runner — a GitHub Actions runner layered on the awnix base
+# "Three lines in a Dockerfile" (ecosystem.yaml awnix entry, line 313):
+# capabilities live in the base, the AGENT (here, the runner service) layers
+# on top, so swapping the agent never costs the base's guarantees.
+#
+# Build: podman build -t awnix-runner:latest -f Containerfile.awnix-runner .
+# (requires awnix-base:latest already built — see Containerfile.awnix)
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM localhost/awnix-base:latest
+
+# 🚨 Security constraint (owner, 2026-08-20): NOT "privileged podman + a
+# service account with blanket NOPASSWD sudo" -- that pairing isn't defense
+# in depth, it's root under two names. This layer runs the GitHub Actions
+# runner as a DEDICATED, NON-ROOT, NAMESPACED user:
+#   - no sudoers entry of any kind for this account (no elevation at all --
+#     a CI job needing root is a job that needs a different image, not a
+#     wider hole in this one);
+#   - no docker/podman-group membership (group membership onto a privileged
+#     socket is root-equivalent, same class of mistake as sudo NOPASSWD:ALL);
+#   - rootless podman via subuid/subgid only, for running CI job containers
+#     without --privileged.
+RUN useradd -m -s /bin/bash -c "GitHub Actions runner (unprivileged)" runner \
+    && loginctl enable-linger runner 2>/dev/null || true \
+    && echo "runner:200000:65536" >> /etc/subuid \
+    && echo "runner:200000:65536" >> /etc/subgid
+
+# Stage the runner binary at BUILD time (public download, no credential
+# needed). Registration happens at FIRST BOOT via cloud-init, same
+# deferred-credential pattern as deploy_aws_runner.py's user-data --
+# NEVER bake a registration token into an image other instances will also
+# boot from.
+ARG RUNNER_VERSION=2.336.0
+RUN mkdir -p /opt/actions-runner && cd /opt/actions-runner \
+    && curl -fsSL -o runner.tar.gz \
+        "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" \
+    && tar xzf runner.tar.gz && rm runner.tar.gz \
+    && chown -R runner:runner /opt/actions-runner
+
+# First-boot registration script. Root (cloud-init) invokes this and drops
+# to the runner user for config.sh/svc.sh -- delegating DOWN from root is
+# fine (same shape as provision_github_runner.sh's existing pattern); the
+# runner account itself is never granted a way back UP.
+COPY --chown=root:root register-awnix-runner.sh /usr/local/sbin/register-awnix-runner.sh
+RUN chmod 755 /usr/local/sbin/register-awnix-runner.sh
+
+LABEL com.aitheros.layer="awnix-runner" \
+      com.aitheros.description="awnix + a non-root, non-privileged GitHub Actions runner" \
+      org.opencontainers.image.licenses="Apache-2.0"
