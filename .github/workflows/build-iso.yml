@@ -1,0 +1,170 @@
+# Build awnix bootable media ON FREE HOSTED RUNNERS, in the public repo.
+#
+# This lane replaces the monorepo's build-awnix-iso.yml + its dedicated AWS box.
+# Everything that made the self-hosted lane hard is simply absent here:
+#   * bootc-image-builder must run as ROOT -- hosted runners have passwordless
+#     sudo, so `sudo python3` gives rootful podman with no session/subuid saga.
+#   * publishing needed a cross-repo PAT that 403'd on REST -- here the release
+#     lands in THIS repo, so the job's own GITHUB_TOKEN with contents:write is
+#     sufficient and there is no second credential to rot.
+#   * the runner pool billed by the hour -- public-repo hosted minutes are free.
+#
+# Inputs (dev/build_awnix_images.py + .DEPLOYMENT/standalone/bootc/) are staged
+# into this repo by the monorepo's sync lane; sources stay canonical there.
+
+name: Build ISO
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: 'Image layer to build'
+        type: choice
+        options: [base, runner, runner-ai, full]
+        default: base
+      iso_type:
+        description: 'Media type'
+        type: choice
+        options: [iso, qcow2, raw]
+        default: iso
+      publish:
+        description: 'Publish the media as a GitHub release'
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths:
+      - '.DEPLOYMENT/standalone/bootc/**'
+      - 'dev/build_awnix_images.py'
+      - '.github/workflows/build-iso.yml'
+
+permissions:
+  contents: write
+
+# A push build never blocks or cancels a deliberate dispatch (they group by
+# event); a newer push supersedes an older one -- same artifact, same branch.
+concurrency:
+  group: build-iso-${{ github.event_name }}-${{ inputs.layer || 'base' }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      # The image layer plus osbuild intermediates plus the ISO need tens of GB
+      # and the stock runner root disk offers ~25GB free. The preinstalled
+      # toolchains nobody here uses are the cheapest space on the machine.
+      - name: Free disk space
+        run: |
+          set -uo pipefail
+          echo "before:"; df -h / | tail -1
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                      /usr/local/.ghcup /opt/hostedtoolcache/CodeQL \
+                      /usr/local/share/boost 2>/dev/null || true
+          sudo docker image prune -af >/dev/null 2>&1 || true
+          echo "after:";  df -h / | tail -1
+
+      - name: Preflight
+        run: |
+          set -euo pipefail
+          sudo podman --version
+          python3 --version
+          FREE_GB=$(df -Pk /var/tmp | awk 'NR==2 {print int($4/1024/1024)}')
+          echo "free on /var/tmp: ${FREE_GB}GB"
+          [ "$FREE_GB" -ge 30 ] || { echo "::error::${FREE_GB}GB free; the ISO step needs headroom"; exit 1; }
+
+      # sudo throughout: bootc-image-builder cannot run unprivileged, and mixing
+      # a rootless image store with a rootful ISO step means the builder cannot
+      # SEE the image it is meant to convert. One store, root's, for both steps.
+      - name: Build the image layer
+        run: |
+          set -euo pipefail
+          sudo python3 dev/build_awnix_images.py \
+            --layer "${{ inputs.layer || 'base' }}" --force
+
+      - name: Build bootable media
+        run: |
+          set -euo pipefail
+          sudo python3 dev/build_awnix_images.py \
+            --iso --iso-type "${{ inputs.iso_type || 'iso' }}"
+
+      # The artifact decides -- print the bytes that landed, not a claim.
+      - name: What was produced
+        if: ${{ !cancelled() }}
+        run: |
+          set -uo pipefail
+          sudo ls -lh /var/tmp/awnix-iso/ 2>/dev/null || echo "(no output dir)"
+          sudo find /var/tmp/awnix-iso -type f \( -name '*.iso' -o -name '*.qcow2' -o -name '*.raw' \) \
+            -exec sh -c 'echo "== $1"; ls -lh "$1"; sha256sum "$1"' _ {} \; 2>/dev/null \
+            || echo "(no media produced)"
+
+      # GitHub caps a release asset at 2 GiB; the ISO is ~2.7GB. The split
+      # layout (.00.part/.01.part + whole-file SHA256SUMS) matches what the
+      # shipped assemble-awnix-iso.{sh,ps1} already expect -- changing it would
+      # silently break instructions already in circulation.
+      # Never on push: only a deliberate dispatch publishes.
+      - name: Publish the media as a release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ART="$(sudo find /var/tmp/awnix-iso -type f \( -name '*.iso' -o -name '*.qcow2' -o -name '*.raw' \) | head -1)"
+          [ -n "$ART" ] || { echo "::error::no media to publish"; exit 1; }
+          LAYER="${{ inputs.layer || 'base' }}"
+          TYPE="${{ inputs.iso_type || 'iso' }}"
+          DATE="$(date -u +%Y.%m.%d)"
+          case "$LAYER" in
+            runner-ai) SLUG="ai" ;;
+            runner)    SLUG="runner" ;;
+            full)      SLUG="full" ;;
+            *)         SLUG="" ;;
+          esac
+          TAG="awnix-${TYPE}${SLUG:+-$SLUG}-${DATE}"
+          NAME="awnix ${SLUG:+${SLUG} }${TYPE} — ${DATE} (x86_64)"
+
+          STAGE="$(mktemp -d)"
+          BASE="awnix-x86_64.${TYPE}"
+          sudo cp "$ART" "$STAGE/$BASE" && sudo chown "$(id -u)" "$STAGE/$BASE"
+          ( cd "$STAGE" && sha256sum "$BASE" > SHA256SUMS )
+          ( cd "$STAGE" && split -b 1900M --numeric-suffixes=0 --suffix-length=2 "$BASE" "$BASE." \
+            && for f in "$BASE".[0-9][0-9]; do mv "$f" "$f.part"; done && rm -f "$BASE" )
+          PARTS="$(ls "$STAGE"/*.part 2>/dev/null | wc -l)"
+          [ "$PARTS" -ge 1 ] || { echo "::error::split produced no .part files"; exit 1; }
+          cp .DEPLOYMENT/standalone/bootc/assemble-awnix-iso.sh  "$STAGE/" 2>/dev/null || true
+          cp .DEPLOYMENT/standalone/bootc/assemble-awnix-iso.ps1 "$STAGE/" 2>/dev/null || true
+          ls -lh "$STAGE"
+
+          # Same tag = replace, never duplicate: two releases named for one
+          # date is an ambiguity a downloader cannot resolve.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release delete "$TAG" --yes --cleanup-tag || true
+          fi
+          gh release create "$TAG" \
+            --title "$NAME" \
+            --notes "Built by CI on a GitHub-hosted runner from ${GITHUB_SHA}. Reassemble with assemble-awnix-iso.sh (Linux/macOS) or assemble-awnix-iso.ps1 (Windows), then verify against SHA256SUMS before booting." \
+            "$STAGE"/*
+          rm -rf "$STAGE"
+
+      # `gh release create` exits 0 having uploaded nothing if an asset upload
+      # dies after the release exists. Prove the media is reachable.
+      - name: The release must actually carry the media
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LAYER="${{ inputs.layer || 'base' }}"
+          TYPE="${{ inputs.iso_type || 'iso' }}"
+          DATE="$(date -u +%Y.%m.%d)"
+          case "$LAYER" in
+            runner-ai) SLUG="ai" ;; runner) SLUG="runner" ;; full) SLUG="full" ;; *) SLUG="" ;;
+          esac
+          TAG="awnix-${TYPE}${SLUG:+-$SLUG}-${DATE}"
+          N="$(gh release view "$TAG" --json assets \
+                 --jq '[.assets[] | select(.name | test("[.]part$"))] | length')"
+          echo "$TAG carries $N media part(s)"
+          [ "${N:-0}" -ge 1 ] || { echo "::error::$TAG has no .part assets"; exit 1; }
