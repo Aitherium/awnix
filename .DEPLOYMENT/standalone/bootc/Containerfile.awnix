@@ -54,10 +54,22 @@ RUN dnf install -y --setopt=install_weak_deps=False cloud-init \
 # awrun plan's Phase 15/16: docker/podman-group-equivalent-to-root and
 # blanket NOPASSWD sudo are the same hole with extra steps, and awnix's own
 # "no agent, no account" philosophy is the wrong place to compromise on it.
+# C toolchain for the runner pool (SHW009). Measured 2026-08-21:
+# node-gyp deps (better-sqlite3) died `gyp ERR! not found: make` on
+# aitheros-aws-2; this image has never carried make/gcc/g++, so the
+# aws pool could not compile any native npm module. The jobs on the
+# pool are pinned for this in check_selfhosted_workflow_contract.py
+# (SHW009_PIN); the pool is re-provisioned from this image so the
+# pin can ratchet DOWN. patch is for node-gyp's apply step.
+# NOTE (2026-08-31, AWV007): this comment MUST stay ABOVE the RUN — a
+# comment between backslash continuations is prepended to the shell
+# command, commenting out every package after it (the toolchain silently
+# never installed; caught by check_awnix_variants.py).
 RUN dnf install -y --setopt=install_weak_deps=False \
         podman buildah skopeo crun \
         slirp4netns fuse-overlayfs \
         git curl jq unzip \
+        gcc gcc-c++ make patch \
     && dnf clean all
 
 # CentOS Stream 9's DEFAULT `python3` is 3.9.25 (kept old on purpose — it's

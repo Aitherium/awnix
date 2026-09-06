@@ -45,7 +45,8 @@ RUN dnf install -y --setopt=install_weak_deps=False epel-release || \
 # it does not replace 3.9, and neither does this.
 RUN dnf install -y --setopt=install_weak_deps=False \
         podman-compose \
-        wget openssl \
+        sudo \
+        wget openssl openssh-server \
         firewalld \
         cockpit cockpit-podman cockpit-storaged \
         python3 python3-pip \
@@ -58,6 +59,21 @@ RUN dnf install -y --setopt=install_weak_deps=False \
 # no account of its own, which is why this belongs here and not one layer down)
 RUN useradd -m -G wheel -s /bin/bash -c "AitherOS Service Account" aither && \
     loginctl enable-linger aither 2>/dev/null || true
+
+# NOPASSWD sudo for aither — the bootc twin of the kickstart's %post drop-in
+# (/etc/sudoers.d/aitheros-nopasswd). Without it the AMI probe reaches the
+# appliance as aither and its rootful-store question answers "(command
+# failed)": the fleet runs in ROOTFUL podman (/var/lib/containers) while a
+# sudo-less aither can only see its own ROOTLESS store, where nothing of the
+# 262 system quadlets exists -> CANNOT JUDGE on a healthy boot. Measured
+# 2026-08-29: rounds 37 AND 38 both died exactly there; the round-38 fix went
+# into kickstart.cfg, which the AMI lane never builds (bootc chain, not ISO).
+# awnix itself deliberately ships no sudoers entry of any kind; this layer
+# owns the account, so it owns the elevation, same convention as kickstart.
+# The deployed tree is relabelled at bootc install, so the baked file lands as
+# etc_t and sudo reads it normally.
+RUN printf 'aither ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/aitheros-nopasswd && \
+    chmod 0440 /etc/sudoers.d/aitheros-nopasswd
 
 # Rootless subuid/subgid for that account. awnix ships storage.conf; this adds
 # only the mapping for the user it just created.
@@ -73,16 +89,40 @@ RUN mkdir -p /var/lib/aitheros/{library,secrets,models,memory,training,redis,pos
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
-# Enable base services
+# Enable base services. sshd is the AMI probe's access path
+# (probe_appliance_live.py) and the appliance operator's -- measured
+# 2026-08-27 round 13: the appliance dropped every ssh probe
+# ("connection timed out" = firewalld DROP, not a closed port) because
+# sshd was never enabled and the aitheros zone opened no port 22.
 RUN systemctl enable cockpit.socket && \
     systemctl enable firewalld && \
+    systemctl enable sshd && \
     systemctl enable ollama
 
-# Firewall zone
+# sshd must not reverse-DNS or GSSAPI-probe its clients before the banner:
+# measured 2026-08-27 round 16, the two-phase probe found port 22 OPEN but
+# every handshake timed out -- sshd accepted the TCP connection and then sat
+# on the reverse-DNS lookup before sending its banner, and a fresh bootc
+# appliance's resolv.conf is not something to bet on. UseDNS yes is the
+# stock Rocky default; this is the canonical slow-login fix.
+RUN mkdir -p /etc/ssh/sshd_config.d && \
+    printf '%s\n' \
+        '# AitherOS: the probe and operators connect by IP; reverse-DNS and' \
+        '# GSSAPI before the banner stall every handshake on a box with no DNS' \
+        'UseDNS no' \
+        'GSSAPIAuthentication no' \
+        > /etc/ssh/sshd_config.d/99-aitheros.conf
+
+# Firewall zone. 22 is in the aitheros zone AND ssh is in the stock
+# public zone, so whichever zone an interface lands in, the probe can
+# reach it. The kickstart's own `firewall --enabled --service=ssh` is
+# belt and suspenders -- bootc-image-builder's handling of kickstart
+# firewall directives is not something to bet a 55-minute build on.
 RUN firewall-offline-cmd --new-zone=aitheros 2>/dev/null || true && \
-    for port in 3000 8001 8080 8081 8082 8090 8111 8121 8136 8139 9090; do \
+    for port in 22 3000 8001 8080 8081 8082 8090 8111 8121 8136 8139 9090; do \
         firewall-offline-cmd --zone=aitheros --add-port=${port}/tcp 2>/dev/null || true; \
-    done
+    done && \
+    firewall-offline-cmd --zone=public --add-service=ssh 2>/dev/null || true
 
 LABEL com.aitheros.layer="base" \
       com.aitheros.base="awnix" \

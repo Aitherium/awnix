@@ -14,6 +14,14 @@
 # on 2026-08-21 (HTTP 200 + content-length, or the release asset list). A catalogue that
 # guesses is worse than none: the selector sizes a model against real memory, so a wrong
 # number is a wrong OOM.
+#
+# SHA256 IS MEASURED THE SAME WAY, AND ONLY WHERE IT WAS MEASURED. bonsai-1.7b and
+# bonsai-4b were downloaded 2026-09-03 and hashed from the bytes on disk; their
+# size_bytes is the file's real length and their size_mb was confirmed against it. The
+# remaining entries carry NO sha256 on purpose -- a hash copied from a doc, a mirror
+# listing or a sibling tier fails OPEN in the worst direction, because it makes the word
+# "verified" a lie on every future run. An absent digest is an honest "not verified yet";
+# a wrong one is not.
 
 version: 1
 
@@ -40,6 +48,11 @@ defaults:
   ladder: [bonsai-1.7b, bonsai-4b, bonsai-8b, bonsai-27b]
   # A deliberate floor: below this, refuse and say so rather than thrashing swap.
   min_budget_mb: 900
+  # Weights must fit within budget/headroom_divisor. Lives HERE, not in a constant in
+  # one consumer, because two consumers now read this catalogue (the appliance selector
+  # and gen_aitheros_ladder.py) and a sizing rule that exists twice drifts while every
+  # test on the other copy stays green.
+  headroom_divisor: 2
 
 models:
   bonsai-1.7b:
@@ -47,6 +60,8 @@ models:
     path: "Ternary-Bonsai-1.7B-gguf/resolve/main/Ternary-Bonsai-1.7B-Q2_0.gguf"
     file: "Ternary-Bonsai-1.7B-Q2_0.gguf"
     size_mb: 441
+    size_bytes: 463290464
+    sha256: "d97d94eb564590c9f0300e54d3f87bbbb25a78693d0ade9f6e177973dcb8228a"
     quant: Q2_0
     note: "Runs on a phone-class GPU or plain CPU. The floor of the ladder."
 
@@ -55,6 +70,8 @@ models:
     path: "Ternary-Bonsai-4B-gguf/resolve/main/Ternary-Bonsai-4B-Q2_0.gguf"
     file: "Ternary-Bonsai-4B-Q2_0.gguf"
     size_mb: 1025
+    size_bytes: 1074969344
+    sha256: "4e0bf8b737b0431552f8c2c97695ab7c0cb214c94bcdeb4f5f267e67ddf28b8b"
     quant: Q2_0
     note: "The 4 GB-card model — a GTX 1050 Ti lands here."
 

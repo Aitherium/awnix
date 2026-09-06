@@ -144,21 +144,43 @@ done
 # Scanning the ISO rather than trusting the --local tag passed to the builder, because the
 # tag is what a person types and the recorded ref is what the machine will actually use.
 echo "  checking the recorded image reference"
+# Judge the OPERATIVE ref, not every matching string in 7.7 GB of ISO.
+#
+# The origin `bootc upgrade` reads is set by exactly one thing: the kickstart's
+#   bootc switch --mutate-in-place --transport registry <REF>
+# Everything else that looks like an image reference in here is metadata --
+# notably `org.opencontainers.image.base.name`, which records the LINEAGE the
+# image was built on and is `localhost/awnix-runner-ai:latest` for every awnix
+# image ever built, by construction.
+#
+# The first version of this check grepped the whole ISO for any `localhost/`
+# and died on that annotation. Measured 2026-09-02: an ISO whose switch ref was
+# correctly `ghcr.io/aitherium/garg-appliance:latest` was refused because three
+# base-lineage annotations mentioned localhost. That version could never pass
+# for ANY image built on a local base -- i.e. all of them -- so the guard would
+# have been deleted or bypassed the first time it mattered, which is how a real
+# check becomes decoration.
+_switch_ref="$(grep -a -o -E 'bootc switch [^"]{0,160}' "$ISO" 2>/dev/null \
+               | grep -o -E '(localhost|ghcr\.io|quay\.io|docker\.io)/[A-Za-z0-9._/:-]+' \
+               | head -1)"
 _refs="$(grep -a -o -E '(localhost|ghcr\.io|quay\.io|docker\.io)/[A-Za-z0-9._/-]+' "$ISO" \
          2>/dev/null | sort -u | head -20)"
-if [ -z "$_refs" ]; then
-  die "could not read ANY image reference out of $ISO -- refusing to publish media whose
-     upgrade path could not be verified. That is not the same as 'it is fine'."
+if [ -z "$_switch_ref" ]; then
+  die "could not read the bootc switch reference out of $ISO -- refusing to publish media
+     whose upgrade path could not be verified. That is not the same as 'it is fine'."
 fi
-if printf '%s\n' "$_refs" | grep -q '^localhost/'; then
-  echo "  refs found:" >&2
-  printf '%s\n' "$_refs" | sed 's/^/       /' >&2
-  die "this ISO records a localhost/ image reference, so \`bootc upgrade\` on every
+case "$_switch_ref" in
+  localhost/*)
+    echo "  refs found:" >&2
+    printf '%s\n' "$_refs" | sed 's/^/       /' >&2
+    die "this ISO's bootc switch ref is '$_switch_ref', so \`bootc upgrade\` on every
      machine installed from it will try to pull from the user's own empty store and fail.
      Rebuild against the published registry ref (build-awnix-iso.sh --image
      ghcr.io/aitherium/<repo>:latest) and publish that instead."
-fi
-printf '%s\n' "$_refs" | sed 's/^/    ref: /'
+    ;;
+esac
+echo "    upgrade ref: $_switch_ref   (the one bootc actually uses)"
+printf '%s\n' "$_refs" | sed 's/^/    seen: /'
 
 # The assembler ships WITH the parts. A release page of *.part files and no *.iso is
 # indistinguishable from a broken upload to the person looking at it, and telling them

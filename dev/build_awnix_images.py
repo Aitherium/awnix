@@ -58,6 +58,17 @@ for _s in (sys.stdout, sys.stderr):
 DISTRO = "Debian"
 BOOTC_DIR = "AitherOS-Fresh/.DEPLOYMENT/standalone/bootc"  # WSL-side, relative to the C: mount
 
+#: GB of free space the preflight must see before ANY layer build starts
+#: (the ENOSPC guard, see main()). The chain's biggest single layer
+#: (awnix-full: node + 28 packages) lands ~5-6GB of layers; 15G is that plus
+#: real headroom for the store's own churn.
+PREFLIGHT_NEED_GB = 15.0
+
+try:
+    from check_disk_preflight import preflight as _disk_preflight
+except ImportError:
+    _disk_preflight = None
+
 
 def _shell_bootc_dir() -> str:
     """The bootc directory AS THE SHELL WILL SEE IT.
@@ -108,6 +119,12 @@ class Layer:
     #: resolves `COPY --from=<name>` against these. Empty for every awnix layer;
     #: only the appliance reaches outside its own directory.
     contexts: tuple[tuple[str, str], ...] = ()
+    #: Context NAMES that may be absent without refusing the build — the
+    #: appliance's `svcimg` (the fleet oci-archives staged by
+    #: stage-fleet-bake.sh) is one: a build with no staged archives is a VALID
+    #: unbaked image whose loader unit fails LOUDLY at first boot (the
+    #: Containerfile's own design), so the builder must not refuse it.
+    optional_contexts: tuple[str, ...] = ()
 
 
 LAYERS: tuple[Layer, ...] = (
@@ -194,6 +211,24 @@ LAYERS: tuple[Layer, ...] = (
             "&& echo AWNIX_FULL_IMPORTS_OK"
         ),
         verify_label="every aw* package in the batteries-included variant imports",
+    ),
+    Layer(
+        name="dev",
+        tag="localhost/awnix-dev:latest",
+        containerfile="Containerfile.awnix-dev",
+        # The workspace sandbox lane spawns this image (AitherTunnel
+        # DEV_WORKSPACE_IMAGE); a session inside it dies on `command not
+        # found` if any of these is missing, while the container itself looks
+        # fine. claude must EXECUTE, not merely exist — npm creates the shim
+        # regardless (the ONB002 class).
+        verify_cmd=(
+            "command -v gh && command -v tmux && command -v ssh "
+            "&& command -v claude && claude --version >/dev/null 2>&1 "
+            "&& command -v code-server "
+            "&& python3.11 -c 'import adk; print(\"adk ok\")' "
+            "&& echo AWNIX_DEV_STAGED_OK"
+        ),
+        verify_label="dev toolchain + Claude Code + code-server staged on the awnix chain",
     ),
     Layer(
         name="gobbonet",
@@ -286,11 +321,39 @@ LAYERS: tuple[Layer, ...] = (
         # buildah says "no items matching glob ... (1 filtered out)", which
         # reads as a missing file while the file sits there at 29 KB. Each
         # context resolves its own ignores, so this one escapes that line.
-        contexts=(("context", "../../.."), ("deploy", "..")),
+        contexts=(("context", "../../.."), ("deploy", ".."), ("svcimg", "/var/tmp/aws-svcimg")),
+        # The fleet-bake archives may not be staged (valid unbaked build —
+        # the loader fails loudly at first boot, never the build).
+        optional_contexts=("svcimg",),
         verify_cmd=("command -v aitheros-ctl >/dev/null "
                     "&& systemctl is-enabled aitheros-autostart.service >/dev/null "
                     "&& echo AITHEROS_APPLIANCE_OK"),
         verify_label="the control plane and its autostart unit are installed",
+    ),
+    # ── the garg single-tenant appliance ─────────────────────────────────────────
+    # The self-service fallback for garg.aitherium.com. NOT built by the generic
+    # podman build alone: the Containerfile COPYs .gargbot-backend (the tenant's
+    # backend, staged by build-garg-appliance.sh locally or by the workflow's
+    # "Stage the tenant backend" step — the tenant repo is PRIVATE, an in-image
+    # clone has no credentials). The generic build path therefore requires the
+    # stage to have happened; the builder's optional-context rule does not apply
+    # because the COPY source is context-relative, not a named context.
+    Layer(
+        name="garg",
+        tag="localhost/garg-appliance:latest",
+        containerfile="Containerfile.garg-appliance",
+        verify_cmd=(
+            "test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf "
+            "&& test -s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf "
+            "&& [ \"$(stat -c%s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf)\" -gt 900000000 ] "
+            "&& test -x /opt/qdrant/qdrant "
+            "&& test -d /opt/gargbot/backend/portal_kit_backend "
+            "&& python3.11 -c \"import sys; sys.path.insert(0, '/opt/gargbot/backend'); "
+            "from app.config import Settings; print('backend config ok')\" "
+            "&& test -L /etc/systemd/system/multi-user.target.wants/garg-firstboot.service "
+            "&& echo GARG_APPLIANCE_OK"),
+        verify_label="Bonsai baked in, qdrant + the tenant backend staged, and "
+                     "garg-firstboot enabled (the image a first boot exercises)",
     ),
 )
 
@@ -340,8 +403,24 @@ def _wsl(script: str, timeout: int = 900) -> tuple[int, str]:
 
 
 def _image_exists(tag: str) -> bool:
-    code, _out = _wsl(f"podman image exists {tag}", timeout=30)
-    return code == 0
+    """Is the tag in local storage? Retries once on a probe timeout.
+
+    Measured 2026-08-27: on the loaded workstation (load 23-30), a 30s
+    `podman image exists` probe timed out and TimeoutExpired propagated as a
+    raw traceback mid-run — the tool CRASHED instead of judging. A build tool
+    that cannot ask the store one question must say DEAD, not traceback.
+    """
+    for attempt, timeout in ((1, 30), (2, 180)):
+        try:
+            code, _out = _wsl(f"podman image exists {tag}", timeout=timeout)
+            return code == 0
+        except subprocess.TimeoutExpired:
+            if attempt == 2:
+                raise DeadError(
+                    f"podman store did not answer 'image exists {tag}' "
+                    f"in 30s+180s — cannot judge, refusing to guess"
+                ) from None
+    return False  # unreachable; keeps the type checker honest
 
 
 _FROM_LOCAL = re.compile(r"^\s*FROM\s+(localhost/[A-Za-z0-9._/-]+(?::[A-Za-z0-9._-]+)?)",
@@ -401,14 +480,24 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
         # A declared build context whose directory is absent fails at COPY time,
         # deep into the build, with an error naming the CONTEXT rather than the
         # missing path. Checked up front instead: it costs nothing and can say why.
+        # An OPTIONAL context (the appliance's svcimg) may be absent — that is a
+        # valid unbaked build — and is simply not emitted.
         missing = [f'{name}={rel}' for name, rel in layer.contexts
-                   if not (_bootc_dir() / rel).is_dir()]
+                   if name not in layer.optional_contexts
+                   and not (_bootc_dir() / rel).is_dir()]
         if missing:
             print(f"[{layer.name}] BUILD REFUSED - declared build context(s) do "
                   f"not exist: {', '.join(missing)}")
             return False
-        ctx_args = ''.join(f' --build-context {name}={rel}'
-                           for name, rel in layer.contexts)
+        ctx_parts = []
+        for name, rel in layer.contexts:
+            if name in layer.optional_contexts and not (_bootc_dir() / rel).is_dir():
+                print(f"[{layer.name}] {name} context absent - building WITHOUT "
+                      f"the fleet bake (the loader unit will fail loudly at "
+                      f"first boot)")
+                continue
+            ctx_parts.append(f' --build-context {name}={rel}')
+        ctx_args = ''.join(ctx_parts)
         # --network=host so the BUILD can resolve DNS.
         #
         # Measured 2026-08-21 on the AWS awnix runner: STEP 2/11's `dnf install` died
@@ -500,14 +589,100 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
 
 ISO_SCRIPT = "build-awnix-iso.sh"
 
+#: The media step's disk floor, in GB. KEPT IN STEP WITH MIN_FREE_GB in
+#: build-awnix-iso.sh -- the shell script refuses below this number, so the
+#: tool's own preflight must use the SAME number or a build can pass here and
+#: die there. The self-test asserts the two copies agree, so a change to one
+#: without the other is a loud failure instead of a silent mismatch.
+ISO_FLOOR_GB = 40.0
+
 def _iso_cmd_for_test(image: str = "IMG", iso_type: str = "iso",
-                      out: str = "OUT") -> str:
+                      out: str = "OUT", min_free_gb: float | None = None) -> str:
     """The exact command build_iso would run. Exposed so --self-test can assert its
     shape without a distro: a wrapper whose only failure mode is a malformed command
     line should not need a 30-minute build to catch one."""
+    extra = (f" --min-free-gb {int(min_free_gb)}"
+             if min_free_gb is not None else "")
     return (f"bash {_shell_bootc_dir()}/{ISO_SCRIPT} "
-            f"--image {image} --type {iso_type} --out {out}")
+            f"--image {image} --type {iso_type} --out {out}{extra}")
 
+
+
+def iso_floor_error(gb: float | None) -> str | None:
+    """Why a --iso-min-free-gb value must be refused, or None if acceptable.
+
+    The shell guard needs an INTEGER: `[ 24 -lt 40.6 ]` errors and the
+    comparison evaluates FALSE, i.e. the refusal never fires. int(40.6)=40
+    would silently WEAKEN the floor, which is the same class of silent
+    safety change; refuse the value instead of rounding it in either
+    direction. Pure so the self-test asserts the real judgment path.
+    """
+    if gb is not None and not float(gb).is_integer():
+        return (f"--iso-min-free-gb must be an INTEGER (got {gb!r}) -- the "
+                f"shell's `[ ... -lt ... ]` rejects a float operand, and a "
+                f"rejected guard is a skipped guard. Pass 41, not 40.6.")
+    return None
+
+
+def resolve_iso_image(iso_layer: str | None, iso_image: str) -> str:
+    """`--iso-layer <name>` resolves a LAYERS entry to its image tag.
+
+    Raises ValueError when the name is unknown, or when BOTH --iso-layer and an
+    explicit --iso-image were given -- two sources for one answer is exactly
+    the ambiguity that shipped a base ISO for a gobbonet dispatch (measured
+    2026-08-29). The default --iso-image value is not "explicit": it equals
+    LAYERS[0].tag, so --iso-layer with the untouched default resolves.
+    """
+    if iso_layer is None:
+        return iso_image
+    for layer in LAYERS:
+        if layer.name == iso_layer:
+            if iso_image != LAYERS[0].tag:
+                raise ValueError(
+                    f"give ONE of --iso-layer and --iso-image, not both "
+                    f"(layer {iso_layer!r} resolves to {layer.tag!r}, but "
+                    f"--iso-image names {iso_image!r})")
+            return layer.tag
+    raise ValueError(f"no such layer: {iso_layer}")
+
+
+def resolve_iso_ghcr(iso_layer: str) -> str:
+    """`--iso-published` resolves a layer to its PUBLISHED ghcr ref.
+
+    The released ISO must be built from the registry image, never the local
+    one: publish-awnix-iso.sh refuses an ISO recording `localhost/` refs (the
+    bootc-upgrade path breaks), measured by its own localhost scan. The ref is
+    taken from the variants manifest's publish:true entry for this layer —
+    registry/{repo}:latest — and never guessed. Raises ValueError when the
+    variant is absent, unpublishable, or names no repo (the pre-flip state:
+    this flag must fail loudly, not fall back to the local image).
+    """
+    try:
+        from check_awnix_variants import load_variants
+    except ImportError:
+        raise ValueError("--iso-published needs check_awnix_variants.load_variants")
+    variants = load_variants(Path(__file__).resolve().parents[3]
+                             / ".DEPLOYMENT" / "standalone" / "bootc"
+                             / "awnix-variants.yaml")
+    for name, v in variants.items():
+        if v.get("layer") == iso_layer:
+            # load_variants parses the manifest with yaml.safe_load, so
+            # `publish: true` arrives as the BOOL True, while the shell
+            # publish-awnix-images.sh reads the raw text "true". Accept both
+            # spellings; anything else (False, "private", absent) is the
+            # pre-flip state and must refuse loudly.
+            pub = v.get("publish")
+            if pub is not True and pub != "true":
+                raise ValueError(
+                    f"--iso-published: variant {name!r} is publish={pub!r} "
+                    f"— there is no published image to build media from (the flip "
+                    f"has not happened)")
+            repo = v.get("repo", "")
+            if not repo:
+                raise ValueError(f"--iso-published: variant {name!r} declares no repo")
+            reg = v.get("registry", "ghcr.io/aitherium")
+            return f"{reg}/{repo}:latest"
+    raise ValueError(f"--iso-published: no variant has layer={iso_layer!r}")
 
 
 def _iso_out_is_distro_path(out: str) -> bool:
@@ -523,7 +698,8 @@ def _iso_out_is_distro_path(out: str) -> bool:
             and ":/" not in out[:4])
 
 
-def build_iso(image: str, iso_type: str, out: str, *, verbose: bool = True) -> bool:
+def build_iso(image: str, iso_type: str, out: str, *,
+              min_free_gb: float | None = None, verbose: bool = True) -> bool:
     # REFUSE a path Git-Bash already mangled. --iso-out names a directory INSIDE
     # the distro, and MSYS rewrites a leading-slash argument before python sees
     # it: `/var/tmp/x` arrives as `C:/Program Files/Git/var/tmp/x`. The space
@@ -559,10 +735,12 @@ def build_iso(image: str, iso_type: str, out: str, *, verbose: bool = True) -> b
     it will be run on a Linux host that has no Windows layer at all.
     """
     if verbose:
-        print(f"[iso] image={image} type={iso_type} out={out}")
+        floor = f" (min-free-gb={min_free_gb})" if min_free_gb else ""
+        print(f"[iso] image={image} type={iso_type} out={out}{floor}")
     script = (
         f"bash {_shell_bootc_dir()}/{ISO_SCRIPT} "
         f"--image {image} --type {iso_type} --out {out}"
+        + (f" --min-free-gb {min_free_gb}" if min_free_gb is not None else "")
     )
     # An ISO build downloads the Anaconda payload and runs osbuild; 30 minutes is a
     # working build, not a hang. The image builds above use 1800s for the same reason.
@@ -587,13 +765,40 @@ def main() -> int:
     ap.add_argument("--iso", action="store_true",
                     help="build bootable media from an already-built layer "
                          "(instead of building the container layers)")
+    ap.add_argument("--skip-preflight", action="store_true",
+                    help="skip the disk-space preflight (check_disk_preflight) — "
+                         "the ENOSPC guard; skip only with a reason")
+    ap.add_argument("--preflight-need", type=float, default=None,
+                    help=f"GB the preflight must see free before a build starts "
+                         f"(default {PREFLIGHT_NEED_GB} for a layer build, "
+                         f"{ISO_FLOOR_GB} for --iso -- the ISO floor, because the "
+                         f"media step's own guard would refuse anything less)")
     # `localhost/awnix:latest` is a tag NO layer in this file builds -- the base layer
     # is `localhost/awnix-base:latest`. So the default sent every media build at an
     # image that does not exist, and the failure ("image not in local storage") reads
     # as a build that did not run rather than a default naming the wrong thing.
     # Derived from LAYERS so a retag cannot reintroduce the mismatch.
+    ap.add_argument("--iso-layer", choices=[layer.name for layer in LAYERS],
+                    help="turn THIS layer's image into media -- the layer that was "
+                         "actually built. Without it every media build used the base "
+                         "image even when the dispatch asked for gobbonet (measured "
+                         "2026-08-29: the GobOS appliance ISO was built from awnix-base "
+                         "and would have shipped without GobboNet). Mutually exclusive "
+                         "with --iso-image.")
     ap.add_argument("--iso-image", default=LAYERS[0].tag,
                     help=f"image to turn into media (default: {LAYERS[0].tag})")
+    ap.add_argument("--iso-published", action="store_true",
+                    help="build media from the PUBLISHED ghcr ref of --iso-layer's "
+                         "variant (registry/repo:latest from awnix-variants.yaml), "
+                         "pulling it if absent — the released ISO must record the "
+                         "registry ref, never localhost (publish-awnix-iso.sh refuses "
+                         "a localhost ref; pre-flip this fails loudly)")
+    ap.add_argument("--iso-min-free-gb", type=float, default=None,
+                    help=f"disk floor passed to the ISO script as --min-free-gb; "
+                         f"defaults to the script's own MIN_FREE_GB ({ISO_FLOOR_GB}G). "
+                         f"Forwarded as an INTEGER: the shell's `[ ... -lt ... ]` "
+                         f"refuses a float operand, and a refused guard is a skipped "
+                         f"guard.")
     ap.add_argument("--iso-type", default="iso", choices=["iso", "qcow2", "raw", "vmdk"])
     ap.add_argument("--iso-out", default="/var/tmp/awnix-iso",
                     help="output directory INSIDE the distro")
@@ -602,8 +807,64 @@ def main() -> int:
     if args.self_test:
         return _self_test()
 
+    # `--iso-layer` names a LAYERS entry, not an image tag -- resolving it here
+    # keeps the workflow from naming a tag the tool does not know about (and
+    # from silently building media from the BASE image when a deeper layer was
+    # the point of the dispatch; measured 2026-08-29).
+    try:
+        args.iso_image = resolve_iso_image(args.iso_layer, args.iso_image)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.iso_published:
+        if not args.iso_layer:
+            print("--iso-published requires --iso-layer (a layer names its variant)",
+                  file=sys.stderr)
+            return 2
+        try:
+            args.iso_image = resolve_iso_ghcr(args.iso_layer)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        if not _image_exists(args.iso_image):
+            print(f"[iso] pulling {args.iso_image} (published ref not local)")
+            _wsl(f"podman pull {args.iso_image}", timeout=1800)
+
+    floor_err = iso_floor_error(args.iso_min_free_gb)
+    if floor_err is not None:
+        print(floor_err, file=sys.stderr)
+        return 2
+
+    # ── disk preflight (the ENOSPC guard) ──────────────────────────────────
+    # Measured 2026-08-27: this tool started a build with the podman store at
+    # 100%, the full layer died at `dnf install` with "At least 187MB more
+    # space needed" twenty minutes in, and nothing beforehand had said a word.
+    # A build that cannot SEE its disk is refused here; when short, --clear
+    # reclaims dangling images / stopped containers / build cache first.
+    # Runs BEFORE both branches: the ISO lane (bootc-image-builder) needs
+    # even more space than the layer chain. When --iso, the preflight uses the
+    # ISO floor (ISO_FLOOR_GB, kept equal to the shell script's MIN_FREE_GB by
+    # the self-test) -- otherwise a build could pass THIS check and die at the
+    # media step's own guard after 20 minutes of layer building.
+    if not args.skip_preflight:
+        if _disk_preflight is None:
+            print("PREFLIGHT DEAD: check_disk_preflight.py is not importable — "
+                  "cannot bless a build on an unmeasured disk.", file=sys.stderr)
+            return 2
+        need = args.preflight_need
+        if need is None:
+            need = ISO_FLOOR_GB if args.iso else PREFLIGHT_NEED_GB
+        code = _disk_preflight(need, clear=True, prune_volumes=False)
+        if code != 0:
+            print(f"PREFLIGHT FAILED (exit {code}) — refusing to start the build. "
+                  f"Free disk or run with --skip-preflight and a reason.",
+                  file=sys.stderr)
+            return 2 if code == 2 else 1
+
     if args.iso:
-        return 0 if build_iso(args.iso_image, args.iso_type, args.iso_out) else 1
+        return 0 if build_iso(args.iso_image, args.iso_type, args.iso_out,
+                              min_free_gb=args.iso_min_free_gb) else 1
 
     if args.layer is None:
         wanted = list(LAYERS)
@@ -701,6 +962,13 @@ def _self_test() -> int:
         if not cond:
             ok = False
 
+    def _raises_value_error(fn) -> bool:
+        try:
+            fn()
+        except ValueError:
+            return True
+        return False
+
     bootc_dir_local = Path(__file__).resolve().parents[3] / ".DEPLOYMENT" / "standalone" / "bootc"
     check("the ISO script --iso shells actually exists on disk",
           (bootc_dir_local / ISO_SCRIPT).is_file())
@@ -736,6 +1004,112 @@ def _self_test() -> int:
           "--type qcow2" in _cmd)
     check("build_iso passes the output directory through",
           "--out /tmp/OUT" in _cmd)
+    # The ISO floor must agree with the shell script's own MIN_FREE_GB: the tool
+    # blesses a build via check_disk_preflight with ISO_FLOOR_GB, and the script
+    # then refuses below MIN_FREE_GB. If they disagree, one of them lies -- a
+    # build can pass the tool's preflight and die at the script's guard (or be
+    # refused here for a floor the script would accept). Parsed from the script
+    # rather than pinned, so the two cannot drift silently.
+    _iso_script = (bootc_dir_local / ISO_SCRIPT).read_text(encoding="utf-8")
+    _mfloor = None
+    for ln in _iso_script.splitlines():
+        if ln.startswith("MIN_FREE_GB="):
+            _mfloor = ln.split("=", 1)[1].strip()
+    check("the ISO script declares a MIN_FREE_GB", _mfloor is not None)
+    check("ISO_FLOOR_GB matches the script's MIN_FREE_GB "
+          f"(tool {ISO_FLOOR_GB} vs script {_mfloor})",
+          _mfloor is not None and float(_mfloor) == ISO_FLOOR_GB)
+    # The WORKFLOW's preflight is a THIRD copy of the floor (`-ge 40` in the
+    # preflight step) and it refused before the build from 2026-08-29 on.
+    # Tool-vs-script parity alone would pass while the workflow drifted to a
+    # different number -- the preflight then refuses at a floor the build tool
+    # would bless, or blesses one the media step refuses. Parse the workflow
+    # the same way the script is parsed, so all three copies must move
+    # together or this arm names the straggler.
+    _wf = (Path(__file__).resolve().parents[3] / ".github" / "workflows"
+           / "build-awnix-iso.yml")
+    _wfloor = None
+    if _wf.is_file():
+        # Match the COMPARISON, not any `-ge N`: the workflow also carries
+        # `[ "$PARTS" -ge 1 ]` and `[ "${N:-0}" -ge 1 ]` (the publish-split
+        # guards) -- a bare `-ge` scan takes the LAST one and reports the
+        # publish step's 1 as the preflight's floor. The first draft of this
+        # arm did exactly that and FAILED on itself (workflow 1 vs tool 40),
+        # which is the arm working: a floor comparison that names FREE_GB is
+        # the preflight, and it is unambiguous.
+        import re
+        for ln in _wf.read_text(encoding="utf-8").splitlines():
+            _m = re.search(r"FREE_GB\"\s+-ge\s+(\d+)", ln)
+            if _m:
+                _wfloor = _m.group(1)
+                break
+    check("the workflow preflight's floor matches the tool's "
+          f"(workflow {_wfloor} vs tool {ISO_FLOOR_GB})",
+          _wfloor is not None and float(_wfloor) == ISO_FLOOR_GB)
+
+    # --iso-layer resolves a LAYERS name to the image the dispatch actually
+    # asked to build. This arm exists because the workflow never passed the
+    # layer, so every media build used the BASE image -- and the GobOS
+    # appliance ISO would have shipped without GobboNet (measured 2026-08-29).
+    check("--iso-layer gobbonet resolves to the gobbonet image tag",
+          resolve_iso_image("gobbonet", LAYERS[0].tag)
+          == next(x.tag for x in LAYERS if x.name == "gobbonet"))
+    check("no --iso-layer leaves the default image untouched",
+          resolve_iso_image(None, LAYERS[0].tag) == LAYERS[0].tag)
+    check("an unknown layer name is refused",
+          _raises_value_error(lambda: resolve_iso_image("nope", LAYERS[0].tag)))
+    check("--iso-layer AND an explicit --iso-image are refused as ambiguous",
+          _raises_value_error(lambda: resolve_iso_image(
+              "base", "localhost/something-else:latest")))
+
+    # --iso-published resolves the layer's variant to its PUBLISHED registry
+    # ref. The boolean-vs-string arm exists because load_variants parses
+    # `publish: true` as the BOOL True while the shell script reads raw text
+    # "true" -- the first version compared against the string and refused
+    # EVERY publishable variant with "the flip has not happened" (measured
+    # 2026-09-01, fixed the same day). The manifest's own values decide both
+    # directions, so a flip that changes the manifest changes this verdict.
+    try:
+        from check_awnix_variants import load_variants
+    except ImportError:
+        load_variants = None
+    variants_file = (Path(__file__).resolve().parents[3]
+                     / ".DEPLOYMENT" / "standalone" / "bootc"
+                     / "awnix-variants.yaml")
+    _want_pub = None
+    if load_variants is not None and variants_file.is_file():
+        for _name, _v in load_variants(variants_file).items():
+            if _v.get("layer") == "base":
+                _pub = _v.get("publish")
+                _want_pub = (f"{_v.get('registry', 'ghcr.io/aitherium')}/"
+                             f"{_v['repo']}:latest") if _pub is True else None
+                break
+    if _want_pub is not None:
+        check("--iso-published resolves a publish:true variant to its "
+              "registry ref (bool True spelling)",
+              resolve_iso_ghcr("base") == _want_pub)
+    check("--iso-published refuses a publish:false variant (the pre-flip "
+          "state must fail loudly, never fall back to the local image)",
+          _raises_value_error(lambda: resolve_iso_ghcr("garg")))
+    check("--iso-published refuses an unknown layer",
+          _raises_value_error(lambda: resolve_iso_ghcr("nope")))
+
+    # The min-free-gb floor is forwarded to the shell script as an INTEGER.
+    # Bash's `[ "$a" -lt "$b" ]` rejects a float operand with "integer
+    # expression expected" -- and the guard then evaluates FALSE, i.e. the
+    # refusal never fires. A floor that fails open is not a floor.
+    check("the floor is forwarded as an integer, never a float",
+          _iso_cmd_for_test(min_free_gb=40.0).endswith("--min-free-gb 40"))
+    check("no floor -> no --min-free-gb flag at all",
+          "--min-free-gb" not in _iso_cmd_for_test())
+    check("a fractional floor is REFUSED, never silently rounded down -- "
+          "int(40.6)=40 would weaken a safety floor",
+          iso_floor_error(40.6) is not None)
+    check("a whole-number floor is accepted",
+          iso_floor_error(41.0) is None)
+    check("no floor at all is accepted",
+          iso_floor_error(None) is None)
+
     # The PROPERTY, not one host's spelling of it. This arm read
     # `_cmd.startswith("bash /mnt/c/")`, which baked in the same Windows assumption the
     # tool itself carried -- so the moment the path became host-derived (so builds could
@@ -839,6 +1213,56 @@ def _self_test() -> int:
     for name, cf in containerfiles.items():
         check(f"{name}: {cf} actually exists on disk", (bootc_dir / cf).is_file())
 
+    # Every COPY --from= must name a declared context or a build stage. An
+    # UNDECLARED name dies ~20 minutes into the build at the first COPY with
+    # "failed to resolve named context", after the layer has already pulled
+    # and installed everything before it -- the exact shape a one-context
+    # regression of Containerfile.aitheros produced on 2026-08-27 (an
+    # in-flight edit dropped the `deploy` context; the two-context layout is
+    # load-bearing: the repo-root .dockerignore filters .DEPLOYMENT/
+    # wholesale, so a single context silently drops every deploy file).
+    def _contexts_ok(layer: Layer, bd: Path) -> bool:
+        cf = bd / layer.containerfile
+        if not cf.is_file():
+            return True  # existence is asserted above
+        text = cf.read_text(encoding="utf-8", errors="replace")
+        stages = set(re.findall(r"FROM\s+\S+\s+AS\s+([A-Za-z0-9_]+)", text))
+        declared = {name for name, _ in layer.contexts}
+        for m in re.finditer(r"COPY\s+--from=([A-Za-z0-9_]+)", text):
+            if m.group(1) not in declared and m.group(1) not in stages:
+                return False
+        return True
+
+    for layer in LAYERS:
+        check(f"{layer.name}: every COPY --from= names a declared context or stage",
+              _contexts_ok(layer, bootc_dir))
+    # The failing direction: an undeclared context name must fail the check.
+    bad = Layer(name="badctx", tag="localhost/badctx:latest",
+                containerfile="Containerfile.badctx",
+                verify_cmd="true && echo BADCTX_OK", verify_label="unreachable")
+    (bootc_dir / "Containerfile.badctx").write_text(
+        "FROM scratch\nCOPY --from=ghost /x /y\n", encoding="utf-8")
+    check("an undeclared COPY --from= name fails the context check",
+          not _contexts_ok(bad, bootc_dir))
+    (bootc_dir / "Containerfile.badctx").unlink()
+    # The optional-context direction: a layer MAY declare a context whose dir
+    # is absent (the appliance's svcimg — a valid unbaked build), so the
+    # missing-dir refusal must not fire for it, while a REQUIRED absent
+    # context must still refuse.
+    opt = Layer(name="optctx", tag="localhost/optctx:latest",
+                containerfile="Containerfile.optctx",
+                verify_cmd="true && echo OPTCTX_OK", verify_label="unreachable",
+                contexts=(("svcimg", "/var/tmp/definitely-not-staged"),),
+                optional_contexts=("svcimg",))
+    (bootc_dir / "Containerfile.optctx").write_text(
+        "FROM scratch\nCOPY --from=svcimg /x /y\n", encoding="utf-8")
+    check("an OPTIONAL absent context is accepted (unbaked build is valid)",
+          _contexts_ok(opt, bootc_dir)
+          and not [f'{n}={r}' for n, r in opt.contexts
+                   if n not in opt.optional_contexts
+                   and not (bootc_dir / r).is_dir()])
+    (bootc_dir / "Containerfile.optctx").unlink()
+
     # build_layer() must not raise even when the WSL call itself fails --
     # that is a reportable outcome (a print + False), never a crash.
     fake_layer = Layer(name="fake", tag="localhost/does-not-exist:latest",
@@ -859,6 +1283,30 @@ def _self_test() -> int:
               False)
     finally:
         globals()["_wsl"] = orig_wsl
+
+    # ── _image_exists: a probe timeout is a clean DEAD, never a traceback ──
+    # Measured 2026-08-27: on the loaded box a 30s probe timed out and
+    # TimeoutExpired crashed the whole tool mid-run. The retry arm must pass
+    # on a second-attempt success, and a double timeout must raise DeadError
+    # (the tool's own 'cannot judge' contract), not TimeoutExpired.
+    from unittest import mock
+
+    with mock.patch.object(sys.modules[__name__], "_wsl",
+                           side_effect=[subprocess.TimeoutExpired([], 30),
+                                        (0, "")]):
+        check("an image-exists probe timeout retries and succeeds on attempt 2",
+              _image_exists("localhost/fake:latest") is True)
+    with mock.patch.object(sys.modules[__name__], "_wsl",
+                           side_effect=[subprocess.TimeoutExpired([], 30),
+                                        subprocess.TimeoutExpired([], 180)]):
+        try:
+            _image_exists("localhost/fake:latest")
+            check("a double probe timeout raises DEAD, never a traceback", False)
+        except DeadError:
+            check("a double probe timeout raises DEAD, never a traceback", True)
+        except Exception as exc:
+            check(f"a double probe timeout raises DEAD, never a traceback "
+                  f"(raised {type(exc).__name__})", False)
 
     print("SELF-TEST", "PASS" if ok else "FAIL")
     return 0 if ok else 1

@@ -139,7 +139,13 @@ def detect_budget_mb() -> int:
 
 
 def select(cfg: dict, budget_mb: int) -> str | None:
-    """Largest ladder entry whose weights fit budget/HEADROOM_DIVISOR. None if none do."""
+    """Largest ladder entry whose weights fit budget/headroom_divisor. None if none do.
+
+    The divisor comes from the CATALOGUE (`defaults.headroom_divisor`), falling back to
+    the module constant when a catalogue predates that key. Two consumers now read this
+    file -- this selector and gen_aitheros_ladder.py -- and a sizing rule that lives in
+    each consumer drifts while every test on the other copy stays green.
+    """
     defaults = cfg.get("defaults") or {}
     ladder = defaults.get("ladder") or []
     models = cfg.get("models") or {}
@@ -147,7 +153,8 @@ def select(cfg: dict, budget_mb: int) -> str | None:
         raise Dead("catalogue declares no default ladder — nothing to choose from")
     if budget_mb < int(defaults.get("min_budget_mb", 0) or 0):
         return None
-    allowed = budget_mb // HEADROOM_DIVISOR
+    divisor = int(defaults.get("headroom_divisor", HEADROOM_DIVISOR) or HEADROOM_DIVISOR)
+    allowed = budget_mb // divisor
     best = None
     for mid in ladder:
         m = models.get(mid)

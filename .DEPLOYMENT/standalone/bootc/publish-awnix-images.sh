@@ -12,6 +12,7 @@
 #
 #   ./publish-awnix-images.sh                 # every publishable variant
 #   ./publish-awnix-images.sh --variant awnix
+#   ./publish-awnix-images.sh --layer garg    # every variant whose layer is `garg`
 #   ./publish-awnix-images.sh --include-private   # also the private appliance
 #   ./publish-awnix-images.sh --dry-run
 #   ./publish-awnix-images.sh --self-test
@@ -22,19 +23,20 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 MANIFEST="$HERE/awnix-variants.yaml"
 DATE_TAG="$(date +%Y.%m.%d)"
-ONLY=""; DRY=0; PRIVATE=0
+ONLY=""; ONLY_LAYER=""; DRY=0; PRIVATE=0
 
 die() { echo "publish-awnix-images: $*" >&2; exit 1; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --variant) ONLY="${2:-}"; shift 2 ;;
+    --layer) ONLY_LAYER="${2:-}"; shift 2 ;;
     --manifest) MANIFEST="${2:-}"; shift 2 ;;
     --tag) DATE_TAG="${2:-}"; shift 2 ;;
     --include-private) PRIVATE=1; shift ;;
     --dry-run) DRY=1; shift ;;
     --self-test) SELFTEST=1; shift ;;
-    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
 done
@@ -81,7 +83,9 @@ for name, d in data.items():
     repo, img = d.get("repo", ""), d.get("image", "")
     if not (reg and repo and img):
         continue
-    print(f"{name}\t{img}\t{reg.rstrip('/')}/{repo}")
+    # The LAYER column lets a caller select a whole lane without naming the
+    # variant -- `--layer garg` pushes the variant(s) built from that layer.
+    print(f"{name}\t{img}\t{reg.rstrip('/')}/{repo}\t{d.get('layer', '')}")
 PY
 }
 
@@ -93,16 +97,22 @@ if [ "${SELFTEST:-0}" = "1" ]; then
   pub=$(read_variants public | wc -l)
   priv=$(read_variants private | wc -l)
   chk "$([ "$pub" -ge 1 ] && echo yes || echo no)" "yes" "reads at least one public variant"
-  chk "$priv" "1" "reads exactly one private variant"
-  # The private one must NOT appear in the public set -- that is the whole safety
+  # Two private variants exist (aitheros + aitheros-cloud); a `-ge 1` arm so a
+  # third cannot silently pass either.
+  chk "$([ "$priv" -ge 1 ] && echo yes || echo no)" "yes" "reads at least one private variant"
+  # The private ones must NOT appear in the public set -- that is the whole safety
   # property, and the read is where it would be lost.
   chk "$(read_variants public | grep -c aitheros)" "0" \
-      "the private appliance is absent from the public set"
-  chk "$(read_variants private | grep -c 'ghcr.io/aitherium/aitheros-bootc')" "1" \
-      "the private variant carries its full destination"
+      "the private appliances are absent from the public set"
+  # Every private variant carries its full destination (reg override resolved).
+  chk "$([ "$(read_variants private | grep -c 'ghcr.io/aitherium/aitheros-bootc')" -ge 1 ] && echo yes || echo no)" "yes" \
+      "every private variant carries its full destination"
   # A destination must be registry-qualified or the push goes to docker.io by default.
   chk "$(read_variants public | awk -F'\t' '$3 !~ /\// {print}' | wc -l)" "0" \
       "every public destination is registry-qualified"
+  # --layer selects the variant(s) of one build lane, not by hand-typed name.
+  chk "$(read_variants public | awk -F'\t' '$4 == "base" {print $1}' | grep -c '^awnix$')" "1" \
+      "--layer base resolves to the awnix variant"
 
   [ "$fail" = "0" ] && { echo "SELF-TEST PASS"; exit 0; } || { echo "SELF-TEST FAILED"; exit 1; }
 fi
@@ -115,9 +125,10 @@ SETS="public"
 
 TOTAL=0; FAILED=0
 for set_name in $SETS; do
-  while IFS="$(printf '\t')" read -r name img dest; do
+  while IFS="$(printf '\t')" read -r name img dest layer; do
     [ -n "${name:-}" ] || continue
     [ -z "$ONLY" ] || [ "$ONLY" = "$name" ] || continue
+    [ -z "$ONLY_LAYER" ] || [ "$ONLY_LAYER" = "$layer" ] || continue
 
     if ! podman image exists "$img"; then
       echo "  SKIP  $name -- $img is not built"
