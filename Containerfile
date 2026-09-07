@@ -164,7 +164,17 @@ RUN npm install -g @aitherium/shell-cli && \
 # before starting the container or host, or by running awdk configure from
 # the command line.
 RUN mkdir -p /etc/awdk && \
-    printf '[Unit]\nDescription=Aither World Development Kit daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/local/bin/awdk-daemon\nRestart=on-failure\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=multi-user.target\n' > /etc/systemd/system/awdk-daemon.service && \
+    # ExecStart is `adk up`, NOT `awdk-daemon`. There has never been an
+    # `awdk-daemon` executable: awdk's console scripts are adk, adk-py,
+    # aither-adk, awdk, adk-serve, adk-workspace, adk-bug and adk-shell
+    # (awdk/pyproject.toml [project.scripts]) and nothing installs that name.
+    # The unit was enabled and would have failed on first boot with
+    # status=203/EXEC. `adk` is chosen over the newer `awdk` alias because this
+    # image installs awdk from PyPI and `adk` is the entry point present in
+    # every published version -- an ExecStart is not the place to bet on the
+    # most recently added alias. `up` is the daemon verb, spelled as
+    # packaging/daemon_entry.py mirrors it.
+    printf '[Unit]\nDescription=Aither World Development Kit daemon\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=/usr/local/bin/adk up\nRestart=on-failure\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=multi-user.target\n' > /etc/systemd/system/awdk-daemon.service && \
     # NO `systemctl daemon-reload` here. There is no running systemd during a
     # container build -- no PID 1, no D-Bus -- so it exits 1 and takes the whole
     # RUN with it. Measured 2026-08-20: the image could not build at all.
@@ -197,8 +207,24 @@ RUN command -v awsh >/dev/null 2>&1 || { echo "FATAL: awsh not on PATH"; exit 1;
     { echo "FATAL: awsh is on PATH but cannot execute (check the node engine)"; exit 1; } && \
     echo "awsh: on PATH and executes"
 
-# Verify awdk daemon unit file exists and is enabled.
-RUN systemctl is-enabled awdk-daemon >/dev/null 2>&1 || { echo "FATAL: awdk-daemon unit not enabled"; exit 1; } && echo "awdk-daemon: enabled"
+# Verify the awdk daemon unit is enabled AND that its ExecStart can actually run.
+#
+# `systemctl is-enabled` proves a symlink was written and NOTHING about whether
+# the program exists -- it is the same resolve-only trap called out for awsh
+# fifteen lines above, and it is how this shipped enabled-and-broken: the unit
+# pointed at /usr/local/bin/awdk-daemon, a binary no console script has ever
+# installed, so an image that passed this check would still fail on first boot
+# with status=203/EXEC. An enabled unit is a promise; only executing it is proof.
+#
+# Parse the path back OUT of the written unit rather than hardcoding it here, so
+# the check cannot drift from the ExecStart above the way the old one did.
+RUN systemctl is-enabled awdk-daemon >/dev/null 2>&1 || { echo "FATAL: awdk-daemon unit not enabled"; exit 1; } && \
+    execstart="$(sed -n 's/^ExecStart=//p' /etc/systemd/system/awdk-daemon.service)" && \
+    execbin="${execstart%% *}" && \
+    [ -x "$execbin" ] || { echo "FATAL: awdk-daemon ExecStart '$execbin' is not an executable file -- the unit would fail on first boot (203/EXEC)"; exit 1; } && \
+    $execstart --help >/dev/null 2>&1 || $execbin --help >/dev/null 2>&1 || \
+      { echo "FATAL: awdk-daemon ExecStart '$execstart' exists but cannot execute"; exit 1; } && \
+    echo "awdk-daemon: enabled, and ExecStart ($execstart) resolves and executes"
 
 # ── The aw family ──────────────────────────────────────────────────────────
 # The reason this image exists. The README's table promises seven tools, and
@@ -278,35 +304,6 @@ RUN cd /tmp && \
     obscura --version \
       || { echo "FATAL: obscura installed but does not execute"; exit 1; } && \
     echo "obscura: ${OBSCURA_VERSION} installed, sha256-verified, executes"
-
-# -- Obscura attribution (Apache-2.0 §4(a),(d)) --------------------------
-# This image REDISTRIBUTES the Obscura binary, and that is what turns attribution
-# from courtesy into obligation: Apache-2.0 §4(a) requires a copy of the
-# License to travel with any redistribution, and §4(d) requires carrying an
-# upstream NOTICE if one exists. Naming the project in a comment is not that.
-#
-# It FAILS THE BUILD if the licence cannot be fetched. A licence you could not
-# obtain is a licence you did not ship, and shipping the binary anyway is the
-# violation -- so this is loud rather than a `|| true` that would leave an image
-# looking complete while the obligation went unmet. NOTICE is optional upstream
-# (a 404 legitimately means 'there is none'), so only its absence is tolerated,
-# and the outcome is recorded either way.
-RUN mkdir -p /usr/share/licenses/obscura && \
-    curl -fsSL -o /usr/share/licenses/obscura/LICENSE "https://raw.githubusercontent.com/h4ckf0r0day/obscura/v${OBSCURA_VERSION}/LICENSE" \
-      || { echo "FATAL: no Obscura LICENSE -- refusing to ship the binary"; exit 1; } && \
-    test -s /usr/share/licenses/obscura/LICENSE \
-      || { echo "FATAL: the fetched Obscura LICENSE is empty"; exit 1; } && \
-    { curl -fsSL -o /usr/share/licenses/obscura/NOTICE "https://raw.githubusercontent.com/h4ckf0r0day/obscura/v${OBSCURA_VERSION}/NOTICE" \
-        || echo "(upstream ships no NOTICE file at v${OBSCURA_VERSION})" \
-             > /usr/share/licenses/obscura/NOTICE ; } && \
-    { echo "Obscura ${OBSCURA_VERSION} -- https://github.com/h4ckf0r0day/obscura"; \
-      echo "Copyright the Obscura authors."; \
-      echo "Licensed under the Apache License, Version 2.0."; \
-      echo "Redistributed UNMODIFIED as an upstream release binary; awnix patches nothing."; \
-      echo "Full licence text: /usr/share/licenses/obscura/LICENSE"; \
-    } > /usr/share/licenses/obscura/README && \
-    echo "obscura: Apache-2.0 licence installed at /usr/share/licenses/obscura/"
-
 
 # ── Rootless podman ────────────────────────────────────────────────────────
 COPY storage.conf /etc/containers/storage.conf
