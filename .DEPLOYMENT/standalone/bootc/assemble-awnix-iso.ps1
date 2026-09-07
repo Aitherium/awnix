@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Turn the downloaded awnix release parts into a bootable ISO. Ships WITH the release.
 

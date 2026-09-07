@@ -1,0 +1,57 @@
+# awnix obscura-mcp user service — TEMPLATE
+#
+# WHY a .service and not a .container quadlet: the `obscura` binary is baked into
+# the awnix BASE image (see Containerfile — the `-stealth` release tarball,
+# sha256-pinned), NOT shipped as a separate container image, so there is nothing
+# for a Quadlet `Image=` to pull. This is the same shape as the awdk-daemon unit
+# the base already installs: a native binary run by systemd. The sibling
+# service.container.j2 is the shape for a CONTAINERISED service you layer on top;
+# this is the shape for the browser the base itself carries.
+#
+# Install to /etc/systemd/system/obscura-mcp.service (system) or
+# ~/.config/systemd/user/obscura-mcp.service (rootless user service), then:
+#   systemctl daemon-reload && systemctl enable --now obscura-mcp
+#
+# awbrowse reaches it with no fleet at all:
+#   awbrowse get --engine obscura https://example.com
+# awbrowse's default Obscura origin is http://127.0.0.1:3000 — the host/port
+# below — so nothing needs configuring for the common case.
+
+[Unit]
+Description=Obscura MCP-over-HTTP browser (local, loopback only)
+# Wait for the network to be genuinely configured, not merely present.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# ── LOOPBACK ONLY, on purpose ──────────────────────────────────────────────
+# The MCP port drives a REAL browser and enforces NO authentication: read off
+# obscura-mcp/src/http.rs, the Authorization / X-API-Key headers appear only in
+# the CORS preflight allow-list and nothing gates a tool call on them. Anything
+# that can reach this port can navigate, click, fill and screenshot. So it binds
+# 127.0.0.1 and MUST NOT be published through the firewall (the base opens no
+# ports; keep it that way for this one).
+ExecStart=/usr/local/bin/obscura mcp --http --host 127.0.0.1 --port 3000
+
+# OBSCURA_MCP_ALLOWED_ORIGINS is deliberately LEFT UNSET. It is Obscura's
+# browser-Origin allowlist and it constrains ONLY callers that send an `Origin`
+# header, i.e. browsers. awbrowse is a native client and sends no Origin, so it
+# is unaffected; and because the port is loopback-only there is no hostile
+# browser origin to gate. Set it only if you deliberately expose this port to a
+# browser on the same host — which the loopback bind above is chosen to prevent.
+# Environment=OBSCURA_MCP_ALLOWED_ORIGINS=http://localhost:3000
+
+Environment=TZ=UTC
+
+# `on-failure`, not `always`: a clean manual stop should hold, but a crash of the
+# browser that agents depend on should come back.
+Restart=on-failure
+RestartSec=2
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target default.target

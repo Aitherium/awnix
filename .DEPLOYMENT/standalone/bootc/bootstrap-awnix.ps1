@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   One command to get awnix (or the GobboNet appliance) running on Windows.
 

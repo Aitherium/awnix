@@ -242,6 +242,72 @@ RUN pip3 install --no-cache-dir         git+https://github.com/Aitherium/awseal 
 # found by a user, not by a rebuild.
 RUN for m in awgit awgraph awrelay awshare awseal awm awrecover awbrowse awfind awnest awnboard awmail; do         python3 -c "import $m" || { echo "FATAL: $m did not install"; exit 1; };     done && echo "aw family: all 12 import"
 
+# ── A local browser for awbrowse: the Obscura engine ───────────────────────
+# awbrowse is installed above, and on an awnix box it has NOTHING to talk to:
+# awbrowse speaks to an AitherBrowser-shaped service, which inside a fleet-less
+# base is nobody. A "sense" with no organ. So the base ships the ONE browser
+# small enough to live in an immutable image — Obscura, a ~70 MB CPU-only Rust
+# engine with its own DOM, V8 and CPU paint, no Chromium and no GPU device.
+# `awbrowse get --engine obscura URL` then works with no fleet reachable.
+#
+# THE TARBALL, NOT THE DOCKER IMAGE. Obscura's published `docker.io/...` image is
+# the RENDER build with NO stealth (its own Dockerfile ships `--features render`
+# only). Stealth — the fixed Chrome TLS fingerprint and the bundled tracker
+# blocklist that make a headless fetch look like a browser — lives ONLY in the
+# `-stealth` release archive. So we pull the archive and install the binary, not
+# the image. The `-stealth` (not `-no-render-stealth`) asset is render+stealth,
+# so `browser_screenshot` works too.
+#
+# Pinned by version AND sha256, verified BEFORE extraction: this is an immutable
+# image built once and rolled forward, so an unpinned or unverified download is a
+# supply-chain hole nobody would notice until a user did. Bump both together via
+# the upstream release watch (ingest_upstream_release.py, kind: binary) — a pin
+# nobody bumps is the stale-fork class.
+ARG OBSCURA_VERSION=0.2.1
+ARG OBSCURA_SHA256=49856870420960ce489d2d1ff40fffac5b8c016604b9af0ded8ed6373abd9302
+RUN cd /tmp && \
+    curl -fsSL -o obscura.tar.gz \
+      "https://github.com/h4ckf0r0day/obscura/releases/download/v${OBSCURA_VERSION}/obscura-x86_64-linux-stealth.tar.gz" \
+      || { echo "FATAL: could not download obscura ${OBSCURA_VERSION}"; exit 1; } && \
+    echo "${OBSCURA_SHA256}  obscura.tar.gz" | sha256sum -c - \
+      || { echo "FATAL: obscura sha256 mismatch — refusing to extract"; exit 1; } && \
+    tar xzf obscura.tar.gz && \
+    install -m 0755 obscura /usr/local/bin/obscura && \
+    install -m 0755 obscura-worker /usr/local/bin/obscura-worker && \
+    rm -f obscura.tar.gz obscura obscura-worker && \
+    obscura --version \
+      || { echo "FATAL: obscura installed but does not execute"; exit 1; } && \
+    echo "obscura: ${OBSCURA_VERSION} installed, sha256-verified, executes"
+
+# -- Obscura attribution (Apache-2.0 §4(a),(d)) --------------------------
+# This image REDISTRIBUTES the Obscura binary, and that is what turns attribution
+# from courtesy into obligation: Apache-2.0 §4(a) requires a copy of the
+# License to travel with any redistribution, and §4(d) requires carrying an
+# upstream NOTICE if one exists. Naming the project in a comment is not that.
+#
+# It FAILS THE BUILD if the licence cannot be fetched. A licence you could not
+# obtain is a licence you did not ship, and shipping the binary anyway is the
+# violation -- so this is loud rather than a `|| true` that would leave an image
+# looking complete while the obligation went unmet. NOTICE is optional upstream
+# (a 404 legitimately means 'there is none'), so only its absence is tolerated,
+# and the outcome is recorded either way.
+RUN mkdir -p /usr/share/licenses/obscura && \
+    curl -fsSL -o /usr/share/licenses/obscura/LICENSE "https://raw.githubusercontent.com/h4ckf0r0day/obscura/v${OBSCURA_VERSION}/LICENSE" \
+      || { echo "FATAL: no Obscura LICENSE -- refusing to ship the binary"; exit 1; } && \
+    test -s /usr/share/licenses/obscura/LICENSE \
+      || { echo "FATAL: the fetched Obscura LICENSE is empty"; exit 1; } && \
+    { curl -fsSL -o /usr/share/licenses/obscura/NOTICE "https://raw.githubusercontent.com/h4ckf0r0day/obscura/v${OBSCURA_VERSION}/NOTICE" \
+        || echo "(upstream ships no NOTICE file at v${OBSCURA_VERSION})" \
+             > /usr/share/licenses/obscura/NOTICE ; } && \
+    { echo "Obscura ${OBSCURA_VERSION} -- https://github.com/h4ckf0r0day/obscura"; \
+      echo "Copyright the Obscura authors."; \
+      echo "Licensed under the Apache License, Version 2.0."; \
+      echo "Redistributed UNMODIFIED as an upstream release binary; awnix patches nothing."; \
+      echo "Full licence text: /usr/share/licenses/obscura/LICENSE"; \
+    } > /usr/share/licenses/obscura/README && \
+    echo "obscura: Apache-2.0 licence installed at /usr/share/licenses/obscura/"
+
+
 # ── Rootless podman ────────────────────────────────────────────────────────
 COPY storage.conf /etc/containers/storage.conf
 RUN echo "awnix:100000:65536" >> /etc/subuid && \
