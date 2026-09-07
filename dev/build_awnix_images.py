@@ -321,10 +321,7 @@ LAYERS: tuple[Layer, ...] = (
         # buildah says "no items matching glob ... (1 filtered out)", which
         # reads as a missing file while the file sits there at 29 KB. Each
         # context resolves its own ignores, so this one escapes that line.
-        contexts=(("context", "../../.."), ("deploy", ".."), ("svcimg", "/var/tmp/aws-svcimg")),
-        # The fleet-bake archives may not be staged (valid unbaked build —
-        # the loader fails loudly at first boot, never the build).
-        optional_contexts=("svcimg",),
+        contexts=(("context", "../../.."), ("deploy", "..")),
         verify_cmd=("command -v aitheros-ctl >/dev/null "
                     "&& systemctl is-enabled aitheros-autostart.service >/dev/null "
                     "&& echo AITHEROS_APPLIANCE_OK"),
@@ -646,45 +643,6 @@ def resolve_iso_image(iso_layer: str | None, iso_image: str) -> str:
     raise ValueError(f"no such layer: {iso_layer}")
 
 
-def resolve_iso_ghcr(iso_layer: str) -> str:
-    """`--iso-published` resolves a layer to its PUBLISHED ghcr ref.
-
-    The released ISO must be built from the registry image, never the local
-    one: publish-awnix-iso.sh refuses an ISO recording `localhost/` refs (the
-    bootc-upgrade path breaks), measured by its own localhost scan. The ref is
-    taken from the variants manifest's publish:true entry for this layer —
-    registry/{repo}:latest — and never guessed. Raises ValueError when the
-    variant is absent, unpublishable, or names no repo (the pre-flip state:
-    this flag must fail loudly, not fall back to the local image).
-    """
-    try:
-        from check_awnix_variants import load_variants
-    except ImportError:
-        raise ValueError("--iso-published needs check_awnix_variants.load_variants")
-    variants = load_variants(Path(__file__).resolve().parents[3]
-                             / ".DEPLOYMENT" / "standalone" / "bootc"
-                             / "awnix-variants.yaml")
-    for name, v in variants.items():
-        if v.get("layer") == iso_layer:
-            # load_variants parses the manifest with yaml.safe_load, so
-            # `publish: true` arrives as the BOOL True, while the shell
-            # publish-awnix-images.sh reads the raw text "true". Accept both
-            # spellings; anything else (False, "private", absent) is the
-            # pre-flip state and must refuse loudly.
-            pub = v.get("publish")
-            if pub is not True and pub != "true":
-                raise ValueError(
-                    f"--iso-published: variant {name!r} is publish={pub!r} "
-                    f"— there is no published image to build media from (the flip "
-                    f"has not happened)")
-            repo = v.get("repo", "")
-            if not repo:
-                raise ValueError(f"--iso-published: variant {name!r} declares no repo")
-            reg = v.get("registry", "ghcr.io/aitherium")
-            return f"{reg}/{repo}:latest"
-    raise ValueError(f"--iso-published: no variant has layer={iso_layer!r}")
-
-
 def _iso_out_is_distro_path(out: str) -> bool:
     """True when --iso-out is a plausible path INSIDE the distro.
 
@@ -787,12 +745,6 @@ def main() -> int:
                          "with --iso-image.")
     ap.add_argument("--iso-image", default=LAYERS[0].tag,
                     help=f"image to turn into media (default: {LAYERS[0].tag})")
-    ap.add_argument("--iso-published", action="store_true",
-                    help="build media from the PUBLISHED ghcr ref of --iso-layer's "
-                         "variant (registry/repo:latest from awnix-variants.yaml), "
-                         "pulling it if absent — the released ISO must record the "
-                         "registry ref, never localhost (publish-awnix-iso.sh refuses "
-                         "a localhost ref; pre-flip this fails loudly)")
     ap.add_argument("--iso-min-free-gb", type=float, default=None,
                     help=f"disk floor passed to the ISO script as --min-free-gb; "
                          f"defaults to the script's own MIN_FREE_GB ({ISO_FLOOR_GB}G). "
@@ -816,20 +768,6 @@ def main() -> int:
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
-
-    if args.iso_published:
-        if not args.iso_layer:
-            print("--iso-published requires --iso-layer (a layer names its variant)",
-                  file=sys.stderr)
-            return 2
-        try:
-            args.iso_image = resolve_iso_ghcr(args.iso_layer)
-        except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
-        if not _image_exists(args.iso_image):
-            print(f"[iso] pulling {args.iso_image} (published ref not local)")
-            _wsl(f"podman pull {args.iso_image}", timeout=1800)
 
     floor_err = iso_floor_error(args.iso_min_free_gb)
     if floor_err is not None:
@@ -1062,38 +1000,6 @@ def _self_test() -> int:
           _raises_value_error(lambda: resolve_iso_image(
               "base", "localhost/something-else:latest")))
 
-    # --iso-published resolves the layer's variant to its PUBLISHED registry
-    # ref. The boolean-vs-string arm exists because load_variants parses
-    # `publish: true` as the BOOL True while the shell script reads raw text
-    # "true" -- the first version compared against the string and refused
-    # EVERY publishable variant with "the flip has not happened" (measured
-    # 2026-09-01, fixed the same day). The manifest's own values decide both
-    # directions, so a flip that changes the manifest changes this verdict.
-    try:
-        from check_awnix_variants import load_variants
-    except ImportError:
-        load_variants = None
-    variants_file = (Path(__file__).resolve().parents[3]
-                     / ".DEPLOYMENT" / "standalone" / "bootc"
-                     / "awnix-variants.yaml")
-    _want_pub = None
-    if load_variants is not None and variants_file.is_file():
-        for _name, _v in load_variants(variants_file).items():
-            if _v.get("layer") == "base":
-                _pub = _v.get("publish")
-                _want_pub = (f"{_v.get('registry', 'ghcr.io/aitherium')}/"
-                             f"{_v['repo']}:latest") if _pub is True else None
-                break
-    if _want_pub is not None:
-        check("--iso-published resolves a publish:true variant to its "
-              "registry ref (bool True spelling)",
-              resolve_iso_ghcr("base") == _want_pub)
-    check("--iso-published refuses a publish:false variant (the pre-flip "
-          "state must fail loudly, never fall back to the local image)",
-          _raises_value_error(lambda: resolve_iso_ghcr("garg")))
-    check("--iso-published refuses an unknown layer",
-          _raises_value_error(lambda: resolve_iso_ghcr("nope")))
-
     # The min-free-gb floor is forwarded to the shell script as an INTEGER.
     # Bash's `[ "$a" -lt "$b" ]` rejects a float operand with "integer
     # expression expected" -- and the guard then evaluates FALSE, i.e. the
@@ -1245,23 +1151,6 @@ def _self_test() -> int:
     check("an undeclared COPY --from= name fails the context check",
           not _contexts_ok(bad, bootc_dir))
     (bootc_dir / "Containerfile.badctx").unlink()
-    # The optional-context direction: a layer MAY declare a context whose dir
-    # is absent (the appliance's svcimg — a valid unbaked build), so the
-    # missing-dir refusal must not fire for it, while a REQUIRED absent
-    # context must still refuse.
-    opt = Layer(name="optctx", tag="localhost/optctx:latest",
-                containerfile="Containerfile.optctx",
-                verify_cmd="true && echo OPTCTX_OK", verify_label="unreachable",
-                contexts=(("svcimg", "/var/tmp/definitely-not-staged"),),
-                optional_contexts=("svcimg",))
-    (bootc_dir / "Containerfile.optctx").write_text(
-        "FROM scratch\nCOPY --from=svcimg /x /y\n", encoding="utf-8")
-    check("an OPTIONAL absent context is accepted (unbaked build is valid)",
-          _contexts_ok(opt, bootc_dir)
-          and not [f'{n}={r}' for n, r in opt.contexts
-                   if n not in opt.optional_contexts
-                   and not (bootc_dir / r).is_dir()])
-    (bootc_dir / "Containerfile.optctx").unlink()
 
     # build_layer() must not raise even when the WSL call itself fails --
     # that is a reportable outcome (a print + False), never a crash.

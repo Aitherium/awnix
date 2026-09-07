@@ -106,6 +106,26 @@ variants:
   # one. `publish: false` would have been the wrong model: it says "never push this",
   # which tells anyone following the rule not to build the release lane that SHOULD
   # exist. The requirement is a destination, not a prohibition.
+  awnix-dev:
+    image: localhost/awnix-dev:latest
+    containerfile: Containerfile.awnix-dev
+    layer: dev
+    publish: private
+    repo: awnix-dev
+    registry: ghcr.io/aitherium
+    iso: false
+    publish_refusal: >-
+      The shared dev sandbox image. It carries the Claude Code CLI as of the
+      build date and is the image the platform's own workspace lane spawns
+      (AitherTunnel DEV_WORKSPACE_IMAGE) -- the same reason the `aitheros`
+      appliance may not be published. A public copy invites everyone to run
+      our pinned toolchain and makes the platform's sandbox plane part of the
+      public surface.
+    what: >-
+      The dev sandbox image for the workspace lane (vibe): the whole aw* stack
+      from awnix-full plus gh/tmux/openssh/build tools, the Claude Code CLI
+      (the harness daemon spawns `claude` sessions inside it), and code-server
+      (the tunnel.aitherium.com browser IDE).
   aitheros-cloud:
     image: localhost/aitheros-bootc-cloud:latest
     containerfile: Containerfile.aitheros

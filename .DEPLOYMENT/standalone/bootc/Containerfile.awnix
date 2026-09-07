@@ -69,6 +69,13 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         podman buildah skopeo crun \
         slirp4netns fuse-overlayfs \
         git curl jq unzip \
+        # C toolchain for the runner pool (SHW009). Measured 2026-08-21:
+        # node-gyp deps (better-sqlite3) died `gyp ERR! not found: make` on
+        # aitheros-aws-2; this image has never carried make/gcc/g++, so the
+        # aws pool could not compile any native npm module. The jobs on the
+        # pool are pinned for this in check_selfhosted_workflow_contract.py
+        # (SHW009_PIN); the pool is re-provisioned from this image so the
+        # pin can ratchet DOWN. patch is for node-gyp's apply step.
         gcc gcc-c++ make patch \
     && dnf clean all
 

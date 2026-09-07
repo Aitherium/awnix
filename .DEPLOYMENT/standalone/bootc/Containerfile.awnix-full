@@ -194,13 +194,21 @@ RUN git clone --depth 1 --branch "${GOBBONET_REF}" \
 # Verified in a clean Debian container before this landed: awdk from PyPI, the
 # fork cloned to /opt/gobbonet, `adk gobbonet --ui /opt/gobbonet` -> chat.html
 # 200 and js/24-boot.js 200, with pwsh ABSENT from the image.
+#
+# 🪤 THE POLL WINDOW IS 180s, NOT 80s — measured 2026-08-27. This step failed
+# TWICE through build_awnix_images.py on the workstation (load 23-30, fleet
+# contending) and succeeded on the third, direct, attempt: the gobbonet server
+# takes >80s to first-answer when python imports crawl under load. A flaky
+# build step teaches people to re-run until green — the exact class this
+# assertion exists to end. 60 x 3s keeps the failure signal (a server that
+# NEVER starts) while not timing out a server that merely started slowly.
 RUN set -eu; \
     adk gobbonet --ui /opt/gobbonet --port 8080 --no-open >/tmp/gobbonet.log 2>&1 & \
     ok=0; \
-    for i in $(seq 1 40); do \
+    for i in $(seq 1 60); do \
         code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/chat.html || echo 000); \
         if [ "$code" = "200" ]; then ok=1; break; fi; \
-        sleep 2; \
+        sleep 3; \
     done; \
     if [ "$ok" != "1" ]; then \
         echo 'GobboNet did not serve chat.html — the image would ship a UI that never starts'; \
