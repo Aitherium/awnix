@@ -126,6 +126,20 @@ jobs:
             push localhost/gobbonet-appliance:latest gobbonet-appliance
           fi
 
+          # AitherDesktop as the GUI. The ONLY published variant that is not
+          # Apache-2.0: BUSL-1.1 with the personal/non-commercial grant, so
+          # an individual runs it free and a company buys a licence. Needs
+          # the repo root in context for the two licence texts.
+          if want awnix-desktop; then
+            echo "::group::awnix-desktop"
+            docker build -f Containerfile.awnix-desktop \
+              --build-context deskapp=AitherOS/apps/AitherDesktop \
+              --build-context repo=. \
+              -t localhost/awnix-desktop:latest .
+            echo "::endgroup::"
+            push localhost/awnix-desktop:latest awnix-desktop
+          fi
+
           if want awnix-ai; then
             echo "::group::awnix-runner (intermediate)"
             docker build -f Containerfile.awnix-runner -t localhost/awnix-runner:latest .
@@ -147,7 +161,7 @@ jobs:
           accept='application/vnd.oci.image.index.v1+json'
           accept="$accept,application/vnd.docker.distribution.manifest.v2+json"
           fail=0
-          REPOS='awnix awnix-ai awnix-full awnix-ai-full gobbonet-appliance'
+          REPOS='awnix awnix-ai awnix-full awnix-ai-full gobbonet-appliance awnix-desktop'
           for repo in $REPOS; do
             if [ "$WANT" != "all" ] && [ "$WANT" != "$repo" ]; then continue; fi
             scope="repository:aitherium/$repo:pull"
