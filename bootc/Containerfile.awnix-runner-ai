@@ -1,0 +1,99 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# awnix-runner-ai — the AI-enabled half: PrismML llama.cpp + Bonsai-27B
+#
+# Layers on awnix-runner (the GitHub Actions runner). This is what makes the
+# box double as mesh-joinable inference capacity when it isn't running a CI
+# job — the idea that started this whole plan branch.
+#
+# Reuses the SAME mechanism AitherVeil's own public installer already proves
+# works end-to-end (apps/AitherVeil/public/install-bonsai.sh): a PREBUILT
+# PrismML llama.cpp release binary (no compilation -- stock llama.cpp cannot
+# load Bonsai's ternary weights, but the PrismML fork ships real binary
+# releases, ~11-35MB), + the documented `--reasoning-budget` gotcha (Bonsai's
+# Qwen3 chat template force-opens a <think> block every turn; the llama.cpp
+# default of -1 never closes it, so `content` comes back EMPTY -- this is
+# NOT optional, it's the difference between "serving" and "silently mute").
+#
+# Build: podman build -t awnix-runner-ai:latest -f Containerfile.awnix-runner-ai .
+# (requires awnix-runner:latest already built)
+#
+# GLIBCXX gap, and why the fix is a scoped bundle instead of a rebase:
+# the PrismML binary was linked against a libstdc++ carrying GLIBCXX_3.4.30,
+# and awnix-runner's base (CentOS Stream 9, libstdc++-11) tops out at
+# GLIBCXX_3.4.29 -- confirmed live: `dnf install gcc-toolset-12-runtime` /
+# `gcc-toolset-12-libstdc++-devel` install cleanly but ship only static
+# archives (libstdc++.a) and headers, never a newer libstdc++.so.6 -- there
+# is no in-repo (EL9) package that provides it.
+#
+# A single-file COPY of just libstdc++.so.6 was tried first and FAILS one
+# level deeper: Stream 10's libstdc++ is itself linked against GLIBC_2.36/
+# 2.38 symbols Stream 9's own libc.so.6 does not export (`/lib64/libc.so.6:
+# version 'GLIBC_2.38' not found`) -- so the fix has to carry that whole
+# small runtime chain, not just the one library the error message names.
+# Bundled here (all from the SAME Stream 10 stage, so the ABIs agree with
+# each other): ld-linux-x86-64.so.2, libc.so.6, libm.so.6, libgcc_s.so.1,
+# libstdc++.so.6. The serve script invokes the binary through this bundled
+# LOADER directly (`ld-linux ... --library-path /opt/bonsai/lib <binary>`)
+# rather than via LD_LIBRARY_PATH alone -- LD_LIBRARY_PATH would still hand
+# libc/ld-linux resolution to the OS's own loader, which is exactly the
+# mismatch this is working around. The target binary's own $ORIGIN-relative
+# RPATH (confirmed live: libggml-*/libllama-*/libmtmd already resolve that
+# way) is still honoured when invoked through an explicit loader, so
+# --library-path only needs to cover the 5 bundled overrides, nothing else.
+# Everything is scoped to /opt/bonsai/lib and this one exec -- the base
+# image's own libstdc++/libc/loader, and everything else that links against
+# them, is untouched.
+# ═══════════════════════════════════════════════════════════════════════════════
+FROM quay.io/centos-bootc/centos-bootc:stream10 AS newer-libstdcxx
+
+FROM localhost/awnix-runner:latest
+
+# Prebuilt binary only -- same release channel install-bonsai.sh uses. Vulkan
+# build covers NVIDIA/AMD/Intel with one small download and no CUDA runtime
+# (install-bonsai.sh's own reasoning: a vendor SDK is a bigger download that
+# can fail, which is worse than a slightly slower one that cannot). Runs as
+# the SAME non-root `runner` user this layer already created -- no new
+# account, no new privilege.
+ARG PRISM_RELEASE=prism-b9596-9fcaed7
+ARG PRISM_ASSET=llama-prism-b9596-9fcaed7-bin-ubuntu-vulkan-x64.tar.gz
+RUN mkdir -p /opt/bonsai/bin /opt/bonsai/models /opt/bonsai/lib \
+    && curl -fsSL -o /tmp/llama.tar.gz \
+        "https://github.com/PrismML-Eng/llama.cpp/releases/download/${PRISM_RELEASE}/${PRISM_ASSET}" \
+    && tar -xzf /tmp/llama.tar.gz -C /opt/bonsai/bin \
+    && rm /tmp/llama.tar.gz \
+    && find /opt/bonsai/bin -name llama-server -type f -exec chmod +x {} \; \
+    && chown -R runner:runner /opt/bonsai
+
+# The scoped GLIBCXX fix (see the block comment above): a small bundled
+# runtime chain, copied from a throwaway build stage, never touching the
+# base image's own libstdc++/libc/loader or anything else linked against
+# them.
+COPY --from=newer-libstdcxx /usr/lib64/libstdc++.so.6.0.33 /opt/bonsai/lib/libstdc++.so.6
+COPY --from=newer-libstdcxx /lib64/ld-linux-x86-64.so.2 /opt/bonsai/lib/ld-linux-x86-64.so.2
+COPY --from=newer-libstdcxx /usr/lib64/libc.so.6 /opt/bonsai/lib/libc.so.6
+COPY --from=newer-libstdcxx /usr/lib64/libm.so.6 /opt/bonsai/lib/libm.so.6
+COPY --from=newer-libstdcxx /usr/lib64/libgcc_s-14-20260629.so.1 /opt/bonsai/lib/libgcc_s.so.1
+RUN chmod 755 /opt/bonsai/lib/*.so* \
+    && chown -R runner:runner /opt/bonsai/lib
+
+# First-boot serve script. Model weights (multi-GB, Q2_0 27B) are NOT baked
+# into the image -- deferred to first boot, same reasoning as the GitHub
+# runner registration token: a bulk download baked into a shared image is
+# either wasted (never booted) or duplicated (booted many times), and an
+# UNCAPPED bulk download on a fleet of these has already flattened a home
+# connection once this session (see CLAUDE.md's bulk-WAN-downloads-must-be-
+# capped lesson) -- so this fetches once, at boot, on the box that actually
+# needs it.
+# The launcher, the CHOOSER and the CATALOGUE. Shipping only the launcher is how the
+# config-driven design would have been config-driven in the repo and hardcoded in the
+# image -- the script refuses to start without the selector rather than falling back to
+# a built-in default, because a silent fallback is how the catalogue stops being the
+# source of truth without anyone noticing.
+COPY --chown=root:root serve-awnix-bonsai.sh /usr/local/sbin/serve-awnix-bonsai.sh
+COPY --chown=root:root awnix-model-select.py /usr/local/sbin/awnix-model-select.py
+COPY --chown=root:root awnix-models.yaml /usr/local/sbin/awnix-models.yaml
+RUN chmod 755 /usr/local/sbin/serve-awnix-bonsai.sh              /usr/local/sbin/awnix-model-select.py     && chmod 644 /usr/local/sbin/awnix-models.yaml
+
+LABEL com.aitheros.layer="awnix-runner-ai" \
+      com.aitheros.description="awnix-runner + PrismML llama.cpp binary (Bonsai-capable, model fetched at first boot)" \
+      org.opencontainers.image.licenses="Apache-2.0"
