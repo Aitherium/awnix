@@ -622,6 +622,12 @@ profiles:
   available: true
   reason: ''
 services:
+- id: ACTA
+  description: Token billing and API key management
+  group: automation
+  entitlement: core
+  reason: 'PROVISIONAL (confidence 0.7): 8 services depend on it (floor 6); the other core signal does
+    not corroborate'
 - id: AitherAgentEnv
   description: AgentEnv crowdsourced sandbox hosting — Firecracker microVMs + KVCache P2P warm start for
     Kimi K3.
@@ -933,7 +939,7 @@ services:
 - id: Elysium
   description: 'AitherNet Hub (elysium.aitherium.com) - the public hub for AitherMesh and AitherRelay
     federation. NOT retired: owner decision 2026-08-12 repurposed this from the superseded Agent Marketplace
-    (that surface moved to portal.aitherium.com) into the mesh/relay hub. Serving on 3100 (Next.js reports
+    (that surface moved to api.aitherium.com) into the mesh/relay hub. Serving on 3100 (Next.js reports
     Ready) while the container reports UNHEALTHY - the healthcheck still probes the old marketplace surface
     and must be repointed at the hub before it can be trusted. ["disabled"]; tunnel route removed.'
   group: ui
@@ -1280,6 +1286,13 @@ services:
   reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
     is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
     packs instead of being taxed on the thing that makes the product good.'
+- id: SovereignNode
+  description: Sovereign Node Protocol — autonomous governance, Ed25519 identity, offline queue, peer
+    mesh
+  group: mesh
+  entitlement: core
+  reason: 'PROVISIONAL (confidence 0.7): declared in the sovereign core group; the other core signal does
+    not corroborate'
 - id: Spirit
   description: Soul/persona memory
   group: memory
@@ -1425,9 +1438,8 @@ groups:
 - minimal
 - social
 - storage
-unroled_services: 118
+unroled_services: 70
 unroled_service_names:
-- ACTA
 - AitherChronos
 - AitherCivics
 - AitherFeedGenerator
@@ -1440,46 +1452,26 @@ unroled_service_names:
 - AitherSocial
 - AitherStudioPair
 - AitherSupport
-- AutomatedActions
-- Autonomic
-- AutonomousTask
-- Benchmark
 - Bluetooth
-- CartridgeForge
 - Cert
-- Chain
 - ChronicleLog
 - ClusterAgent
 - Comet
 - CommunicationCore
 - CompetitiveIntel
 - Conductor
-- Conduit
-- DesktopBridge
 - DirectorySurface
 - Discord
 - DiscordRelayBridge
 - ElysiumBackend
-- Estimator
 - EventLog
-- Evolution
-- Expedition
 - ExternalGateway
 - Failover
 - FluxGossipBridge
-- ForgeDispatch
-- ForgeTools
 - Gateway
-- GitService
-- Guard
-- Harvest
-- InnerLife
 - Inspector
 - Instagram
 - KnowledgeRAGIngestWorker
-- LSP
-- Lab
-- Learning
 - MCPGateway
 - Mail
 - MailCore
@@ -1489,38 +1481,21 @@ unroled_service_names:
 - MinIO
 - Mint
 - Moltroad
-- Muse
 - NewsGraph
 - NewsWire
 - Nexus
 - Node
 - NodeDeployer
-- Onboard
-- Persona
-- PersonaPlex
-- PlaybookEngine
-- Portal
-- Prism
-- PrometheusCreative
-- RealmPulse
 - Recover
 - Redis
-- Reflex
 - Registry
 - Relay
 - Repowise
 - Retrieval
-- RoundTable
-- SEAL
 - SMS
 - SMTP
 - STTP
-- STaR
 - SecurityCore
-- Sense
-- SensoryBuffer
-- Sentinel
-- Sentry
 - Slack
 - SocialEngine
 - SocialHub
@@ -1528,23 +1503,13 @@ unroled_service_names:
 - SocialIntelligence
 - SocialPlatforms
 - SocialUnified
-- SovereignNode
-- Steward
 - Strata
 - StrataData
 - StrataMeshReplicationTrigger
-- TaskHub
 - Telegram
 - TenantDataPlane
-- Terminal
-- TraceInverter
-- Trainer
-- Vision
-- Voice
 - WhatsApp
 - Worker
-- Workspace
-- awrtifact
 features:
 - group: Core
   id: Docker
