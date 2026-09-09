@@ -354,7 +354,7 @@ def run_interactive() -> int:
 
     # 3 ── link
     say("  Link this machine?")
-    say("  Connects it to your fleet at portal.aitherium.com so awdk/awsh can reach it.")
+    say("  Connects it to your fleet at api.aitherium.com so awdk/awsh can reach it.")
     say("  Skipping leaves a fully working standalone box — you can link later with")
     say("  `awnix-setup` at any time.")
     link = input("  Link now? [y/N]: ").strip().lower().startswith("y")
@@ -364,7 +364,7 @@ def run_interactive() -> int:
         try:
             d = start_device_flow()
             say()
-            say(f"    Go to:  {d.get('verification_uri', 'https://portal.aitherium.com/link')}")
+            say(f"    Go to:  {d.get('verification_uri', 'https://api.aitherium.com/link')}")
             say(f"    Code :  {d.get('user_code', '?')}")
             say()
             say("    Waiting for approval (Ctrl-C to skip)…")

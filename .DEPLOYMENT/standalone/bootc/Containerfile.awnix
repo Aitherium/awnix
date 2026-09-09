@@ -65,17 +65,25 @@ RUN dnf install -y --setopt=install_weak_deps=False cloud-init \
 # comment between backslash continuations is prepended to the shell
 # command, commenting out every package after it (the toolchain silently
 # never installed; caught by check_awnix_variants.py).
+# C toolchain for the runner pool (SHW009). Measured 2026-08-21: node-gyp deps
+# (better-sqlite3) died `gyp ERR! not found: make` on aitheros-aws-2; this image
+# had never carried make/gcc/g++, so the aws pool could not compile any native
+# npm module. The jobs on the pool are pinned for this in
+# check_selfhosted_workflow_contract.py (SHW009_PIN); the pool is re-provisioned
+# from this image so the pin can ratchet DOWN. patch is for node-gyp's apply step.
+#
+# 🚨 THIS COMMENT LIVES ABOVE THE RUN, AND MUST STAY THERE. It sat INSIDE the
+# command until 2026-09-09, between `git curl jq unzip \` and the toolchain. A
+# backslash continuation joins the lines, so the `#` commented out the remainder
+# of the joined command -- gcc, gcc-c++, make, patch AND `dnf clean all` never
+# ran. The image built fine and reported success; the toolchain was simply
+# absent, which is the exact SHW009 symptom the comment describes as fixed.
+# The warning against this shape was written four lines above the line that did
+# it. check_awnix_variants.py AWV007 is what actually catches it.
 RUN dnf install -y --setopt=install_weak_deps=False \
         podman buildah skopeo crun \
         slirp4netns fuse-overlayfs \
         git curl jq unzip \
-        # C toolchain for the runner pool (SHW009). Measured 2026-08-21:
-        # node-gyp deps (better-sqlite3) died `gyp ERR! not found: make` on
-        # aitheros-aws-2; this image has never carried make/gcc/g++, so the
-        # aws pool could not compile any native npm module. The jobs on the
-        # pool are pinned for this in check_selfhosted_workflow_contract.py
-        # (SHW009_PIN); the pool is re-provisioned from this image so the
-        # pin can ratchet DOWN. patch is for node-gyp's apply step.
         gcc gcc-c++ make patch \
     && dnf clean all
 
