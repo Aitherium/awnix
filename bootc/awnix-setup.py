@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import pathlib
 import socket
 import subprocess
 import sys
@@ -47,39 +48,69 @@ DEVICE_TOKEN_URL = DEVICE_HOST + "/auth/device/token"
 PYPI = "https://pypi.org/pypi/{}/json"
 UA = "awnix-setup"
 
-# name -> (group, one-line what-it-is). BAKED are already in the image; the rest are
-# offered at setup. Groups exist so "core" can be one keystroke.
-CATALOG: list[tuple[str, str, str]] = [
-    ("awgit",     "core",  "op-log-aware git for trees several agents share"),
-    ("awgraph",   "core",  "ask the code graph instead of grepping"),
-    ("awrelay",   "core",  "cross-session agent messaging humans can read"),
-    ("awm",       "core",  "scoped agent memory"),
-    ("awshare",   "core",  "share an artifact with a verifiable identity"),
-    ("awprism",   "extra", "structured views over a running system"),
-    ("awreason",  "extra", "reasoning helpers"),
-    ("awrecurse", "extra", "recursive task decomposition"),
-    ("awrepl",    "extra", "a REPL wired to the aw* tools"),
-    ("awsync",    "extra", "keep two trees in step"),
-    # Source-installable: a public repo but no PyPI entry, because PyPI limits how many
-    # projects an account may create and we ran out of slots -- not because these are
-    # unfinished. Verified 2026-08-21: each has a public repo under github.com/Aitherium.
-    ("awrun",     "extra", "run a job somewhere else and get the result back"),
-    ("awrecover", "extra", "recover a broken tree or a lost change"),
-    ("awseal",    "extra", "seal an artifact so tampering is detectable"),
-    ("awfind",    "extra", "find things across trees"),
-    ("awkno",     "extra", "a knowledge store you can query"),
-    ("awmail",    "extra", "mail, for agents"),
-    ("awnest",    "extra", "nest and compose agent workspaces"),
-    ("awnboard",  "extra", "a board agents and humans share"),
-    ("awbrowse",  "extra", "drive a browser"),
-    ("awpredict", "extra", "prediction helpers"),
-    ("awresearch", "extra", "research workflows"),
-    ("awdk",      "agent", "the agent layer — an agent that can drive this box"),
-]
+BAKED = {"awgit", "awgraph", "awrelay", "awm", "awshare"}
+
+#: The catalogue is DERIVED, not written here.
+#:
+#: It was a 22-entry list in this file, against an ecosystem.yaml carrying 74 bricks,
+#: a services.yaml carrying 283 services with installable/entitlement per service, an
+#: AitherZero config.psd1 feature tree, a model catalogue and an agent catalogue.
+#: Measured 2026-09-09: the hand-written list was 52 short -- it did not offer awnode,
+#: awsh, awskills, awdesk, awbonsai, awspaces, or awnix ITSELF, and nothing compared
+#: it to anything. Same defect as four others found the same day, all two-lists.
+#:
+#: gen_installer_catalogue.py derives awnix-catalogue.yaml from those registries and a
+#: gate fails when it drifts. The file is BAKED beside this script because this runs at
+#: first boot inside a bootc image that does not carry AitherOS/config/ -- reading the
+#: registries at runtime would work on every dev machine and traceback on the only
+#: machine that matters.
+CATALOGUE_FILE = os.environ.get(
+    "AWNIX_CATALOGUE", "/usr/local/sbin/awnix-catalogue.yaml")
+
+
+def load_catalogue(path: str | None = None) -> list[tuple[str, str, str]]:
+    """(name, group, blurb) per offerable package, from the baked catalogue.
+
+    RAISES rather than falling back to a built-in list. A fallback would mean the
+    image silently offers yesterday's 22 while the gate reports the catalogue clean --
+    the setup screen would look fine and be wrong, which is the failure this whole
+    derivation exists to end. NO_FALLBACK_POLICY applies here too.
+    """
+    p = pathlib.Path(path or CATALOGUE_FILE)
+    if not p.exists():
+        raise SystemExit(
+            f"awnix-setup: catalogue missing at {p}. The image build did not stage it "
+            f"(COPY awnix-catalogue.yaml). Refusing to offer a built-in list: it would "
+            f"be wrong and look right.")
+    try:
+        import yaml
+    except ImportError:
+        raise SystemExit(
+            "awnix-setup: pyyaml is unavailable, so the catalogue cannot be read") from None
+    doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    packages = doc.get("packages") or []
+    if not packages:
+        raise SystemExit(f"awnix-setup: {p} lists no packages -- refusing to show an "
+                         f"empty menu, which reads as a product with no components")
+    out: list[tuple[str, str, str]] = []
+    for entry in packages:
+        name = entry.get("id")
+        if not name:
+            continue
+        # Groups are kept exactly as this script already used them, so "core" stays
+        # one keystroke: baked things are core, awdk is the agent layer, rest extra.
+        group = "core" if name in BAKED else ("agent" if name == "awdk" else "extra")
+        blurb = (entry.get("tagline") or "").strip()
+        if not entry.get("available", True) and entry.get("reason"):
+            # Absent is a STATUS, not an omission -- carry the reason onto the row so
+            # the screen can say why instead of dropping it.
+            blurb = f"{blurb}  [unavailable: {entry['reason']}]".strip()
+        out.append((name, group, blurb))
+    return out
+
 
 GITHUB_ORG = os.environ.get("AWNIX_GITHUB_ORG", "Aitherium")
 GITHUB_REPO = "https://github.com/{org}/{name}"
-BAKED = {"awgit", "awgraph", "awrelay", "awm", "awshare"}
 
 
 def say(msg: str = "") -> None:
@@ -163,7 +194,7 @@ def resolve_catalog(source_probe=resolve_source) -> list[dict]:
     production uses, so a test injecting a fake exercises the identical branch.
     """
     out = []
-    for name, group, blurb in CATALOG:
+    for name, group, blurb in load_catalogue():
         entry = {"name": name, "group": group, "what": blurb,
                  "baked": name in BAKED, "available": None, "source": None}
         if entry["baked"]:
@@ -208,8 +239,13 @@ def parse_selection(raw: str, offered: list[dict]) -> list[str]:
             if 0 <= i < len(offered):
                 picked.append(offered[i]["name"])
         else:
+            # Case-INSENSITIVE. The input is lowercased above, so an exact compare
+            # could never match a mixed-case id -- and the derived catalogue carries
+            # `AitherConnect` and `AitherZero`, which a user therefore could not
+            # select by name at all. Latent while the catalogue was hand-written and
+            # all-lowercase aw*; surfaced the moment it came from the registry.
             for c in offered:
-                if c["name"] == tok:
+                if c["name"].lower() == tok:
                     picked.append(c["name"])
     seen: set[str] = set()
     return [p for p in picked if not (p in seen or seen.add(p))]
@@ -310,7 +346,7 @@ def run_interactive() -> int:
 
     # 2 ── components
     say("  Components")
-    baked = [c for c in CATALOG if c[0] in BAKED]
+    baked = [c for c in load_catalogue() if c[0] in BAKED]
     say(f"  Already installed (core): {', '.join(n for n, _, _ in baked)}")
     say("  Checking what else is available…")
     catalog = resolve_catalog()
