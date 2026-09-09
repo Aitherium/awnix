@@ -20,7 +20,7 @@ on:
       layer:
         description: 'Image layer to build'
         type: choice
-        options: [base, runner, runner-ai, full, ai-full, gobbonet]
+        options: [base, runner, runner-ai, full, ai-full, gobbonet, desktop-gui]
         default: base
       iso_type:
         description: 'Media type'
@@ -120,6 +120,7 @@ jobs:
           case "$LAYER" in
             runner-ai) SLUG="ai" ;;
             ai-full)   SLUG="ai-full" ;;
+            desktop-gui) SLUG="desktop" ;;
             gobbonet)  SLUG="gobbonet" ;;
             runner)    SLUG="runner" ;;
             full)      SLUG="full" ;;
@@ -165,6 +166,7 @@ jobs:
           case "$LAYER" in
             runner-ai) SLUG="ai" ;;
             ai-full)   SLUG="ai-full" ;;
+            desktop-gui) SLUG="desktop" ;;
             gobbonet)  SLUG="gobbonet" ;;
             runner)    SLUG="runner" ;;
             full)      SLUG="full" ;;
