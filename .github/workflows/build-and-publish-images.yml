@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       variant:
-        description: "which to build (all | awnix | awnix-ai | awnix-full)"
+        description: "which to build (all | awnix | awnix-ai | awnix-full | awnix-ai-full)"
         required: false
         default: "all"
   push:
@@ -94,6 +94,19 @@ jobs:
             push localhost/awnix-full:latest awnix-full
           fi
 
+          # The third public rung: the aw* stack WITH inference. Builds on
+          # awnix-full, so that image must exist first -- built here rather than
+          # assumed, because `want awnix-ai-full` alone must be a complete lane.
+          if want awnix-ai-full; then
+            echo "::group::awnix-full (parent)"
+            docker build -f Containerfile.awnix-full -t localhost/awnix-full:latest .
+            echo "::endgroup::"
+            echo "::group::awnix-ai-full"
+            docker build -f Containerfile.awnix-ai-full -t localhost/awnix-ai-full:latest .
+            echo "::endgroup::"
+            push localhost/awnix-ai-full:latest awnix-ai-full
+          fi
+
           if want awnix-ai; then
             echo "::group::awnix-runner (intermediate)"
             docker build -f Containerfile.awnix-runner -t localhost/awnix-runner:latest .
@@ -115,7 +128,7 @@ jobs:
           accept='application/vnd.oci.image.index.v1+json'
           accept="$accept,application/vnd.docker.distribution.manifest.v2+json"
           fail=0
-          for repo in awnix awnix-ai awnix-full; do
+          for repo in awnix awnix-ai awnix-full awnix-ai-full; do
             if [ "$WANT" != "all" ] && [ "$WANT" != "$repo" ]; then continue; fi
             scope="repository:aitherium/$repo:pull"
             tok=$(curl -sf "https://ghcr.io/token?scope=$scope&service=ghcr.io" \
