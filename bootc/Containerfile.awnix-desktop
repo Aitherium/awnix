@@ -43,23 +43,44 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 FROM localhost/awnix-ai-full:latest
 
-# A COMPOSITOR, not a desktop environment. cage runs exactly one Wayland client
-# fullscreen and exits when it does — which is the correct shape for a kiosk-like
-# overlay appliance and about two orders of magnitude less surface than
-# @gnome-desktop. seatd owns the input/DRM handover so nothing here needs root.
+# A COMPOSITOR, not a desktop environment. The machine runs one Wayland client
+# fullscreen and nothing else -- no session to log into, no file manager.
 #
-# PyQt6 comes from dnf, not pip: the wheels pull their own Qt build and a
-# bootc image with two Qt runtimes is a support problem that only shows up on
-# the customer's screen. python3-pyqt6-webengine is the one the overlay needs
-# for its web panels.
-RUN dnf install -y --setopt=install_weak_deps=False \
-        cage seatd wlr-randr \
-        mesa-dri-drivers mesa-vulkan-drivers \
-        python3-pyqt6 python3-pyqt6-webengine \
-        python3-aiohttp python3-httpx python3-pyyaml \
-        xkeyboard-config \
+# MEASURED against the real base image (quay.io/centos-bootc/centos-bootc:stream9)
+# rather than assumed, because a first draft of this file could not have built:
+#
+#   cage, wlr-randr             absent from base, EPEL and CRB entirely
+#   python3-pyqt6-webengine     packaged NOWHERE for el9
+#   python3-pyqt6               epel-next only, and only the non-WebEngine half
+#   seatd, python3-aiohttp,
+#   python3-httpx               EPEL
+#   weston                      EPEL, 8.0.0
+#   mesa-*, xkeyboard-config    base appstream
+#
+# So: weston, not cage. And weston 8 has neither kiosk-shell (9.0+) nor an
+# [autolaunch] section -- both checked in the shipped man page, not assumed -- so the
+# compositor and the app are TWO units against a named socket. That uses only
+# long-standing weston features and cannot break on a version bump that changes
+# shell plugins.
+RUN dnf install -y --setopt=install_weak_deps=False epel-release \
+    && dnf install -y --setopt=install_weak_deps=False \
+        weston seatd \
+        mesa-dri-drivers mesa-vulkan-drivers xkeyboard-config \
+        python3-aiohttp python3-httpx python3-pyyaml python3-pip \
     && dnf clean all \
     && systemctl enable seatd.service
+
+# PyQt6 from PIP, and this reverses a first draft that said the opposite.
+#
+# The original reasoning -- "dnf, because pip wheels bundle their own Qt and two Qt
+# runtimes in one image is a support problem" -- was right about the hazard and wrong
+# about which choice avoids it. PyQt6-WebEngine is packaged nowhere for el9, so dnf
+# CANNOT supply a complete set; taking python3-pyqt6 from epel-next and the WebEngine
+# half from pip is what would produce two Qt runtimes. One source is the fix, and pip
+# is the only source that has both halves.
+RUN python3 -m pip install --no-cache-dir \
+        "PyQt6>=6.5.0" "PyQt6-WebEngine>=6.5.0" \
+        "pynput>=1.7.6" "watchdog>=3.0.0"
 
 # The app. Staged from the monorepo rather than pip-installed from an index:
 # ecosystem.yaml records awdesk as `status: unpublished` with "see the repo" as
@@ -67,10 +88,10 @@ RUN dnf install -y --setopt=install_weak_deps=False \
 # otherwise would produce an image that fails to build on the day the ARG
 # pointed somewhere real.
 #
-# --no-deps is deliberate: every runtime dependency is installed above from dnf,
-# and letting pip resolve them would fetch a SECOND PyQt6 on top of the system
-# one. The import check below is what proves the dnf set is actually sufficient
-# rather than assumed.
+# --no-deps is deliberate: every runtime dependency is already installed above --
+# aiohttp/httpx/pyyaml from EPEL, the Qt stack from pip -- and letting pip resolve
+# them again could pull a second copy of either. The import check below is what
+# proves that set is actually sufficient rather than assumed.
 # Its OWN named build context, not a path under a repo-root one. The appliance
 # layer records why: with a single repo-root context, buildah FILTERS the
 # deploy files out -- "no items matching glob ... (1 filtered out)" -- which
@@ -90,20 +111,40 @@ RUN python3 -m pip install --no-deps --no-cache-dir /opt/aither-desktop \
 # The unprivileged account the session runs as. `bonsai` already exists from
 # awnix-ai-full and owns the inference side; a GUI session is a different job,
 # so it gets its own user and its own seat membership.
-RUN useradd -m -s /bin/bash -c "AitherDesktop session (unprivileged)" desk \
-    && usermod -aG seat,video,input,render desk
-
-# One unit, one client. Restart=always because the overlay IS the face of the
-# machine: if it dies, a black screen is not an acceptable resting state.
 #
-# WAYLAND_DISPLAY and XDG_RUNTIME_DIR are set explicitly rather than inherited —
-# a graphical unit that relies on a login session's environment works when you
-# test it over ssh with a session open and fails on a headless first boot, which
-# is the only boot that matters here.
-RUN mkdir -p /etc/systemd/system && cat > /etc/systemd/system/aither-desktop.service <<'UNIT'
+# The uid is EXPLICIT and the units below use the same number. A first draft let
+# useradd pick -- which takes whatever the layers below happened to leave free
+# (awnix-runner creates `runner`, awnix-ai-full creates `bonsai`) -- while the units
+# hardcoded /run/user/1001. The two would silently disagree the moment another
+# account is added anywhere lower in the chain, and the symptom is a compositor
+# that cannot create its runtime dir on a machine with no console to read.
+# SUID001 says the same thing for the fleet's shared volumes: an account created
+# with no explicit uid is a defect in its own right, because it moves under you.
+ARG DESK_UID=1005
+RUN useradd -m -u ${DESK_UID} -s /bin/bash \
+        -c "AitherDesktop session (unprivileged)" desk \
+    && usermod -aG seat,video,input,render desk \
+    && test "$(id -u desk)" = "${DESK_UID}"
+
+# TWO units against a named socket, because weston 8 has no kiosk-shell and no
+# [autolaunch] -- both checked in the shipped man page. Each half is simple and
+# independently verifiable, and neither depends on a shell plugin that a version
+# bump might rename.
+#
+# XDG_RUNTIME_DIR and WAYLAND_DISPLAY are set EXPLICITLY rather than inherited: a
+# graphical unit that relies on a login session's environment works when you test
+# it over ssh with a session open and fails on a headless first boot, which is the
+# only boot that matters here.
+RUN mkdir -p /etc/xdg/weston \
+ && printf '%s\n' \
+      '[core]' 'idle-time=0' 'require-input=false' \
+      '[shell]' 'locking=false' 'panel-position=none' \
+      > /etc/xdg/weston/weston.ini
+
+RUN cat > /etc/systemd/system/aither-weston.service <<'UNIT'
 [Unit]
-Description=AitherDesktop as the machine's GUI (cage + the overlay, nothing else)
-After=seatd.service awnix-bonsai.service
+Description=Weston compositor hosting AitherDesktop (no desktop environment)
+After=seatd.service
 Wants=seatd.service
 
 [Service]
@@ -111,20 +152,42 @@ Type=simple
 User=desk
 PAMName=login
 TTYPath=/dev/tty2
-Environment=XDG_RUNTIME_DIR=/run/user/1001
-Environment=XDG_SESSION_TYPE=wayland
-Environment=QT_QPA_PLATFORM=wayland
-# The overlay reaches the ecosystem over awnode's HTTP/SSE port on this box.
-Environment=AITHER_AWNODE_URL=http://127.0.0.1:8099
-ExecStart=/usr/bin/cage -- /usr/bin/aither-desktop
+Environment=XDG_RUNTIME_DIR=/run/user/1005
+ExecStartPre=/usr/bin/install -d -o desk -g desk -m 0700 /run/user/1005
+ExecStart=/usr/bin/weston --socket=aither-wl --backend=drm-backend.so
 Restart=always
 RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
 UNIT
-RUN systemctl enable aither-desktop.service
 
+RUN cat > /etc/systemd/system/aither-desktop.service <<'UNIT'
+[Unit]
+Description=AitherDesktop as the machine's GUI (the only Wayland client)
+After=aither-weston.service awnix-bonsai.service
+Requires=aither-weston.service
+
+[Service]
+Type=simple
+User=desk
+Environment=XDG_RUNTIME_DIR=/run/user/1005
+Environment=WAYLAND_DISPLAY=aither-wl
+Environment=XDG_SESSION_TYPE=wayland
+Environment=QT_QPA_PLATFORM=wayland
+# The overlay reaches the ecosystem over awnode's HTTP/SSE port on this box.
+Environment=AITHER_AWNODE_URL=http://127.0.0.1:8099
+ExecStart=/usr/bin/aither-desktop
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# Restart=always on both because the overlay IS the face of the machine: if it
+# dies, a black screen is not an acceptable resting state.
+RUN systemctl enable aither-weston.service aither-desktop.service
 # tty1 stays with awnix-setup (it declares TTYPath=/dev/tty1 and
 # Before=getty@tty1). This unit takes tty2 instead of masking that flow: unlike
 # the private appliance, this image is NOT pre-provisioned, so the hostname,
@@ -133,6 +196,6 @@ RUN systemctl enable aither-desktop.service
 
 LABEL com.aitheros.layer="awnix-desktop" \
       com.aitheros.base="awnix-ai-full" \
-      com.aitheros.description="awnix + the aw* stack + Bonsai + AitherDesktop as the only GUI client (cage compositor)" \
+      com.aitheros.description="awnix + the aw* stack + Bonsai + AitherDesktop as the only GUI client (weston, no desktop environment)" \
       org.opencontainers.image.licenses="BUSL-1.1" \
       com.aitheros.licence-note="Apache-2.0 aw* packages inside a BUSL-1.1 aggregate. Personal non-commercial production use granted; commercial use requires a licence; converts to Apache-2.0 on 2030-02-07."
