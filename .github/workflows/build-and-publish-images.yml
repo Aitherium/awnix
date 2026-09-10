@@ -77,16 +77,38 @@ jobs:
           docker build -f Containerfile.awnix -t localhost/awnix-base:latest .
           echo "::endgroup::"
 
+          # A denied push RECORDS the failure and lets the other variants continue.
+          #
+          # Measured 2026-09-10: gobbonet-appliance was refused with
+          # `denied: permission_denied: write_package` -- the package already exists
+          # from outside this repo, so this repo's GITHUB_TOKEN has no write access to
+          # it however the workflow declares `packages: write`. Under set -e that one
+          # ACL problem aborted the step, and awnix-desktop -- which had nothing wrong
+          # with it -- was never built at all. One package's permissions must not
+          # decide whether five others get published.
+          #
+          # The job still FAILS at the end, with every failure named. Failing fast
+          # here hides results; failing late hides nothing.
+          PUSH_FAILURES=""
           push() {
-            local img="$1" repo="$2"
+            local img="$1" repo="$2" t
             for t in latest "$DATE_TAG"; do
               docker tag "$img" "$REG/$repo:$t"
-              docker push "$REG/$repo:$t"
+              if ! docker push "$REG/$repo:$t"; then
+                echo "::error::push denied for $REG/$repo:$t -- if this is"
+                echo "::error::permission_denied:write_package the package already"
+                echo "::error::exists and this repository is not granted write access"
+                echo "::error::to it. Fix it in the package's settings (Manage Actions"
+                echo "::error::access -> add Aitherium/awnix with write), not here."
+                PUSH_FAILURES="$PUSH_FAILURES $repo"
+                return 0
+              fi
             done
             echo "pushed $REG/$repo (latest, $DATE_TAG)"
           }
 
           if want awnix; then push localhost/awnix-base:latest awnix; fi
+
 
           if want awnix-full; then
             echo "::group::awnix-full"
@@ -148,6 +170,11 @@ jobs:
             docker build -f Containerfile.awnix-runner-ai -t localhost/awnix-runner-ai:latest .
             echo "::endgroup::"
             push localhost/awnix-runner-ai:latest awnix-ai
+          fi
+
+          if [ -n "$PUSH_FAILURES" ]; then
+            echo "::error::these variants could not be pushed:$PUSH_FAILURES"
+            exit 1
           fi
 
       # A push that reports success and leaves the package unreachable is the exact
