@@ -491,6 +491,22 @@ profiles:
   status: planned
   available: false
   reason: 'status: planned'
+- id: hackathon-sandbox
+  name: Hackathon dev sandbox
+  what: Download one installer and have a local dev environment for your hackathon project. An agent runtime
+    (awdk) in your terminal (awsh), routing to your choice of backend via a local gateway (awnode), with
+    portable skills (awskills) and scoped memory (awm) that survives the session. Everything a hackathon
+    team needs to ship an agent before the demo, running locally on a laptop with no cloud dependency
+  packages:
+  - awdk
+  - awsh
+  - awnode
+  - awskills
+  - awm
+  - awkno
+  status: ready
+  available: true
+  reason: ''
 - id: inference-commons
   name: The inference commons -- pool compute, storage and caches across strangers' nodes
   what: 'Owner directive 2026-09-01: decentralise storage and inference across the aw* stack so anyone''s
