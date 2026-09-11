@@ -185,12 +185,6 @@ LAYERS: tuple[Layer, ...] = (
         verify_label="the bundled GLIBCXX runtime actually resolves and llama-server runs "
                       "(the fix for the GLIBCXX_3.4.30 gap -- see Containerfile.awnix-runner-ai)",
     ),
-    # ── awnix-full ─ the batteries-included variant ──────────────────────
-    # This layer was declared in awnix-variants.yaml with `iso: true` and existed in
-    # NEITHER this tool nor the ISO workflow, so `awnix-full` could be pushed as an
-    # image (publish-awnix-images.sh reads the variants file) and could never be built
-    # as MEDIA. That is why it is the one public variant with no ISO release: not a
-    # failed build, an absent lane. Same class as the appliance comment below.
     Layer(
         name="full",
         tag="localhost/awnix-full:latest",
@@ -212,6 +206,63 @@ LAYERS: tuple[Layer, ...] = (
         ),
         verify_label="every aw* package in the batteries-included variant imports",
     ),
+    Layer(
+        name="ai-full",
+        tag="localhost/awnix-ai-full:latest",
+        containerfile="Containerfile.awnix-ai-full",
+        # BOTH halves, because this rung exists precisely because no image had both.
+        # Verifying only llama-server would pass on awnix-runner-ai, and verifying
+        # only adk would pass on awnix-full -- either alone proves the wrong thing.
+        verify_cmd=(
+            "BIN=$(find /opt/bonsai/bin -name llama-server -type f | head -1) "
+            "&& /opt/bonsai/lib/ld-linux-x86-64.so.2 --library-path /opt/bonsai/lib "
+            "\"$BIN\" --version "
+            "&& command -v adk "
+            "&& id bonsai "
+            "&& echo AWNIX_AI_FULL_BOTH_HALVES_OK"
+        ),
+        verify_label="the aw* stack AND inference are both present in ONE image -- "
+                     "llama-server runs through the bundled loader, adk resolves, and "
+                     "the unprivileged bonsai account serve-awnix-bonsai.sh drops to "
+                     "exists (it REFUSES to start without it)",
+    ),
+    Layer(
+        name="desktop-gui",
+        tag="localhost/awnix-desktop:latest",
+        containerfile="Containerfile.awnix-desktop",
+        # Each source gets its OWN context. With a single repo-root context buildah
+        # FILTERS files out -- "no items matching glob ... (1 filtered out)" -- which
+        # reads as a missing file while the file sits there; the appliance layer
+        # records that trap. A context pointed straight at the app cannot be filtered
+        # by an ignore rule written above it.
+        contexts=(("deskapp", "../../../AitherOS/apps/AitherDesktop"),
+                  ("repo", "../../..")),
+        # The GUI, its compositor, AND the licence texts -- the last because an image
+        # that restricts commercial use without carrying the text saying so is not
+        # something a user can comply with, and a missing COPY there is invisible
+        # until someone asks for the licence.
+        verify_cmd=(
+            "command -v aither-desktop "
+            "&& python3 -c 'import aither_desktop' "
+            "&& command -v weston "
+            "&& id -u desk | grep -qx 1005 "
+            "&& test -s /usr/share/licenses/awnix-desktop/LICENSE.BUSL-1.1 "
+            "&& test -s /usr/share/licenses/awnix-desktop/LICENSE.Apache-2.0 "
+            "&& systemctl is-enabled aither-weston.service "
+            "&& systemctl is-enabled aither-desktop.service "
+            "&& echo AWNIX_DESKTOP_OK"
+        ),
+        verify_label="AitherDesktop imports and resolves, weston is present, the desk "
+                     "account exists AT ITS PINNED UID, BOTH licence texts shipped, and the units "
+                     "are enabled (an overlay appliance whose units are disabled boots to "
+                     "a black screen and reports success)",
+    ),
+    # ── awnix-full ─ the batteries-included variant ──────────────────────
+    # This layer was declared in awnix-variants.yaml with `iso: true` and existed in
+    # NEITHER this tool nor the ISO workflow, so `awnix-full` could be pushed as an
+    # image (publish-awnix-images.sh reads the variants file) and could never be built
+    # as MEDIA. That is why it is the one public variant with no ISO release: not a
+    # failed build, an absent lane. Same class as the appliance comment below.
     Layer(
         name="dev",
         tag="localhost/awnix-dev:latest",
@@ -321,7 +372,17 @@ LAYERS: tuple[Layer, ...] = (
         # buildah says "no items matching glob ... (1 filtered out)", which
         # reads as a missing file while the file sits there at 29 KB. Each
         # context resolves its own ignores, so this one escapes that line.
-        contexts=(("context", "../../.."), ("deploy", "..")),
+        contexts=(("context", "../../.."), ("deploy", ".."),
+                  ("svcimg", "../rocky-linux/fleet-images")),
+        # svcimg is OPTIONAL: the fleet oci-archives staged by stage-fleet-bake.sh
+        # (~28 GB, never committed). Absent = an EMPTY context, NEVER a dropped
+        # --build-context flag: dropping the flag leaves `COPY --from=svcimg`
+        # unresolvable and podman fails the whole build ("no stage or image found
+        # with that name", measured 2026-09-09, four ancestors deep). Builds
+        # through this tool are therefore always unbaked; the sovereign lane
+        # stages the real dir and passes --build-context svcimg=/var/tmp/aws-svcimg
+        # itself (build-sovereign-iso.sh).
+        optional_contexts=("svcimg",),
         verify_cmd=("command -v aitheros-ctl >/dev/null "
                     "&& systemctl is-enabled aitheros-autostart.service >/dev/null "
                     "&& echo AITHEROS_APPLIANCE_OK"),
@@ -442,7 +503,31 @@ def parent_of(layer: Layer) -> "Layer | None":
               f"{layer.name}", file=sys.stderr)
         return None
     by_tag = {other.tag: other for other in LAYERS}
-    for ref in _FROM_LOCAL.findall(text):
+    # A PARAMETERISED base counts too. `_FROM_LOCAL` matches `FROM localhost/...`
+    # literally, and `Containerfile.aitheros` writes `FROM ${AITHEROS_BASE}` so the
+    # appliance can be rebased headless/desktop/gpu without editing the file. That
+    # made parent_of() return None for the appliance, chain_for() return just
+    # `[appliance]`, and `--layer appliance` build ONE layer whose parent image had
+    # never been built -- on a provision-and-terminate CI runner, never.
+    #
+    # The symptom named nothing useful: the runner's podman does not resolve a
+    # global ARG default in FROM either, so it died at parse with `FROM requires
+    # either one argument, or three` -- a malformed-Containerfile error for a file
+    # that is fine, on a machine that was missing a build step. Measured on the
+    # appliance ISO build, 2026-09-09.
+    #
+    # `_resolve_arg` already exists for exactly this and is self-tested; the chain
+    # CHECKER was taught about the idiom and this resolver never was. Same idiom,
+    # same treatment.
+    refs = list(_FROM_LOCAL.findall(text))
+    for ln in text.splitlines():
+        if ln.startswith("FROM ") and len(ln.split()) > 1:
+            token = ln.split()[1]
+            if token.startswith("${") and token.endswith("}"):
+                resolved = _resolve_arg(token, text)
+                if resolved != token and resolved.startswith("localhost/"):
+                    refs.append(resolved)
+    for ref in refs:
         # Tags in LAYERS carry an explicit :latest; a bare FROM may not.
         for cand in (ref, f"{ref}:latest"):
             if cand in by_tag and by_tag[cand].name != layer.name:
@@ -461,6 +546,7 @@ def chain_for(layer: Layer) -> list[Layer]:
         cur = parent_of(cur)
     out.reverse()
     return out
+
 
 
 def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
@@ -489,9 +575,26 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
         ctx_parts = []
         for name, rel in layer.contexts:
             if name in layer.optional_contexts and not (_bootc_dir() / rel).is_dir():
+                # AN ABSENT OPTIONAL CONTEXT MUST BE EMPTY, NOT MISSING.
+                #
+                # Dropping the --build-context flag does NOT make the Containerfile
+                # stop using it: `COPY --from=svcimg . /usr/lib/aither/images/` is
+                # still there, and podman fails the whole build with
+                #     Error: COPY --from=svcimg: no stage or image found with that name
+                # Measured 2026-09-09 on the appliance ISO build, after four
+                # ancestors had built and verified. So the "valid unbaked build"
+                # this branch describes was never buildable -- the intent was right
+                # and the mechanism could not express it.
+                #
+                # Pointing the context at an EMPTY directory expresses it exactly:
+                # the COPY runs and copies nothing, the image ships no baked service
+                # images, and the loader unit fails loudly at first boot as designed.
+                empty = _bootc_dir() / f".empty-context-{name}"
+                empty.mkdir(parents=True, exist_ok=True)
                 print(f"[{layer.name}] {name} context absent - building WITHOUT "
-                      f"the fleet bake (the loader unit will fail loudly at "
-                      f"first boot)")
+                      f"the fleet bake (empty context; the loader unit will fail "
+                      f"loudly at first boot)")
+                ctx_parts.append(f' --build-context {name}=.empty-context-{name}')
                 continue
             ctx_parts.append(f' --build-context {name}={rel}')
         ctx_args = ''.join(ctx_parts)
@@ -548,8 +651,8 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
         build_script = (
             f"{cgroup_probe}"
             f"cd {_shell_bootc_dir()} && "
-            f"podman build $CGM --no-cache --network=host{ctx_args} -t {layer.tag} "
-            f"-f {layer.containerfile} ."
+            f"podman build $CGM --no-cache --network=host{ctx_args} "
+            f"-t {layer.tag} -f {layer.containerfile} ."
         )
         code, out = _wsl(build_script, timeout=1800)
         if code != 0:
@@ -641,6 +744,68 @@ def resolve_iso_image(iso_layer: str | None, iso_image: str) -> str:
                     f"--iso-image names {iso_image!r})")
             return layer.tag
     raise ValueError(f"no such layer: {iso_layer}")
+
+
+def resolve_published_ref(iso_layer: str | None, manifest: str | None = None) -> str:
+    """The PUBLISHED registry ref for a layer: registry/repo:latest from awnix-variants.yaml.
+
+    Why this exists: the media step passes --iso-published, and the workflow's own
+    comment records the reason -- "publish-awnix-iso.sh refuses an ISO recording
+    localhost/ (bootc upgrade would pull from the user's own empty store)". The
+    variant manifest already records which variants may be published and where;
+    hardcoding the mapping in the workflow would be the second copy that drifts.
+    The parser mirrors publish-awnix-images.sh deliberately (it is the reference),
+    so the two cannot disagree about what publishable means.
+
+    Raises ValueError when no variant carries the layer with a publishable
+    destination, or the manifest cannot be read -- a media build that only LOOKS
+    ref-resolved is worse than a refused one.
+    """
+    from pathlib import Path
+    if manifest is None:
+        manifest = str(Path(__file__).resolve().parents[3]
+                       / ".DEPLOYMENT" / "standalone" / "bootc" / "awnix-variants.yaml")
+    path = Path(manifest)
+    if not path.is_file():
+        raise ValueError(f"awnix-variants.yaml not found at {path} -- cannot "
+                         f"resolve the published ref for layer {iso_layer!r}")
+    reg_top = ""
+    variants: dict[str, dict[str, str]] = {}
+    cur = None
+    inv = False
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        ind = len(raw) - len(raw.lstrip())
+        line = raw.strip()
+        if ind == 0:
+            inv = line.startswith("variants:")
+            cur = None
+            if not inv and ":" in line:
+                k, _, v = line.partition(":")
+                if v.strip() and k.strip() == "registry":
+                    reg_top = v.strip().strip(chr(39) + chr(34))
+            continue
+        if not inv:
+            continue
+        if ind == 2 and line.endswith(":"):
+            cur = line[:-1]
+            variants[cur] = {}
+            continue
+        if cur and ":" in line:
+            k, _, v = line.partition(":")
+            variants[cur][k.strip()] = v.strip().strip(chr(39) + chr(34))
+    for _name, d in variants.items():
+        if d.get("layer") != iso_layer:
+            continue
+        if d.get("publish", "") not in ("true", "private"):
+            continue
+        reg = d.get("registry") or reg_top
+        repo = d.get("repo", "")
+        if reg and repo:
+            return f"{reg.rstrip('/')}/{repo}:latest"
+    raise ValueError(f"--iso-published: no variant with layer {iso_layer!r} names a "
+                     f"publishable destination (registry+repo) in {path.name}")
 
 
 def _iso_out_is_distro_path(out: str) -> bool:
@@ -751,6 +916,12 @@ def main() -> int:
                          f"Forwarded as an INTEGER: the shell's `[ ... -lt ... ]` "
                          f"refuses a float operand, and a refused guard is a skipped "
                          f"guard.")
+    ap.add_argument("--iso-published", action="store_true",
+                    help="source the media from the layer's PUBLISHED ref "
+                         "(registry/repo:latest from awnix-variants.yaml) instead of a "
+                         "local tag -- the ref a released ISO must record, never "
+                         "localhost/ (publish-awnix-iso.sh refuses those). Requires "
+                         "--iso-layer.")
     ap.add_argument("--iso-type", default="iso", choices=["iso", "qcow2", "raw", "vmdk"])
     ap.add_argument("--iso-out", default="/var/tmp/awnix-iso",
                     help="output directory INSIDE the distro")
@@ -768,6 +939,25 @@ def main() -> int:
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
+
+    # --iso-published: swap the local tag for the registry ref the release must
+    # record, and pull it if this box does not have it. The ghcr login happens in
+    # the step ABOVE the media build, so the pull carries auth.
+    if args.iso_published:
+        if not args.iso_layer:
+            print("--iso-published requires --iso-layer (which layer's published "
+                  "variant to resolve)", file=sys.stderr)
+            return 2
+        try:
+            args.iso_image = resolve_published_ref(args.iso_layer)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        pulled = subprocess.run(["podman", "pull", args.iso_image])
+        if pulled.returncode != 0:
+            print(f"--iso-published: could not pull {args.iso_image} "
+                  f"(exit {pulled.returncode})", file=sys.stderr)
+            return 1
 
     floor_err = iso_floor_error(args.iso_min_free_gb)
     if floor_err is not None:
@@ -999,6 +1189,29 @@ def _self_test() -> int:
     check("--iso-layer AND an explicit --iso-image are refused as ambiguous",
           _raises_value_error(lambda: resolve_iso_image(
               "base", "localhost/something-else:latest")))
+
+    # --iso-published resolves registry/repo:latest out of the variant manifest.
+    # Both directions on a fixture: a private garg variant resolves; an
+    # unpublishable variant (publish: false) is refused rather than guessed.
+    import tempfile as _tf
+    nl = chr(10)
+    with _tf.TemporaryDirectory() as _td:
+        _mp = _td + "/awnix-variants.yaml"
+        open(_mp, "w", encoding="utf-8").write(
+            "registry: ghcr.io/aitherium" + nl +
+            "variants:" + nl +
+            "  garg-appliance:" + nl +
+            "    layer: garg" + nl +
+            "    publish: private" + nl +
+            "    repo: garg-appliance" + nl +
+            "  base-thing:" + nl +
+            "    layer: base" + nl +
+            "    publish: false" + nl)
+        check("--iso-published resolves a private variant to its registry ref",
+              resolve_published_ref("garg", _mp)
+              == "ghcr.io/aitherium/garg-appliance:latest")
+        check("--iso-published refuses a layer with no publishable variant",
+              _raises_value_error(lambda: resolve_published_ref("base", _mp)))
 
     # The min-free-gb floor is forwarded to the shell script as an INTEGER.
     # Bash's `[ "$a" -lt "$b" ]` rejects a float operand with "integer

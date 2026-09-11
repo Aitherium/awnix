@@ -17,7 +17,22 @@ set -euo pipefail
 
 die() { echo "serve-awnix-bonsai: $*" >&2; exit 1; }
 
-[ "$(id -u)" -eq 0 ] || die "must run as root (drops to 'runner' internally) -- got uid $(id -u)"
+[ "$(id -u)" -eq 0 ] || die "must run as root (drops to \$BONSAI_USER internally) -- got uid $(id -u)"
+
+# The unprivileged account this drops to. Defaults to `runner` because that is
+# what Containerfile.awnix-runner-ai creates, so every existing caller keeps
+# working unchanged. It is a VARIABLE because awnix-ai-full -- the aw* stack
+# plus inference -- is not a CI runner and has no business creating an account
+# called `runner` to satisfy a hardcoded string in this file.
+#
+# Copying this script per image was the obvious alternative and it is the wrong
+# one: two copies of one launcher drift, which is the same defect as the sync
+# exclude list that leaked five private files (see APL005). One script, one
+# variable.
+BONSAI_USER="${BONSAI_USER:-runner}"
+# Refuse rather than fall back to root: the whole point of dropping privileges
+# is that it cannot silently not happen.
+id "$BONSAI_USER" >/dev/null 2>&1 || die "BONSAI_USER=$BONSAI_USER does not exist in this image -- the layer baking this script must create it"
 
 MESH_PROVIDE=0
 [ "${1:-}" = "--mesh-provide" ] && MESH_PROVIDE=1
@@ -89,7 +104,7 @@ if [ ! -s "$GGUF" ]; then
     i=$((i + 1))
     [ "$N_URLS" -gt 1 ] && echo "  part $i/$N_URLS"
     # -C - resumes; appending each slice in order reassembles the original file.
-    sudo -u runner curl -fL --progress-bar "$url" >> "$GGUF.part" \
+    sudo -u "$BONSAI_USER" curl -fL --progress-bar "$url" >> "$GGUF.part" \
       || die "download failed on $url"
   done
 
@@ -109,7 +124,7 @@ if [ ! -s "$GGUF" ]; then
   fi
 
   mv "$GGUF.part" "$GGUF"
-  chown runner:runner "$GGUF"
+  chown "$BONSAI_USER:$BONSAI_USER" "$GGUF"
   echo "  ok: ${ACTUAL_MB}MB at $GGUF"
 fi
 
@@ -184,7 +199,7 @@ done
 
 pkill -f "$BIN" 2>/dev/null || true
 # shellcheck disable=SC2086
-sudo -u runner bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $SERVE_ARGS >/opt/bonsai/server.log 2>&1 &"
+sudo -u "$BONSAI_USER" bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $SERVE_ARGS >/opt/bonsai/server.log 2>&1 &"
 
 echo "waiting for it to load..."
 ok=0
@@ -197,7 +212,7 @@ done
 if [ "$ok" != "1" ] && [ -n "$KV_ARGS" ] && grep -qiE "invalid argument|unknown argument|error while handling argument" /opt/bonsai/server.log 2>/dev/null; then
   echo "WARNING: llama-server refused the KV/context flags ($KV_ARGS, ctx $AWNIX_CTX) -- falling back to the legacy 16k/f16 arguments. Upgrade the bundled binary to get the 64k window."
   # shellcheck disable=SC2086
-  sudo -u runner bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $LEGACY_SERVE_ARGS >/opt/bonsai/server.log 2>&1 &"
+  sudo -u "$BONSAI_USER" bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $LEGACY_SERVE_ARGS >/opt/bonsai/server.log 2>&1 &"
   for _ in $(seq 1 120); do
     sleep 1
     if curl -fsS --max-time 2 "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then ok=1; break; fi
@@ -213,6 +228,6 @@ echo "serving on 127.0.0.1:$PORT"
 # attempt it just because the box is capable.
 if [ "$MESH_PROVIDE" = "1" ]; then
   echo "registering as community inference capacity (adk mesh provide)"
-  sudo -u runner bash -c "adk mesh onboard && adk mesh provide --inference-url http://127.0.0.1:$PORT/v1 --model bonsai-selfhost" \
+  sudo -u "$BONSAI_USER" bash -c "adk mesh onboard && adk mesh provide --inference-url http://127.0.0.1:$PORT/v1 --model bonsai-selfhost" \
     || echo "mesh registration did not complete -- Bonsai is running locally regardless"
 fi

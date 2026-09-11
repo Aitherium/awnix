@@ -1,0 +1,1615 @@
+# GENERATED -- do not edit. Re-derive with:
+#     python AitherOS/dev/tools/gen_installer_catalogue.py
+#
+# The ONE catalogue the installer offers, derived from the registries that
+# already own each list. Hand-editing this file recreates the defect it was
+# written to end: six lists saying what you may install, drifting apart.
+# gen_installer_catalogue.py --check fails when it drifts.
+schema: 1
+generated_by: AitherOS/dev/tools/gen_installer_catalogue.py
+sources:
+  packages: 'AitherOS/config/ecosystem.yaml :: bricks'
+  profiles: 'AitherOS/config/ecosystem.yaml :: stacks'
+  services: 'AitherOS/config/services.yaml :: services[].role'
+  groups: 'AitherOS/config/services.yaml :: groups'
+  features: '.PRODUCTS/.AITHERZERO/config/config.psd1 :: Features'
+  models: .DEPLOYMENT/standalone/bootc/awnix-models.yaml
+  agents: AitherOS/config/agent_catalog.yaml
+packages:
+- id: AitherConnect
+  tagline: Browser extension — federated AI search, page context, and the Living OS overlay.
+  status: public
+  available: true
+  reason: ''
+- id: AitherZero
+  tagline: PowerShell 7+ automation framework — numbered, self-describing scripts.
+  status: public
+  available: true
+  reason: ''
+- id: aitherkvcache
+  tagline: Near-optimal KV cache quantization for LLM inference — sub-byte compression.
+  status: public
+  available: true
+  reason: ''
+- id: awask
+  tagline: Your agent asks you a question — and acts on your answer.
+  status: public
+  available: true
+  reason: ''
+- id: awavatar
+  tagline: One character spec in, a rigged, animated, multi-style avatar pack out.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awbac
+  tagline: Role-based access control that fails closed and explains itself.
+  status: public
+  available: true
+  reason: ''
+- id: awbeads
+  tagline: A spatial canvas for a page — arrange things, connect them, and keep the arrangement.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awbonsai
+  tagline: Run a real model in the visitor's own browser — no server round trip, no upload.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awbrain
+  tagline: Your history as a wiki of linked markdown — claims pinned to the evidence.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awbrowse
+  tagline: A portable browser client — navigate, console, network, DOM, screenshot.
+  status: public
+  available: true
+  reason: ''
+- id: awcache
+  tagline: Let a second node skip its prefill because a first node already paid for it.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awclassify
+  tagline: Classify any document -- what it is, who may read it, who it is for, what it is about.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awdaemons
+  tagline: The AitherOS daemons as one file — no Python, no signing, no install.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awdata
+  tagline: Open labelled corpora you can train and measure against, with the code that built them.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awdelphi
+  tagline: Anonymous multi-round expert panels — a converged answer with a trace.
+  status: public
+  available: true
+  reason: ''
+- id: awdesk
+  tagline: 'Aither World Desk -- the desktop body of AitherOS Online: tray, avatars, decision cards, the
+    Living Desktop as an overlay.'
+  status: unpublished
+  available: true
+  reason: ''
+- id: awdit
+  tagline: An append-only audit trail whose gaps are DETECTABLE.
+  status: public
+  available: true
+  reason: ''
+- id: awdk
+  tagline: Build AI agent fleets — 3 lines, any backend, local or cloud.
+  status: public
+  available: true
+  reason: ''
+- id: awembed
+  tagline: Train an embedding model that knows your corpus, and prove it beats the big one.
+  status: public
+  available: true
+  reason: ''
+- id: awevolve
+  tagline: Point an agent at a file and a command that scores it, and let it improve.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awfind
+  tagline: A portable search client — query, results, ranking.
+  status: public
+  available: true
+  reason: ''
+- id: awflow
+  tagline: A deterministic workflow runtime — chain agent calls with journal replay and budget control.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awfocus
+  tagline: See, search and steer every Claude session from one command.
+  status: public
+  available: true
+  reason: ''
+- id: awgit
+  tagline: Semantic version control on top of git — edit-ops and leases.
+  status: public
+  available: true
+  reason: ''
+- id: awgraph
+  tagline: A semantic code graph for agents — AST + tree-sitter, call graphs.
+  status: public
+  available: true
+  reason: ''
+- id: awgym
+  tagline: An ARC training gym — a game a world model can watch, and six roles that play through it.
+  status: public
+  available: true
+  reason: ''
+- id: awiam
+  tagline: Who is this caller? A directory and session store that fails honestly.
+  status: public
+  available: true
+  reason: ''
+- id: awkit
+  tagline: Render an agent panel from a tool result — one component, any React app.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awkno
+  tagline: The man page for the Aither World — every brick, stack and law, offline.
+  status: public
+  available: true
+  reason: ''
+- id: awknowledge
+  tagline: How to run a coding agent so the result survives — the laws, with evidence.
+  status: public
+  available: true
+  reason: ''
+- id: awlog
+  tagline: Ask your logs what is actually failing, instead of grepping them.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awm
+  tagline: A portable, scoped agent memory.
+  status: public
+  available: true
+  reason: ''
+- id: awmail
+  tagline: Give an agent an email address — send, and actually receive.
+  status: public
+  available: true
+  reason: ''
+- id: awmod
+  tagline: Wire the agent harness you already use into a fleet you already run.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awnboard
+  tagline: A front gate you can put in front of anything, and hand someone the key to.
+  status: public
+  available: true
+  reason: ''
+- id: awnest
+  tagline: Prove there is a human before you let them into the nest.
+  status: public
+  available: true
+  reason: ''
+- id: awnet
+  tagline: The agentic web — agents host a mesh, and agents join one.
+  status: public
+  available: true
+  reason: ''
+- id: awnix
+  tagline: A Linux you can hand to an agent — immutable base, capabilities included.
+  status: public
+  available: true
+  reason: ''
+- id: awnode
+  tagline: A lightweight local gateway — bridges your apps to the AI backends you chose.
+  status: public
+  available: true
+  reason: ''
+- id: awpack
+  tagline: First-party agent packs — the ones we build, versioned and installable on their own.
+  status: public
+  available: true
+  reason: ''
+- id: awpool
+  tagline: 'The free half of the elastic work pool: dispatches public-safe work onto the free GitHub-hosted
+    runners of the public aw* mirrors, so their idle CI minutes become compute. awrun remains the paid/self-hosted
+    lane; this is its free twin.'
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awpredict
+  tagline: Predict what your environment does next, and how surprised you were.
+  status: public
+  available: true
+  reason: ''
+- id: awprism
+  tagline: Turn a failure into ranked hypotheses — and say what would confirm each one.
+  status: public
+  available: true
+  reason: ''
+- id: awprove
+  tagline: Drive a page as the real user, check what rendered, and get a test that goes red if it stops
+    being true.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awreason
+  tagline: A portable reasoning client — sessions, phases, thoughts, and the chain that produced the answer.
+  status: public
+  available: true
+  reason: ''
+- id: awrecover
+  tagline: Labelled snapshots with an all-or-nothing restore.
+  status: public
+  available: true
+  reason: ''
+- id: awrecurse
+  tagline: Answer a question over a context far larger than the window — recursively, with the trace kept.
+  status: public
+  available: true
+  reason: ''
+- id: awrelay
+  tagline: Portable agent messaging — findings, alerts, coordination.
+  status: public
+  available: true
+  reason: ''
+- id: awrena
+  tagline: Put two agents head to head and get a verdict you can check.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awrepl
+  tagline: A REPL an agent can actually use — state that survives between turns.
+  status: public
+  available: true
+  reason: ''
+- id: awresearch
+  tagline: Ask a research question, get a cited report you can check.
+  status: public
+  available: true
+  reason: ''
+- id: awrise
+  tagline: Wake an agent on a schedule, let it do one thing, and put it back to sleep.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awrouter
+  tagline: 'OpenRouter for your own fleet: pick a model backend by cost/latency/ capability, fail over,
+    fit the context window, stream. Standalone, OpenAI-compatible, no Aither-specifics required to be
+    valuable.'
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awrtifact
+  tagline: Deliberately chunk artifacts into GitHub release assets — the productized aitherkvcache mirror
+    lane.
+  status: public
+  available: true
+  reason: ''
+- id: awrun
+  tagline: A priority-aware queue and dispatcher for agentic runs and ad-hoc CI builds. It also judges
+    whether the runner pool is big enough for the queue it is draining, and can ask a host to grow it
+    -- reserving capacity is zero-sum, so a saturated pool needs more of it, not a different share of
+    it.
+  status: public
+  available: true
+  reason: ''
+- id: awscreen
+  tagline: See this machine — what is on screen, and where to click it.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awseal
+  tagline: Sign an artifact so a stranger can verify it.
+  status: public
+  available: true
+  reason: ''
+- id: awsettings
+  tagline: Your agent's permissions and config, following you to the next machine.
+  status: public
+  available: true
+  reason: ''
+- id: awsh
+  tagline: Your terminal answers you -- type a question where a command would go.
+  status: public
+  available: true
+  reason: ''
+- id: awshare
+  tagline: Publish an artifact and fetch it back verified.
+  status: public
+  available: true
+  reason: ''
+- id: awskills
+  tagline: Portable agent skills — self-contained procedures an agent loads on demand.
+  status: public
+  available: true
+  reason: ''
+- id: awspaces
+  tagline: 'A place, not a page: every human gets a Space -- a hand-made page, files and a companion agent
+    that is theirs -- and Spaces link to Spaces. Early-2000s internet (Neocities, Newgrounds, Neopets,
+    RuneScape) with local-first AI underneath.'
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awsprite
+  tagline: Hatch a companion that grows only from what you teach it, then take it home.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awstorage
+  tagline: Every drive on every node, indexed, classified and diffed -- so you can see what you own before
+    you delete it.
+  status: public
+  available: true
+  reason: ''
+- id: awswarm
+  tagline: Run one model too big for any single GPU across a pool of small ones.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awsync
+  tagline: Keep one client in step with a platform — and never confuse "cannot tell" with "fine".
+  status: merged
+  available: true
+  reason: ''
+- id: awtax
+  tagline: Turn any tax PDF -- returns, W-2, 1099, statements, even scans -- into structured data you
+    can check.
+  status: public
+  available: true
+  reason: ''
+- id: awtoll
+  tagline: What every tool call costs you in context, measured from your own transcripts.
+  status: public
+  available: true
+  reason: ''
+- id: awtunnel
+  tagline: Reach a service that has no public address.
+  status: public
+  available: true
+  reason: ''
+- id: awvision
+  tagline: See an image — describe it, ask it a question, compare two.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awvoice
+  tagline: Hear and speak — transcribe audio, synthesize a voice.
+  status: unpublished
+  available: true
+  reason: ''
+- id: awwall
+  tagline: Say what a workload may reach, and watch everything else fail closed.
+  status: unpublished
+  available: true
+  reason: ''
+- id: gawbbonet
+  tagline: GobboNet campaigns with a real agent brain — scoped memory, graph recall.
+  status: public
+  available: true
+  reason: ''
+- id: mediaforge
+  tagline: The creative studio — search the boards, render scenes, keep the character.
+  status: unpublished
+  available: true
+  reason: ''
+profiles:
+- id: agent-senses
+  name: Senses
+  what: What an agent needs to perceive things outside its own process. Search and pages are the two it
+    has; voice, vision and the screen in front of it are the three it does not, and they are named here
+    so they stop being rediscovered as absences.
+  packages:
+  - awfind
+  - awbrowse
+  - awvoice
+  - awvision
+  - awscreen
+  - awdk
+  status: ready
+  available: true
+  reason: ''
+- id: agent-vm
+  name: The bare agent VM
+  what: awnix already carries the capabilities; adding an agent is three lines in a Dockerfile, and your
+    skills and credentials layer on top of that. The point of the order is that the guarantees live in
+    the base, so swapping the agent keeps them.
+  packages:
+  - awnix
+  - awdk
+  - awskills
+  - awkno
+  - awsettings
+  status: partial
+  available: true
+  reason: ''
+- id: avatar-ensemble
+  name: Avatar ensemble
+  what: 'Spawn more than one Persona-driven avatar at once, bind each to a distinct awdk agent persona
+    (its own Library/pack, its own model), render them together in one shared scene, and let them hold
+    a live concurrent conversation with each other and the owner -- steered from awsh as the cockpit.
+    Registered 2026-08-24 per EC003: "give an avatar a face and a mind, then let several of them talk"
+    cannot be '
+  packages:
+  - awdk
+  - awsh
+  - awvoice
+  - awvision
+  - awsprite
+  - awdesk
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: browser-companion-graduation
+  name: Grow a companion in the browser, then take it home
+  what: 'Owner directive 2026-08-24, reinforcing the existing `.PRODUCTS/.SPRITE/` Phase 2/3 roadmap (`AitherOS/dev/prompts/aithersprite-knowledge-companion-program.md`):
+    AitherSprite today is playable but shallow -- flat per-sprite knowledge rows, titles-only in the talk
+    prompt, server-side inference only, and "download it" is a paid pack with no guided path to actually
+    WIRE it to real local tools and dat'
+  packages:
+  - awsprite
+  - awbonsai
+  - awdk
+  - awsh
+  - awnode
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: cited-research
+  name: Research you can check
+  what: 'A research question answered against real sources, where the report names what it read (awresearch),
+    the sources are found and actually opened rather than hallucinated (awfind, awbrowse), and what was
+    learned survives the session (awm). The one failure this set exists for is the plausible document:
+    fluent, well-formed, citing pages nobody fetched.'
+  packages:
+  - awresearch
+  - awfind
+  - awbrowse
+  - awm
+  status: partial
+  available: true
+  reason: ''
+- id: dark-matters-living-world
+  name: Dark Matters Living World
+  what: Procedurally generate a playable, multiplayer 3D world -- zones, quests, NPCs, creatures, their
+    bodies, rigs, clips and style renders -- from Saga narrative and Prometheus balance, into a World
+    of ClaudeCraft-derived realm and the CoC story engine at once, with the same character carried into
+    awdesk and a Space.
+  packages:
+  - awavatar
+  - awdk
+  - awsprite
+  - awrtifact
+  - awrun
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: hackathon-sandbox
+  name: Hackathon dev sandbox
+  what: Download one installer and have a local dev environment for your hackathon project. An agent runtime
+    (awdk) in your terminal (awsh), routing to your choice of backend via a local gateway (awnode), with
+    portable skills (awskills) and scoped memory (awm) that survives the session. Everything a hackathon
+    team needs to ship an agent before the demo, running locally on a laptop with no cloud dependency
+  packages:
+  - awdk
+  - awsh
+  - awnode
+  - awskills
+  - awm
+  - awkno
+  status: ready
+  available: true
+  reason: ''
+- id: inference-commons
+  name: The inference commons -- pool compute, storage and caches across strangers' nodes
+  what: 'Owner directive 2026-09-01: decentralise storage and inference across the aw* stack so anyone''s
+    node can join the mesh, share models and resources, and pool inference -- including cross-model KV-cache
+    sharing across nodes. Registered because each plane is real INSIDE the fleet and absent at the public
+    boundary: the overlay (AitherMesh + Conductor onboarding) is deployed and `awnet` fronts it; `awn'
+  packages:
+  - awnix
+  - awnode
+  - awnet
+  - awcache
+  - awswarm
+  - awpool
+  - aitherkvcache
+  - awrtifact
+  - awtunnel
+  - awwall
+  status: partial
+  available: true
+  reason: ''
+- id: one-surface
+  name: One surface — agent panels, not hand-built UIs
+  what: 'OWNER DECISION 2026-08-19, recorded because it was made in a transcript and would otherwise be
+    re-litigated: stop hand-maintaining a web UI per app. The Living Desktop is the shell; an "app" is
+    a dynamic agent panel rendered from a tool result (awkit), scoped by the identity plane, driven by
+    intent rather than clicking. veil/portal keep serving pages and APIs where genuinely needed -- the
+    UI, widg'
+  packages:
+  - awkit
+  - awdk
+  - awnode
+  - awiam
+  - awbac
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: personal-mesh-pool
+  name: A pool across your own devices
+  what: 'Owner directive 2026-08-24: someone with a laptop, a desktop and a phone should be able to join
+    their OWN devices into one pool and have a model stay warm and servable across whichever of them is
+    on, without joining the platform''s shared AitherNet compute market. Registered here because it does
+    not exist yet, and the three pieces that would compose into it are each individually real: `awnet`
+    is a '
+  packages:
+  - awnet
+  - awnode
+  - awdk
+  status: partial
+  available: true
+  reason: ''
+- id: provenance
+  name: Provenance
+  what: Prove what an artifact is, who acted on it, and that nothing was quietly removed from the record.
+  packages:
+  - awseal
+  - awshare
+  - awdit
+  - awbac
+  status: partial
+  available: true
+  reason: ''
+- id: retrieval-you-trained
+  name: Retrieval you trained yourself
+  what: The searching tools are only as good as the vectors under them. awembed trains the embedder on
+    your corpus and proves it on held-out directories; awgraph, awfind and awm then search, rank and remember
+    over vectors that know your code instead of someone else's. awdk agents consume all of it as tools.
+    awdata carries the labelled corpora the proving is done against -- the half that usually never ship
+  packages:
+  - awembed
+  - awdata
+  - awgraph
+  - awfind
+  - awm
+  - awdk
+  status: partial
+  available: true
+  reason: ''
+- id: shared-worktree
+  name: Many agents, one repo
+  what: Several agents editing one codebase without sweeping each other's work or re-deriving what the
+    last one already learned.
+  packages:
+  - awgit
+  - awgraph
+  - awrelay
+  - awm
+  status: ready
+  available: true
+  reason: ''
+- id: the-front-door
+  name: The front door
+  what: 'Who may come in at all, before anything asks who they are: a human check whose verdict is bound
+    to one door and one use, the identity it names, the authority it feeds, and a record of every refusal.
+    Named because the four already existed as four separate answers to one question a stranger asks first.'
+  packages:
+  - awnboard
+  - awnest
+  - awiam
+  - awbac
+  - awdit
+  status: partial
+  available: true
+  reason: ''
+- id: the-reasoning-loop
+  name: The reasoning loop
+  what: The thinking core, kept apart from the senses and the hands on purpose. A hard question becomes
+    a session with phases you can inspect (awreason); a failure inside it becomes ranked hypotheses with
+    a falsifying check for each (awprism); and the check is actually RUN against live state rather than
+    recalled (awrepl). Those three are the loop. It composes with `agent-senses` for what is outside the
+    pr
+  packages:
+  - awreason
+  - awprism
+  - awrepl
+  - awrecurse
+  status: partial
+  available: true
+  reason: ''
+- id: who-what-did
+  name: Identity, authority, and the record
+  what: 'The three questions every access decision needs answered separately: who is this caller, what
+    may they do, and what did they actually do. Kept apart on purpose -- one component that answers all
+    three is one component that can quietly answer all three wrongly.'
+  packages:
+  - awiam
+  - awbac
+  - awdit
+  status: partial
+  available: true
+  reason: ''
+services:
+- id: ACTA
+  description: Token billing and API key management
+  group: automation
+  entitlement: core
+  reason: 'PROVISIONAL (confidence 0.7): 8 services depend on it (floor 6); the other core signal does
+    not corroborate'
+- id: AitherAgentEnv
+  description: AgentEnv crowdsourced sandbox hosting — Firecracker microVMs + KVCache P2P warm start for
+    Kimi K3.
+  group: mesh
+  entitlement: addon:mesh
+  reason: group 'mesh' maps to add-on 'mesh' via source_groups
+- id: AitherBooking
+  description: Booking and Appointment Management — catalog of bookable services, client appointment scheduling,
+    and automatic mirroring to AitherChronos for unified calendar visibility. (Calendly / Acuity Scheduling
+    replacement)
+  group: communication
+  entitlement: addon:business
+  reason: group 'communication' maps to add-on 'business' via source_groups
+- id: AitherBrain
+  description: Autonomous Knowledge Management — LyraWiki + Brain Hub federated sync, self-maintaining
+    compounding knowledge base
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: AitherCNS
+  description: Predictive multimodal CENTRAL NERVOUS SYSTEM — fuses the fleet Sensorium (grid/vision/reasoning/affect/world2d/hardware/internal)
+    into ONE latent state via the shared LeWM/JEPA world model (Tier-1 grid-CNN OR obs-emb projection
+    ⊕ Tier-2 FiLM cond ⊕ top-down goal ctx). Emits a surprise/novelty/affect digest. GPU, VRAM-budgeted
+    ~1GB. GATED OFF by default (AITHER_CNS_ENABLED=0). Intended port 8196 was taken by KnowledgeGraph
+    -> nearest free 819x = 8194.
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: AitherCRM
+  description: Customer Relationship Management — watches Identity directory for new users, builds a Lead
+    Graph inside Nexus, ingests Mail queries via Flux, and ties to Pulse for engagement scoring. (HubSpot
+    / Salesforce replacement)
+  group: business
+  entitlement: addon:business
+  reason: group 'business' maps to add-on 'business' via source_groups
+- id: AitherClaudeBridge
+  description: Anthropic Messages API -> MicroScheduler/DeepSeek/Moonshot; serves every transport:bridge
+    Claude Code profile (config/claude_bridge.yaml)
+  group: core
+  entitlement: core
+  reason: 'Core: translates the Anthropic Messages API onto MicroScheduler, so a customer can point Claude
+    Code or any Anthropic-API client at their own appliance and be served by their own models. Sits at
+    8151 beside the router at 8150, in group core; a sovereign box that cannot accept the client people
+    already use is much less useful. Arrived unclassified via the lineage merge and was caught by CSC007.'
+- id: AitherCommerce
+  description: Stripe Commerce — self-hosted or hosted storefront with products, checkout, subscriptions,
+    refunds, coupons, invoicing, revenue analytics. Customers connect their own Stripe account via Connect.
+  group: business
+  entitlement: addon:business
+  reason: group 'business' maps to add-on 'business' via source_groups
+- id: AitherCreate
+  description: AI image generation studio — create.aitherium.com. Generate images with Flux, Pony, and
+    SDXL via AitherCanvas/ComfyUI. Batch generation, model selection, prompt enhancement.
+  group: ui
+  entitlement: addon:creative
+  reason: 'owner ruling (addon creative): Owner ruling 2026-08-18. The portal and the Living Desktop are
+    the product''s face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons. Keeping
+    the shipped surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts 23
+    apps that open broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
+- id: AitherForge3D
+  description: 3D Model Generation via Meshy & Local GPU
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: AitherIntegrate
+  description: Integration Loop Orchestrator — consolidates capture→map→fill/CRM→rebrand end-to-end integration
+    pipelines. Chains intake (HAR mine/capture), map (auto-map with vision fallback to OmniParser), transform
+    (FormBridge fill or UNTETHER ingest), and deliver (Iris rebrand). Read-only/idempotent where possible;
+    approval-gated for external actions. Always-on backing service for Iris and agents to call for integration
+    jobs.
+  group: business
+  entitlement: addon:business
+  reason: group 'business' maps to add-on 'business' via source_groups
+- id: AitherLedger
+  description: Sovereign payment processor and ledger — accepts external payment flows  (Stripe abstraction,
+    Web3, LN) and heavily natively maps them into Aither tokens managed by ACTA/Mint. (Stripe replacement)
+  group: billing
+  entitlement: addon:business
+  reason: group 'billing' maps to add-on 'business' via source_groups
+- id: AitherNanoGPT
+  description: Pure Python MicroGPT service + NanoGPT Lab (experiment sweeps, eval leaderboard, cartridge
+    promotion)
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: AitherStructuredML
+  description: 'TabFM (tabular classify/regress) + TimesFM (time-series forecast) — zero-shot / in-context
+    structured-data foundation models. Non-LLM: a direct fabric service, NOT routed through MicroScheduler.
+    CPU-fine, sleepable.'
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: AudioBookCompanion
+  description: Real-time audiobook companion — STT via AitherVoice, narrative tracking via Saga, data
+    pipeline via Prism
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: AutoResearch
+  description: Autonomous research & experiment service — Karpathy-style autoresearch pipeline
+  group: training
+  entitlement: addon:training
+  reason: group 'training' maps to add-on 'training' via source_groups
+- id: AutoRig
+  description: Automated 3D Character Rigging — skeleton, skin weights, animation clips via Blender Rigify
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: AutoScale
+  description: Adaptive Infrastructure Scaling Agent — auto-scales on-prem Docker/Hyper-V and cloud (AWS,
+    Azure, GCP) based on policies, metrics, and LLM-powered predictions
+  group: automation
+  entitlement: addon:automation
+  reason: group 'automation' maps to add-on 'automation' via source_groups
+- id: AutomationCore
+  description: 'COMPOUND: Autonomic + AutomatedActions + DesktopBridge + Steward + ForgeDispatch. Job
+    scheduling, pain-trigger automation, desktop bridge, and forge dispatch.'
+  group: automation
+  entitlement: addon:automation
+  reason: group 'automation' maps to add-on 'automation' via source_groups
+- id: Axiom
+  description: Fact grounding, validation, memory refresh, and hallucination detection
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Bastion
+  description: Perimeter Security Proxy — Defense-in-depth reverse proxy that scans all inbound/outbound
+    LLM traffic. Prompt injection detection, PII/secrets redaction, malware analysis, streaming SSE scan,
+    YAML policy hot-reload, cross-layer adaptive security via Flux, Prometheus metrics, OCSF SIEM forwarding,
+    and token-bucket rate limiting.
+  group: core
+  entitlement: addon:security-plus
+  reason: 'Add-on security-plus: perimeter scanning of LLM traffic. The factory ladder prices it in the
+    ''entry'' tier, and classifying it core would have given away something the money plane already sells
+    - a unilateral pricing change dressed up as a classification.'
+- id: BenchmarkLab
+  description: 'COMPOUND: Benchmark + Estimator + Lab. Eval benchmark suite, performance estimation, and
+    experiment orchestration.'
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: BonsaiImage
+  description: Bonsai Image 4B (ternary FLUX.2 Klein MMDiT, gemlite 2-bit). 4-step txt2img, ~7GiB peak
+    VRAM, 1024px native.
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: Browser
+  description: Internet access with vision integration - Aither's window to the world
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: CUDADocs
+  description: NVIDIA CUDA Toolkit - live access to NVIDIA's curated CUDA documentation and code examples
+    via MCP
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: Chaos
+  description: 'Adversarial Red Team & Security Agent — The Seven Deadly Sins framework plus comprehensive
+    security operations: code review, vulnerability scanning, penetration testing, dependency auditing,
+    and structured reporting with CWE IDs. Integrates with Atlas for roadmap tracking and Demiurge for
+    auto-generated patches.'
+  group: security
+  entitlement: addon:security-plus
+  reason: group 'security' maps to add-on 'security-plus' via source_groups
+- id: ChaosAgent
+  description: The Warden of the Sins — adversarial intelligence agent for threat management and defense
+    hardening.
+  group: security
+  entitlement: addon:security-plus
+  reason: group 'security' maps to add-on 'security-plus' via source_groups
+- id: Chelle
+  description: Chelle — tenant application. Portal-kit backend, same identity plane as the other tenant
+    products.
+  group: products
+  entitlement: platform-only
+  reason: 'Platform-only: a deployed tenant app belonging to a specific customer.'
+- id: ChelleQdrant
+  description: Per-tenant Qdrant for Chelle. See GargbotQdrant on why these are dedicated rather than
+    shared.
+  group: products
+  entitlement: platform-only
+  reason: 'Platform-only: vector store backing one customer''s deployed app.'
+- id: Chronicle
+  description: Centralized logging, trace storage, and query engine
+  group: core
+  entitlement: core
+  reason: 'Core: 14 services depend on it. The log plane; without it an incident on a customer box is
+    unreconstructable.'
+- id: CodeGraph
+  description: Codebase graph analysis — AST, dependency trees, symbol resolution
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: CognitionAdvanced
+  description: 'COMPOUND: Axiom + WorldModel + CodeGraph + DocGraph. Fact grounding, world state modeling,
+    code understanding, and documentation graph.'
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: CognitionCI
+  description: 'COMPOUND: Judge + Flow + Daydream. Response quality evaluation, GitHub CI/CD pipeline,
+    and creative ideation.'
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: CognitionCore
+  description: 'COMPOUND: Will + Tag + Safety + Slumber + KnowledgeDiffer + Deliberation. Persona prompts,
+    fact tagging, safety gates, sleep consolidation, and knowledge diffing.'
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: ComfyUI3D
+  description: 3D Asset Generation — Hunyuan3D-2.1 ShapeGen/TexGen via ComfyUI-3D-Pack
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: Compute
+  description: 'COMPOUND: Compute + Parallel + Accel + Force (Wave 5 GPU consolidation). Unified Distributed
+    Compute — manages GPU/CPU/Memory pools, parallel GPU ops, GPU acceleration, heavy CPU compute (ProcessPool),
+    cloud provisioning (Vast.ai, RunPod), multi-GPU scheduling, mesh node coordination, image slot gating,
+    GPU profiles, and agent IRC registry.'
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: Connect
+  description: Federation bridge — agent fleet sync, product catalog, knowledge ingestion, and portal
+    auth
+  group: communication
+  entitlement: addon:business
+  reason: group 'communication' maps to add-on 'business' via source_groups
+- id: CreativeEngine
+  description: 'COMPOUND: PrometheusCreative + RealmPulse + Muse. Worldbuilding, lore generation, and
+    AI music composition.'
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: DGG
+  description: Digital Ground Game — tenant application (dgg.aitherium.com). Same awkit product backend
+    gargbot runs, selected by the dgg brain pack; volunteer ticket queue, contacts and event attendance.
+    DevOps/CI job-priority control (awrun submit/queue/bump/cancel/status — over the GitHub Actions runner
+    fleet already reachable via runners_status et al in the dgg-devops pack) is available for the team
+    through the AitherShell harness daemon (`aither awrun ...`), the same dev-tunnel path any AitherOS
+    sandbox uses — not yet exposed as a chat-agent tool inside the dgg-devops pack itself (a different
+    tool-registration plane; see awdk/adk/builtin_tools.py's TOOL_CATEGORIES vs. .toolpack.yaml's mcp_tools).
+  group: products
+  entitlement: full
+  reason: ''
+- id: Daydream
+  description: Creative background ideation — generates ideas during idle time
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Deliberation
+  description: Multi-step deliberation and decision-making process
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: DesktopWeb
+  description: Standalone Desktop web app — serves the AitherOS desktop experience independently of Veil.
+    Used by the PyQt6 native shell (AitherDesktop) and accessible as a lightweight browser-based desktop.
+  group: ui
+  entitlement: core
+  reason: 'owner ruling (core): Owner ruling 2026-08-18. The portal and the Living Desktop are the product''s
+    face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons. Keeping the shipped
+    surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts 23 apps that open
+    broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
+- id: Directory
+  description: Unified LDAP-compatible directory — single source of truth for all identity objects (users,
+    groups, roles, tenants, services, devices)
+  group: core
+  entitlement: core
+  reason: 'Core: users, groups and roles. A multi-user company-in-a-box needs a directory before it needs
+    anything else.'
+- id: DocGraph
+  description: Documentation graph — headings, doc<->code cross-refs, freshness, dead-ref detection (extracted
+    from Genesis)
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Documentation
+  description: 📚 Autonomous Documentation Agent - Auto-generates/updates docs from code changes
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Elysium
+  description: 'AitherNet Hub (elysium.aitherium.com) - the public hub for AitherMesh and AitherRelay
+    federation. NOT retired: owner decision 2026-08-12 repurposed this from the superseded Agent Marketplace
+    (that surface moved to api.aitherium.com) into the mesh/relay hub. Serving on 3100 (Next.js reports
+    Ready) while the container reports UNHEALTHY - the healthcheck still probes the old marketplace surface
+    and must be repointed at the hub before it can be trusted. ["disabled"]; tunnel route removed.'
+  group: ui
+  entitlement: addon:automation
+  reason: 'owner ruling (addon automation): Owner ruling 2026-08-18. The portal and the Living Desktop
+    are the product''s face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons.
+    Keeping the shipped surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts
+    23 apps that open broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
+- id: EvolutionCore
+  description: Autonomous self-improvement orchestrator — closed-loop learning (harvest → train → eval
+    → deploy → rollback), auto-remediation (11 known-fix patterns), model registry (version tracking,
+    canary, promote/rollback), intent routing (25+ declarative routes with SLA/model preferences), self-modification
+    (CodeForge → PR → CI → Deploy), and Prometheus /metrics endpoint. Formerly named DarkFactory; renamed
+    to EvolutionCore to correctly place it in the learning/evolution pillar and avoid naming collision
+    with the DarkFactory code generation library.
+  group: training
+  entitlement: addon:training
+  reason: group 'training' maps to add-on 'training' via source_groups
+- id: Exo
+  description: Clustered inference
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: ExoNodes
+  description: Distributed LLM mesh
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: Faculties
+  description: Faculty Architecture - Cognitive orchestration layer with surgical context manipulation
+    (5 Pillars)
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Firewall
+  description: Host-Based Stateful Firewall — Zone-based network access control, IP reputation management,
+    connection tracking, rate limiting, GeoIP blocking, auto-block from Sentry/Sentinel threat events,
+    hot-reloadable YAML rules, Prometheus metrics, Chronicle audit logging, and importable FastAPI middleware
+    for application-level enforcement.
+  group: security
+  entitlement: addon:security-plus
+  reason: 'Add-on security-plus: network policy enforcement is a security-suite capability, not something
+    every appliance needs on day one.'
+- id: Flow
+  description: Automated PR & issue pipeline — GitHub integration, code review, CI/CD, release management
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Flux
+  description: Event bus and reactive event stream — foundational infrastructure
+  group: core
+  entitlement: core
+  reason: 'Core: 6 services depend on it. The cross-service event bus agents coordinate over.'
+- id: ForgeIDE
+  description: AI-powered coding and graph workspace — forge.aitherium.com. Monaco editor, file explorer,
+    live terminal, ReactFlow code graph, and Genesis-backed scope/codegraph proxies for architecture exploration,
+    search, and Demiurge-assisted implementation.
+  group: ui
+  entitlement: addon:automation
+  reason: 'owner ruling (addon automation): Owner ruling 2026-08-18. The portal and the Living Desktop
+    are the product''s face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons.
+    Keeping the shipped surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts
+    23 apps that open broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
+- id: ForgeIDEBackend
+  description: 'COMPOUND: Workspace + Terminal + LSP + Git + Forge. Full-stack dev IDE backend with code
+    editing, terminals, and git.'
+  group: automation
+  entitlement: addon:automation
+  reason: group 'automation' maps to add-on 'automation' via source_groups
+- id: Gargbot
+  description: GargBot — tenant application (garg.aitherium.com). Portal-kit backend + OIDC login; the
+    app enforces its own auth.
+  group: products
+  entitlement: platform-only
+  reason: 'Platform-only: a deployed tenant app belonging to a specific customer. Another customer buys
+    an appliance, never someone else''s deployment.'
+- id: GargbotQdrant
+  description: Per-tenant Qdrant for GargBot. Dedicated per product on purpose — one vector store per
+    tenant is the isolation boundary, not a shared collection with a tenant filter.
+  group: products
+  entitlement: platform-only
+  reason: 'Platform-only: vector store backing one customer''s deployed app.'
+- id: Genesis
+  description: THE SYSTEM BRAIN - Full Pulse subscriber, system orchestrator, bootloader, and ChatEngine
+    (absorbed from Orchestrator)
+  group: core
+  entitlement: core
+  reason: 'Core: 24 services depend on it, the highest reverse-dependency rank in the fleet, and it is
+    in the sovereign core group. The orchestration plane an agent box cannot run without.'
+- id: Geo
+  description: Open-stack geocoding, place discovery, street imagery & interactive maps (no Google billing)
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: Identity
+  description: Identity management, RBAC, authentication, OAuth, SSO device-code flow. Runs INSIDE SecurityCore
+    — there is no separate identity container.
+  group: core
+  entitlement: core
+  reason: 'Core: authentication and SSO, 7 services depend on it. A sub_service of the SecurityCore compound
+    and still independently installable - the case that disproves ''sub_service implies not installable''.'
+- id: Iris
+  description: 🎨 Iris - Autonomous image generation with iterative refinement. Prompt enhancement, visual
+    evaluation, plan→search→generate→evaluate→refine pipeline.
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: JGames
+  description: J Games & Repair — tenant application (jgames.aitherium.com). Portal-kit backend + OIDC
+    login; repair ticket management and invoicing.
+  group: products
+  entitlement: platform-only
+  reason: 'Platform-only: a deployed tenant app belonging to a specific customer.'
+- id: Jail
+  description: Chaos agent containment - controls jailbreaks and captures training data
+  group: security
+  entitlement: addon:security-plus
+  reason: group 'security' maps to add-on 'security-plus' via source_groups
+- id: Judge
+  description: Quality evaluation, content filtering, safety checks, and audit
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: KnowledgeDiffer
+  description: Knowledge delta detection — identifies what changed in knowledge base
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: KnowledgeGraph
+  description: Unified Knowledge Graph — code, social, memory, and concept relationships with Nexus vector
+    backing and CodeGraph delegation
+  group: memory
+  entitlement: addon:memory-plus
+  reason: group 'memory' maps to add-on 'memory-plus' via source_groups
+- id: KodokEvo
+  description: AI Agent Battleground & Duel Arena — head-to-head battles judged by AI with live audience
+    via AitherRelay
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: LiveContext
+  description: Live project context — real-time git, services, roadmap state
+  group: memory
+  entitlement: addon:memory-plus
+  reason: group 'memory' maps to add-on 'memory-plus' via source_groups
+- id: LogGraph
+  description: Log observability graph — real-time execution graph from Pulse/Flux log streams (service
+    → code chunk → temporal trace); feedback-loop events included
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: LyraWiki
+  description: LLM Wiki Knowledge Engine — persistent, compounding knowledge base with ingest/query/lint
+    operations
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: MCPPortal
+  description: MCP tools discovery portal — mcp.aitherium.com. Browse 100+ AI tools, connect Claude Code/Desktop
+    to AitherOS via the Model Context Protocol, manage API keys and usage.
+  group: ui
+  entitlement: addon:automation
+  reason: 'owner ruling (addon automation): Owner ruling 2026-08-18. The portal and the Living Desktop
+    are the product''s face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons.
+    Keeping the shipped surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts
+    23 apps that open broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
+- id: MediaForge
+  description: Managed media tool (FastAPI) with a privacy torrent-VPN stack. Self-provisions its AitherTunnel
+    WireGuard peer + AitherSecrets-scoped config from the fleet master key (no human paste). Built from
+    the media-forge sibling repo's own Dockerfile (native libtorrent).
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: MemoryCore
+  description: 'COMPOUND: Persona + Conduit + SensoryBuffer + Chain. Identity/affect state, sensory buffering,
+    and memory chaining.'
+  group: memory
+  entitlement: core
+  reason: 'Core: the base memory store. The `memory-plus` add-on is explicitly "beyond the core store",
+    so the store itself cannot be the add-on - classifying it that way charged customers for something
+    the base appliance already shipped, which generate_os_roles.py caught the moment both planes spoke
+    one vocabulary.'
+- id: Mesh
+  description: Service mesh coordination
+  group: network
+  entitlement: addon:mesh
+  reason: 'Add-on mesh: AitherNet overlay membership. Only meaningful once a customer runs more than one
+    appliance.'
+- id: MeterRollup
+  description: Stripe usage-meter rollup — pulls usage from Chronicle/Strata/Tenant DB, aggregates per
+    (tenant, meter, period), batches to Stripe Meter Events API every 60s with deterministic idempotency
+    keys.
+  group: billing
+  entitlement: addon:business
+  reason: group 'billing' maps to add-on 'business' via source_groups
+- id: Mind
+  description: RAG and embeddings
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: NIM
+  description: NVIDIA NIM LLM Microservice - containerized, production-grade LLM inference (OpenAI-compatible)
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: Nemotron
+  description: NVIDIA Nemotron Orchestrator - fine-tuned LLM optimized for multi-agent orchestration and
+    planning
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: OmniNodeSettlementReconciler
+  description: Sum-chain attestation settlement — maps on-chain InferenceAttestation to compute credits.
+  group: mesh
+  entitlement: addon:mesh
+  reason: group 'mesh' maps to add-on 'mesh' via source_groups
+- id: OmniParser
+  description: Screen parsing service — converts UI screenshots to structured clickable elements via YOLO
+    + Florence
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: PerceptionCore
+  description: 'COMPOUND: Sense + Reflex + Portal + InnerLife. Emotional state tracking, reflexive responses,
+    web portal, and inner life simulation.'
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: PerceptionMedia
+  description: 'COMPOUND: Vision + Voice + PersonaPlex. Image understanding, speech I/O, and persona multiplexing.'
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: PortalGateway
+  description: 'COMPOUND: ACTA + Onboard. API billing gate (token metering) and tenant onboarding.'
+  group: automation
+  entitlement: addon:automation
+  reason: group 'automation' maps to add-on 'automation' via source_groups
+- id: Prometheus
+  description: Grand Simulation & Game Engine — Deep human life modeling with 39 manager systems, ECS
+    architecture, deterministic fixed-timestep game loop, spatial partitioning, and native Godot integration
+    via WebSocket protocol v2. Comprehensive physiology, psychology, episodic memory, social bonds, environmental
+    systems, and grand strategy. Integrates with MCTS for GPU-accelerated strategic reasoning.
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: PrometheusAgent
+  description: 🔥 Prometheus - Grand simulation & world-building agent. Creates, manages, and evolves complex
+    simulated realities with deep human modeling and procedural generation.
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: Pulse
+  description: The nervous system — real-time event streaming, weighted pain system, circuit breakers,
+    alert management, and FluxBus event ingestion for all subscribers
+  group: core
+  entitlement: core
+  reason: 'Core: 15 services depend on it. Live event stream the desktop and every agent surface read.'
+- id: Quota
+  description: Tenant resource quota enforcement — tracks API calls, tokens, storage, GPU, agents
+  group: security
+  entitlement: addon:security-plus
+  reason: group 'security' maps to add-on 'security-plus' via source_groups
+- id: Reasoning
+  description: Deep thinking (SASE)
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: RemotionRenderer
+  description: Programmatic video renderer (Remotion + headless Chromium). Motion graphics, data viz,
+    presentations.
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: Safety
+  description: Safety checks, content filtering, and guardrails
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Sana
+  description: Fast image/video generation via Sana (Linear DiT). 20x smaller, 100x faster than Flux.
+    Sprint one-step in 0.1s.
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: Sandbox
+  description: Safe code execution - Aither's hands for writing and running code
+  group: automation
+  entitlement: addon:automation
+  reason: group 'automation' maps to add-on 'automation' via source_groups
+- id: Search
+  description: Intelligent web search, model search, and knowledge retrieval
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Secrets
+  description: API keys and secrets - The Vault for all service credentials
+  group: core
+  entitlement: core
+  reason: 'Core: 13 services depend on it. Every credential on the appliance lives here; nothing else
+    can be configured without it.'
+- id: SecurityDefense
+  description: 'COMPOUND: Sentry + Guard + RoundTable + Sentinel. Threat detection, WAF, security council,
+    and perimeter monitoring.'
+  group: security
+  entitlement: addon:security-plus
+  reason: group 'security' maps to add-on 'security-plus' via source_groups
+- id: ShopBackend
+  description: Storefront/commerce backend for tenant shops.
+  group: products
+  entitlement: platform-only
+  reason: 'Platform-only: commerce backend behind our own tenant storefronts.'
+- id: Skills
+  description: Community & local skill management — skills.sh ecosystem
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Slumber
+  description: Idle-time background processing and consolidation
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: SovereignNode
+  description: Sovereign Node Protocol — autonomous governance, Ed25519 identity, offline queue, peer
+    mesh
+  group: mesh
+  entitlement: core
+  reason: 'PROVISIONAL (confidence 0.7): declared in the sovereign core group; the other core signal does
+    not corroborate'
+- id: Spirit
+  description: Soul/persona memory
+  group: memory
+  entitlement: core
+  reason: 'Core: base memory service. The `memory-plus` add-on is explicitly "beyond the core store",
+    so the store itself cannot be the add-on - classifying it that way charged customers for something
+    the base appliance already shipped, which generate_os_roles.py caught the moment both planes spoke
+    one vocabulary.'
+- id: Stream
+  description: Video hosting, HLS adaptive streaming, live-stream management
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: Sync
+  description: Platform sync daemon — heartbeat, pack updates, license validation for sovereign deployments
+  group: mesh
+  entitlement: addon:mesh
+  reason: group 'mesh' maps to add-on 'mesh' via source_groups
+- id: Tag
+  description: Content tagging, classification, and labeling
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: Telephony
+  description: Streaming voice pipeline — Twilio SIP trunk, real-time STT→LLM→TTS
+  group: communication
+  entitlement: addon:business
+  reason: group 'communication' maps to add-on 'business' via source_groups
+- id: TexelStudio
+  description: AI pixel art agent — tool-based sprite painting, not diffusion. LangGraph + drawing tools.
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
+- id: ThreatGuard
+  description: GPU-accelerated real-time LLM attack classifier using ThreatClassifier + JEPA predictor
+    on CUDA.
+  group: security
+  entitlement: addon:security-plus
+  reason: group 'security' maps to add-on 'security-plus' via source_groups
+- id: TrainingPipeline
+  description: 'COMPOUND: Prism + Trainer + Harvest + CartridgeForge + Evolution + Learning + STaR. Automated
+    training pipeline: harvest data, filter, finetune, benchmark, deploy.'
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: Transcoder
+  description: Async video transcoding pipeline — ffmpeg HLS segmentation with HW accel
+  group: creative
+  entitlement: addon:creative
+  reason: group 'creative' maps to add-on 'creative' via source_groups
+- id: Tunnel
+  description: Secure Remote Access — WireGuard VPN provisioning, browser SSH proxy, TCP port forwarding,
+    and Cloudflare Tunnel route management. Authenticated via AitherIdentity SSO / Cloudflare Access JWT.
+    Exposed as tunnel.aitherium.com.
+  group: network
+  entitlement: addon:mesh
+  reason: 'Add-on mesh: outbound reach for a box behind NAT. A single sovereign appliance on its own LAN
+    does not need it; joining sites does.'
+- id: VIBE
+  description: Vibe — tenant application (vibe.aitherium.com). Outside-contributor collaboration on a
+    ternary-quantised Qwen3.8-27B. Same awkit product backend gargbot and dgg run, selected by the vibe
+    brain pack; job queue, runner fleet, compute quotas and an artifact store for weights and benchmarks.
+  group: products
+  entitlement: platform-only
+  reason: 'Platform-only: a deployed tenant app belonging to a specific collaboration.'
+- id: VLLM
+  description: vLLM OpenAI-compatible inference server - continuous batching, paged attention
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: VLLMSwap
+  description: vLLM hot-swap model server - Ollama-style model swapping for level 9/10 tasks
+  group: gpu
+  entitlement: addon:gpu-inference
+  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
+- id: Veil
+  description: Dashboard
+  group: ui
+  entitlement: core
+  reason: 'owner ruling (core): Owner ruling 2026-08-18. The portal and the Living Desktop are the product''s
+    face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons. Keeping the shipped
+    surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts 23 apps that open
+    broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
+- id: Watch
+  description: The all-seeing watchdog — monitors health of every service, auto-restarts, emits pain to
+    Pulse, provides system heartbeat for agent context injection
+  group: core
+  entitlement: core
+  reason: 'Core: health and alerting. A sovereign box the owner cannot see into fails silently, which
+    is this platform''s most expensive failure mode.'
+- id: Will
+  description: Policy engine, constraints, effort caps, and Six Pillars governance
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+- id: WorkflowHub
+  description: 'COMPOUND: TaskHub + PlaybookEngine + AutonomousTask + Expedition. Task management, playbook
+    automation, autonomous coding loops, and expedition workflows.'
+  group: automation
+  entitlement: addon:automation
+  reason: group 'automation' maps to add-on 'automation' via source_groups
+- id: WorkingMemory
+  description: Working memory
+  group: memory
+  entitlement: core
+  reason: 'Core: the working-memory store. The `memory-plus` add-on is explicitly "beyond the core store",
+    so the store itself cannot be the add-on - classifying it that way charged customers for something
+    the base appliance already shipped, which generate_os_roles.py caught the moment both planes spoke
+    one vocabulary.'
+- id: WorldModel
+  description: Internal world state model — tracks entities, relationships, and environment
+  group: cognition
+  entitlement: core
+  reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
+    is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
+    packs instead of being taxed on the thing that makes the product good.'
+groups:
+- agents
+- autonomy
+- brain
+- chaos
+- chat_agents
+- chat_full
+- chat_minimal
+- cognition
+- compact_gpu
+- core
+- cpu_minimal
+- cpu_only
+- dlp
+- full
+- gpu
+- headless
+- homeostasis
+- hybrid_compute
+- knights
+- mcp
+- mesh
+- minimal
+- social
+- storage
+unroled_services: 70
+unroled_service_names:
+- AitherChronos
+- AitherCivics
+- AitherFeedGenerator
+- AitherFleet
+- AitherGraph
+- AitherLinkedIn
+- AitherNet
+- AitherOne
+- AitherPDS
+- AitherSocial
+- AitherStudioPair
+- AitherSupport
+- Bluetooth
+- Cert
+- ChronicleLog
+- ClusterAgent
+- Comet
+- CommunicationCore
+- CompetitiveIntel
+- Conductor
+- DirectorySurface
+- Discord
+- DiscordRelayBridge
+- ElysiumBackend
+- EventLog
+- ExternalGateway
+- Failover
+- FluxGossipBridge
+- Gateway
+- Inspector
+- Instagram
+- KnowledgeRAGIngestWorker
+- MCPGateway
+- Mail
+- MailCore
+- MeshBalancer
+- MeshCore
+- MicroScheduler
+- MinIO
+- Mint
+- Moltroad
+- NewsGraph
+- NewsWire
+- Nexus
+- Node
+- NodeDeployer
+- Recover
+- Redis
+- Registry
+- Relay
+- Repowise
+- Retrieval
+- SMS
+- SMTP
+- STTP
+- SecurityCore
+- Slack
+- SocialEngine
+- SocialHub
+- SocialIntel
+- SocialIntelligence
+- SocialPlatforms
+- SocialUnified
+- Strata
+- StrataData
+- StrataMeshReplicationTrigger
+- Telegram
+- TenantDataPlane
+- WhatsApp
+- Worker
+features:
+- group: Core
+  id: Docker
+  enabled: true
+  required: true
+- group: Core
+  id: Git
+  enabled: true
+  required: true
+- group: Core
+  id: Kubernetes
+  enabled: true
+  required: false
+- group: Core
+  id: PowerShell7
+  enabled: true
+  required: true
+- group: Deployment
+  id: Azure
+  enabled: false
+  required: false
+- group: Deployment
+  id: GCP
+  enabled: false
+  required: false
+- group: Deployment
+  id: Kubernetes
+  enabled: true
+  required: false
+- group: Deployment
+  id: LocalCompose
+  enabled: true
+  required: false
+- group: Monitoring
+  id: Alerting
+  enabled: false
+  required: false
+- group: Monitoring
+  id: Grafana
+  enabled: false
+  required: false
+- group: Monitoring
+  id: Prometheus
+  enabled: false
+  required: false
+- group: AI
+  id: ComfyUI
+  enabled: true
+  required: false
+- group: AI
+  id: GPUAcceleration
+  enabled: true
+  required: false
+- group: AI
+  id: MultiModel
+  enabled: true
+  required: false
+- group: AI
+  id: StandaloneLLM
+  enabled: true
+  required: false
+- group: AI
+  id: vLLM
+  enabled: true
+  required: false
+models:
+- id: bonsai-1.7b
+- id: bonsai-27b
+- id: bonsai-4b
+- id: bonsai-8b
+- id: deepseek-v4-flash
+- id: gemma4-12b
+- id: orchestrator
+- id: qwen36-27b
+agents:
+- id: athena
+- id: atlas
+- id: chaos
+- id: demiurge
+- id: hera
+- id: hydra
+- id: iris
+- id: lyra
+- id: prometheus
+- id: saga
+- id: themis
+- id: vera

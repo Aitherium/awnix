@@ -179,21 +179,53 @@ RUN set -eu; \
 RUN set -eu; \
     BIN=$(find /opt/bonsai/bin -name llama-server -type f | head -1); \
     D=$(dirname "$BIN"); \
-    /opt/bonsai/lib/ld-linux-x86-64.so.2 --library-path "/opt/bonsai/lib:$D" "$BIN" \
-        -m /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf \
-        --host 127.0.0.1 --port 8096 -c 512 >/tmp/llama.log 2>&1 & \
-    up=0; \
-    for i in $(seq 1 45); do \
-        curl -sf -o /dev/null http://127.0.0.1:8096/health 2>/dev/null && { up=1; break; }; \
-        sleep 2; \
+    ok=0; \
+    for attempt in 1 2 3; do \
+        /opt/bonsai/lib/ld-linux-x86-64.so.2 --library-path "/opt/bonsai/lib:$D" "$BIN" \
+            -m /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf \
+            --host 127.0.0.1 --port 8096 -c 512 >/tmp/llama.log 2>&1 & \
+        pid=$!; \
+        up=0; \
+        for i in $(seq 1 75); do \
+            curl -sf -o /dev/null http://127.0.0.1:8096/health 2>/dev/null && { up=1; break; }; \
+            alive=1; kill -0 "$pid" 2>/dev/null || alive=0; \
+            if [ "$alive" = "1" ] && [ -r "/proc/$pid/stat" ]; then \
+                st=R; read -r _ _ st _ < "/proc/$pid/stat" || true; \
+                [ "$st" = "Z" ] && alive=0; \
+            fi; \
+            [ "$alive" = "0" ] && break; \
+            sleep 2; \
+        done; \
+        [ "$up" = "1" ] && { ok=1; break; }; \
+        { \
+            echo "attempt $attempt: the baked model never became servable ($((i * 2))s)"; \
+            alive=1; kill -0 "$pid" 2>/dev/null || alive=0; \
+            st=R; \
+            if [ "$alive" = "1" ] && [ -r "/proc/$pid/stat" ]; then \
+                read -r _ _ st _ < "/proc/$pid/stat" || true; \
+                [ "$st" = "Z" ] && alive=0; \
+            fi; \
+            if [ "$alive" = "1" ]; then \
+                echo "  llama-server pid $pid is STILL ALIVE -- it never reached ready"; \
+            else \
+                echo "  llama-server pid $pid is GONE -- it exited or was killed"; \
+            fi; \
+            ls -la /tmp/llama.log 2>&1 || true; \
+            wc -c /tmp/llama.log 2>&1 || true; \
+            tail -40 /tmp/llama.log 2>&1 || true; \
+            free -m 2>&1 | head -3 || true; \
+            dmesg 2>/dev/null | grep -iE 'oom|killed process' | tail -3 || true; \
+        } >&2; \
+        pkill -f llama-server || true; \
+        sleep 3; \
     done; \
-    [ "$up" = "1" ] || { echo "the baked model never became servable" >&2; grep -iE " E " /tmp/llama.log | head -5; exit 1; }; \
+    [ "$ok" = "1" ] || { echo "the baked model never became servable on any of 3 attempts" >&2; free -m >&2 || true; exit 1; }; \
     OUT=$(curl -sf -X POST http://127.0.0.1:8096/v1/chat/completions \
           -H "Content-Type: application/json" \
           -d '{"messages":[{"role":"user","content":"Reply with one word: goblin"}],"max_tokens":12,"temperature":0}'); \
     echo "$OUT" | grep -q '"content"' || { echo "the baked model served no completion" >&2; echo "$OUT" | head -c 300; exit 1; }; \
     pkill -f llama-server || true; \
-    echo "gobbonet-appliance: the baked model loads and answers"
+    echo "gobbonet-appliance: the baked model loads and answers (attempt $attempt)"
 
 LABEL org.opencontainers.image.title="gobbonet-appliance" \
       org.opencontainers.image.description="GobboNet on awnix — immutable Linux, llama.cpp, Bonsai baked in, and awdk for building agents and characters" \

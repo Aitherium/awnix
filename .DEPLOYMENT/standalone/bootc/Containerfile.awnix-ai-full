@@ -1,0 +1,82 @@
+# ==============================================================================
+# awnix-ai-full - the aw* stack AND inference, in one image.
+#
+# THE RUNG THAT DID NOT EXIST. The public ladder was asked for as:
+#     plain awnix  ->  awnix + the aw* stack core  ->  + Bonsai-27B (or smaller)
+# and the first two shipped while the third did not. What shipped as `awnix-ai`
+# is Containerfile.awnix-runner-ai: awnix-base -> awnix-runner -> +llama.cpp.
+# That chain is built on the GITHUB ACTIONS RUNNER layer and carries no aw*
+# package at all, so it is inference on a CI box, not inference on the stack.
+#
+# awnix-variants.yaml says this outright in the gobbonet-appliance entry:
+#   "awnix-full ships the GobboNet UI with no inference and awnix-ai ships
+#    inference with no UI -- an appliance needs both halves."
+# The only image that had both halves was a customer appliance. This is those
+# halves as a PUBLIC rung, with no customer app on top.
+#
+# Build: podman build -t awnix-ai-full:latest -f Containerfile.awnix-ai-full .
+#        (requires awnix-full:latest)
+# Licence: Apache-2.0.
+# ==============================================================================
+
+# Same throwaway stage, same reason as Containerfile.awnix-runner-ai: the
+# PrismML binaries need a newer GLIBCXX than stream9 carries. Read the block
+# comment at the top of that file before touching any of this -- the fix is
+# deliberately SCOPED to /opt/bonsai/lib and one exec, and never replaces the
+# base image's own libstdc++/libc/loader.
+FROM quay.io/centos-bootc/centos-bootc:stream10 AS newer-libstdcxx
+
+FROM localhost/awnix-full:latest
+
+# awnix-full has no unprivileged service account -- it is a toolkit image, not
+# a runner. serve-awnix-bonsai.sh drops privileges to $BONSAI_USER and REFUSES
+# to start if that account is missing, so create it here and name it for what
+# it does. Calling it `runner` to match the other layer's hardcoded string is
+# exactly the drift this rung exists to avoid.
+RUN useradd -m -s /bin/bash -c "awnix Bonsai inference (unprivileged)" bonsai
+
+# Prebuilt binary only, same release channel and same Vulkan reasoning as
+# Containerfile.awnix-runner-ai: one small download that covers NVIDIA/AMD/Intel
+# with no CUDA runtime. Pinned to the SAME build as that layer on purpose -- two
+# public images serving different llama.cpp builds is a support surface nobody
+# asked for.
+ARG PRISM_RELEASE=prism-b9596-9fcaed7
+ARG PRISM_ASSET=llama-prism-b9596-9fcaed7-bin-ubuntu-vulkan-x64.tar.gz
+RUN mkdir -p /opt/bonsai/bin /opt/bonsai/models /opt/bonsai/lib \
+    && curl -fsSL -o /tmp/llama.tar.gz \
+        "https://github.com/PrismML-Eng/llama.cpp/releases/download/${PRISM_RELEASE}/${PRISM_ASSET}" \
+    && tar -xzf /tmp/llama.tar.gz -C /opt/bonsai/bin \
+    && rm /tmp/llama.tar.gz \
+    && find /opt/bonsai/bin -name llama-server -type f -exec chmod +x {} \; \
+    && chown -R bonsai:bonsai /opt/bonsai
+
+# The scoped GLIBCXX chain. Identical to Containerfile.awnix-runner-ai.
+COPY --from=newer-libstdcxx /usr/lib64/libstdc++.so.6.0.33 /opt/bonsai/lib/libstdc++.so.6
+COPY --from=newer-libstdcxx /lib64/ld-linux-x86-64.so.2 /opt/bonsai/lib/ld-linux-x86-64.so.2
+COPY --from=newer-libstdcxx /usr/lib64/libc.so.6 /opt/bonsai/lib/libc.so.6
+COPY --from=newer-libstdcxx /usr/lib64/libm.so.6 /opt/bonsai/lib/libm.so.6
+COPY --from=newer-libstdcxx /usr/lib64/libgcc_s-14-20260629.so.1 /opt/bonsai/lib/libgcc_s.so.1
+RUN chmod 755 /opt/bonsai/lib/*.so* \
+    && chown -R bonsai:bonsai /opt/bonsai/lib
+
+# Launcher, CHOOSER and CATALOGUE -- all three, for the same reason the other
+# layer ships all three: the launcher refuses to start without the selector
+# rather than falling back to a built-in default, so the catalogue stays the
+# source of truth. Weights are NOT baked (a 27B is larger than the whole ISO);
+# the chooser sizes the model to the hardware at first boot, which is what
+# "27B or smaller" actually requires.
+COPY --chown=root:root serve-awnix-bonsai.sh /usr/local/sbin/serve-awnix-bonsai.sh
+COPY --chown=root:root awnix-model-select.py /usr/local/sbin/awnix-model-select.py
+COPY --chown=root:root awnix-models.yaml /usr/local/sbin/awnix-models.yaml
+RUN chmod 755 /usr/local/sbin/serve-awnix-bonsai.sh /usr/local/sbin/awnix-model-select.py \
+    && chmod 644 /usr/local/sbin/awnix-models.yaml
+
+# Read by serve-awnix-bonsai.sh. Set in the IMAGE rather than passed by every
+# caller: a launcher that needs an env var nobody remembers is a launcher that
+# fails at first boot on the box that needed it.
+ENV BONSAI_USER=bonsai
+
+LABEL com.aitheros.layer="awnix-ai-full" \
+      com.aitheros.base="awnix-full" \
+      com.aitheros.description="Every aw* package plus PrismML llama.cpp -- the aw* stack WITH inference (model fetched and sized at first boot)" \
+      org.opencontainers.image.licenses="Apache-2.0"
