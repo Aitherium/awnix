@@ -20,16 +20,21 @@
     "awrecover",
     "awseal",
     "awshare",
-    "awbrain"
+    "awbrain",
+    "awvoice",
+    "awvision",
+    "awscreen",
+    "awrise",
+    "awwall"
   ],
   "metrics": {
     "files": {
       "value": 11,
-      "as_of": "2026-09-12T07:40:07-07:00"
+      "as_of": "2026-09-12T08:36:19-07:00"
     },
     "tests": {
       "value": 0,
-      "as_of": "2026-09-12T07:40:07-07:00"
+      "as_of": "2026-09-12T08:36:19-07:00"
     }
   }
 }
