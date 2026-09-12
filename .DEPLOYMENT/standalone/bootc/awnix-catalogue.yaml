@@ -8,13 +8,13 @@
 schema: 1
 generated_by: AitherOS/dev/tools/gen_installer_catalogue.py
 sources:
-  packages: 'C:/Users/wzns/AppData/Local/Temp/gic_ecosystem.yaml :: bricks'
-  profiles: 'C:/Users/wzns/AppData/Local/Temp/gic_ecosystem.yaml :: stacks'
-  services: 'C:/Users/wzns/AppData/Local/Temp/gic_services.yaml :: services[].role'
-  groups: 'C:/Users/wzns/AppData/Local/Temp/gic_services.yaml :: groups'
-  features: 'C:/Users/wzns/AppData/Local/Temp/gic_config.psd1 :: Features'
-  models: C:/Users/wzns/AppData/Local/Temp/gic_awnix-models.yaml
-  agents: C:/Users/wzns/AppData/Local/Temp/gic_agent_catalog.yaml
+  packages: 'AitherOS/config/ecosystem.yaml :: bricks'
+  profiles: 'AitherOS/config/ecosystem.yaml :: stacks'
+  services: 'AitherOS/config/services.yaml :: services[].role'
+  groups: 'AitherOS/config/services.yaml :: groups'
+  features: '.PRODUCTS/.AITHERZERO/config/config.psd1 :: Features'
+  models: .DEPLOYMENT/standalone/bootc/awnix-models.yaml
+  agents: AitherOS/config/agent_catalog.yaml
 packages:
 - id: AitherConnect
   tagline: Browser extension — federated AI search, page context, and the Living OS overlay.
@@ -1498,7 +1498,7 @@ groups:
 - minimal
 - social
 - storage
-unroled_services: 71
+unroled_services: 70
 unroled_service_names:
 - AitherChronos
 - AitherCivics
@@ -1515,7 +1515,6 @@ unroled_service_names:
 - Bluetooth
 - Cert
 - ChronicleLog
-- ClaudeSubagentRunner
 - ClusterAgent
 - Comet
 - CommunicationCore
