@@ -8,13 +8,13 @@
 schema: 1
 generated_by: AitherOS/dev/tools/gen_installer_catalogue.py
 sources:
-  packages: 'AitherOS/config/ecosystem.yaml :: bricks'
-  profiles: 'AitherOS/config/ecosystem.yaml :: stacks'
-  services: 'AitherOS/config/services.yaml :: services[].role'
-  groups: 'AitherOS/config/services.yaml :: groups'
-  features: '.PRODUCTS/.AITHERZERO/config/config.psd1 :: Features'
-  models: .DEPLOYMENT/standalone/bootc/awnix-models.yaml
-  agents: AitherOS/config/agent_catalog.yaml
+  packages: 'C:/Users/wzns/AppData/Local/Temp/gic_ecosystem.yaml :: bricks'
+  profiles: 'C:/Users/wzns/AppData/Local/Temp/gic_ecosystem.yaml :: stacks'
+  services: 'C:/Users/wzns/AppData/Local/Temp/gic_services.yaml :: services[].role'
+  groups: 'C:/Users/wzns/AppData/Local/Temp/gic_services.yaml :: groups'
+  features: 'C:/Users/wzns/AppData/Local/Temp/gic_config.psd1 :: Features'
+  models: C:/Users/wzns/AppData/Local/Temp/gic_awnix-models.yaml
+  agents: C:/Users/wzns/AppData/Local/Temp/gic_agent_catalog.yaml
 packages:
 - id: AitherConnect
   tagline: Browser extension — federated AI search, page context, and the Living OS overlay.
@@ -31,6 +31,11 @@ packages:
   status: public
   available: true
   reason: ''
+- id: aitheros
+  tagline: One file you run, and the machine has a local AI stack.
+  status: unpublished
+  available: true
+  reason: ''
 - id: awask
   tagline: Your agent asks you a question — and acts on your answer.
   status: public
@@ -38,9 +43,9 @@ packages:
   reason: ''
 - id: awavatar
   tagline: One character spec in, a rigged, animated, multi-style avatar pack out.
-  status: planned
-  available: false
-  reason: 'status: planned'
+  status: public
+  available: true
+  reason: ''
 - id: awbac
   tagline: Role-based access control that fails closed and explains itself.
   status: public
@@ -94,7 +99,7 @@ packages:
 - id: awdesk
   tagline: 'Aither World Desk -- the desktop body of AitherOS Online: tray, avatars, decision cards, the
     Living Desktop as an overlay.'
-  status: unpublished
+  status: public
   available: true
   reason: ''
 - id: awdit
@@ -124,7 +129,7 @@ packages:
   reason: ''
 - id: awflow
   tagline: A deterministic workflow runtime — chain agent calls with journal replay and budget control.
-  status: unpublished
+  status: public
   available: true
   reason: ''
 - id: awfocus
@@ -132,6 +137,11 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awforge
+  tagline: A render pipeline you drive from an agent — grade, master, animate, train.
+  status: planned
+  available: false
+  reason: 'status: planned'
 - id: awgit
   tagline: Semantic version control on top of git — edit-ops and leases.
   status: public
@@ -152,6 +162,11 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awiris
+  tagline: Hand it three reference images and get one style card and one critique back.
+  status: planned
+  available: false
+  reason: 'status: planned'
 - id: awkit
   tagline: Render an agent panel from a tool result — one component, any React app.
   status: unpublished
@@ -214,7 +229,7 @@ packages:
   reason: ''
 - id: awpack
   tagline: First-party agent packs — the ones we build, versioned and installable on their own.
-  status: public
+  status: no-pages
   available: true
   reason: ''
 - id: awpool
@@ -262,7 +277,7 @@ packages:
   reason: ''
 - id: awrena
   tagline: Put two agents head to head and get a verdict you can check.
-  status: unpublished
+  status: public
   available: true
   reason: ''
 - id: awrepl
@@ -275,9 +290,14 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awresume
+  tagline: The coding sessions you had open, reopened after the reboot.
+  status: planned
+  available: false
+  reason: 'status: planned'
 - id: awrise
   tagline: Wake an agent on a schedule, let it do one thing, and put it back to sleep.
-  status: unpublished
+  status: public
   available: true
   reason: ''
 - id: awrouter
@@ -301,9 +321,14 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awsaga
+  tagline: Start a world from a pack and take one turn the continuity checker can refuse.
+  status: planned
+  available: false
+  reason: 'status: planned'
 - id: awscreen
   tagline: See this machine — what is on screen, and where to click it.
-  status: unpublished
+  status: public
   available: true
   reason: ''
 - id: awseal
@@ -346,7 +371,7 @@ packages:
 - id: awstorage
   tagline: Every drive on every node, indexed, classified and diffed -- so you can see what you own before
     you delete it.
-  status: public
+  status: no-pages
   available: true
   reason: ''
 - id: awswarm
@@ -377,17 +402,17 @@ packages:
   reason: ''
 - id: awvision
   tagline: See an image — describe it, ask it a question, compare two.
-  status: unpublished
+  status: public
   available: true
   reason: ''
 - id: awvoice
   tagline: Hear and speak — transcribe audio, synthesize a voice.
-  status: unpublished
+  status: public
   available: true
   reason: ''
 - id: awwall
   tagline: Say what a workload may reach, and watch everything else fail closed.
-  status: unpublished
+  status: public
   available: true
   reason: ''
 - id: gawbbonet
@@ -476,6 +501,26 @@ profiles:
   status: partial
   available: true
   reason: ''
+- id: creator-stack
+  name: The Creator Stack — Saga + Media Forge + Iris on your own machine
+  what: One world that runs, not a text box that continues — with a story graph, typed mechanics, a continuity
+    checker, MCTS branch explorer, simulation backend, and persistent memory. One creative studio with
+    357 routes and 137 named ops — character rigs, animation, LoRA, comics, VN, production loops with
+    human gates — all agent-callable. One visual artist that plans, enhances, calls the studio in a real
+  packages:
+  - awsaga
+  - mediaforge
+  - awiris
+  - awsprite
+  - awdesk
+  - awbonsai
+  - awdk
+  - awnode
+  - AitherConnect
+  - awrtifact
+  status: partial
+  available: true
+  reason: ''
 - id: dark-matters-living-world
   name: Dark Matters Living World
   what: Procedurally generate a playable, multiplayer 3D world -- zones, quests, NPCs, creatures, their
@@ -491,22 +536,6 @@ profiles:
   status: planned
   available: false
   reason: 'status: planned'
-- id: hackathon-sandbox
-  name: Hackathon dev sandbox
-  what: Download one installer and have a local dev environment for your hackathon project. An agent runtime
-    (awdk) in your terminal (awsh), routing to your choice of backend via a local gateway (awnode), with
-    portable skills (awskills) and scoped memory (awm) that survives the session. Everything a hackathon
-    team needs to ship an agent before the demo, running locally on a laptop with no cloud dependency
-  packages:
-  - awdk
-  - awsh
-  - awnode
-  - awskills
-  - awm
-  - awkno
-  status: ready
-  available: true
-  reason: ''
 - id: inference-commons
   name: The inference commons -- pool compute, storage and caches across strangers' nodes
   what: 'Owner directive 2026-09-01: decentralise storage and inference across the aw* stack so anyone''s
@@ -622,6 +651,21 @@ profiles:
   - awprism
   - awrepl
   - awrecurse
+  status: partial
+  available: true
+  reason: ''
+- id: the-studio
+  name: The studio
+  what: 'What a creative turn needs, on hardware the operator already owns: a way to find things, a way
+    to read a page, a way to research with citations, and a way to actually render and master the result.
+    Named because these kept being proposed as ONE product, and the measurement said they are three INPUT
+    surfaces and one OUTPUT surface -- which composes and does not merge. Every member is adoptable alone'
+  packages:
+  - awforge
+  - awfind
+  - awbrowse
+  - awresearch
+  - awm
   status: partial
   available: true
   reason: ''
@@ -763,8 +807,8 @@ services:
   entitlement: addon:automation
   reason: group 'automation' maps to add-on 'automation' via source_groups
 - id: AutomationCore
-  description: 'COMPOUND: Autonomic + AutomatedActions + DesktopBridge + Steward + ForgeDispatch. Job
-    scheduling, pain-trigger automation, desktop bridge, and forge dispatch.'
+  description: 'RETIRED (AF-15) — superseded by swarm dispatch. COMPOUND: Autonomic + AutomatedActions
+    + DesktopBridge + Steward + ForgeDispatch.'
   group: automation
   entitlement: addon:automation
   reason: group 'automation' maps to add-on 'automation' via source_groups
@@ -1454,7 +1498,7 @@ groups:
 - minimal
 - social
 - storage
-unroled_services: 70
+unroled_services: 71
 unroled_service_names:
 - AitherChronos
 - AitherCivics
@@ -1471,6 +1515,7 @@ unroled_service_names:
 - Bluetooth
 - Cert
 - ChronicleLog
+- ClaudeSubagentRunner
 - ClusterAgent
 - Comet
 - CommunicationCore

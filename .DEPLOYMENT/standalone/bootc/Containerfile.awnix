@@ -12,7 +12,7 @@
 # every guarantee the base provides.
 #
 # Build: podman build -t awnix-base:latest -f Containerfile.awnix .
-# Licence: Apache-2.0 (same as all twelve aw* packages this image bakes in —
+# Licence: Apache-2.0 (same as all nineteen aw* packages this image bakes in —
 # see AitherOS/config/awnix_boundary.yaml for the precedent reasoning).
 # ═══════════════════════════════════════════════════════════════════════════════
 FROM quay.io/centos-bootc/centos-bootc:stream9
@@ -260,10 +260,57 @@ RUN python3.11 -m pip install --no-cache-dir \
         "git+https://github.com/Aitherium/awvision.git@main" \
         "git+https://github.com/Aitherium/awscreen.git@main" \
         "git+https://github.com/Aitherium/awrise.git@main" \
-        "git+https://github.com/Aitherium/awwall.git@main"
+        "git+https://github.com/Aitherium/awwall.git@main" \
+        "git+https://github.com/Aitherium/awbrain.git@main"
 
-# ── first-boot setup ────────────────────────────────────────────────────────────────
-# The thing that turns "an image that builds" into "an OS someone can install": the
+# awbrain, added 2026-09-12. The registry has listed it in awnix.includes
+# since the entry was written, and THIS file never installed it -- so every
+# surface reading the registry said the base carries the history-as-wiki
+# runtime and the base did not. AIC004 is what surfaced it.
+#
+# It qualifies under this file's own rule ("a name goes in this block only
+# once its repo answers an UNAUTHENTICATED clone"): measured 2026-09-12,
+# `git ls-remote https://github.com/Aitherium/awbrain.git HEAD` succeeds,
+# the repo is public, and its pyproject name is `awbrain`. The alternative
+# -- deleting it from `includes` to make the gate green -- answers "not on
+# the box" when the true answer is "nobody added it", and leaves awbrain
+# composed with nothing at all.
+
+# ── the functional OS ───────────────────────────────────────────────────────────────
+#
+# OWNER CALL, 2026-09-12: "it should be like a functional linux os with networking,
+# web browser, agents, awsh/shell etc", and "native AitherMesh / AitherNet
+# capabilities too". Before this layer the base carried thirteen capability bricks
+# and NONE of the surface that makes an OS usable: no agent runtime, no shell, no
+# browser tool, no mesh. Every one of them existed -- in `awnix-full`, one variant
+# up. The base built, booted, and could not be used without a second image.
+#
+# Each target below was checked before it was written here, by the rule this file
+# already states for its own block (an UNAUTHENTICATED clone, or the index):
+#
+#   awdk      PyPI 200          the agent runtime -- the thing that CALLS the rest
+#   awbrowse  PyPI 200          the browser brick. The Obscura ENGINE is already in
+#                               this file; the tool that drives it was the missing half.
+#   awnode    PyPI 200          serve inference on this box instead of a vendor URL
+#   awnet     clone succeeds    AitherNet: host a mesh here, join from anywhere
+#   awtunnel  clone succeeds    expose one local port to one remote caller
+#
+# `awsh` is npm, and it is the ONLY npm channel in the family -- so this layer adds
+# the node runtime with it. A "functional OS" whose shell cannot install is the
+# shape this file already records about itself.
+RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
+    && dnf clean all
+
+RUN python3.11 -m pip install --no-cache-dir \
+        awdk awbrowse awnode
+
+RUN python3.11 -m pip install --no-cache-dir \
+        "git+https://github.com/Aitherium/awnet.git@main" \
+        "git+https://github.com/Aitherium/awtunnel.git@main"
+
+RUN npm install -g @aitherium/awsh
+
+# ── first-boot setup ────────────────────────────────────────────────────────────────# The thing that turns "an image that builds" into "an OS someone can install": the
 # questions every Linux asks after install -- hostname, which optional components, and
 # whether to link this box to a fleet. All three are declinable, because awnix's whole
 # posture is "No services. No agent. No account." and a setup that demanded an account
