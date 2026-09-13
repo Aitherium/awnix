@@ -1,0 +1,12 @@
+[Unit]
+Description=one-shot proof: authenticated bootc upgrade against private ghcr
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/etc/gargbot/garg-upgrade-test.sh
+TimeoutStartSec=1200
+
+[Install]
+WantedBy=multi-user.target

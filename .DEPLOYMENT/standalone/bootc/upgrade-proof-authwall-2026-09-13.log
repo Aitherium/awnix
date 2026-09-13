@@ -1,0 +1,76 @@
+42:# loaded and died 203/EXEC on /etc/gargbot/garg-upgrade-test.sh).
+45:install -m 755 /var/tmp/garg-rig/garg-upgrade-test.sh "$D/etc/gargbot/garg-upgrade-test.sh"
+54:    setfattr -n security.selinux -v "system_u:object_r:bin_t:s0" "$D/etc/gargbot/garg-upgrade-test.sh" 2>/dev/null || true
+== converting disk to raw (sparse)
+== injecting credential + proof unit (into the DEPLOYMENT etc/usr)
+   deployment: /mnt/proofdisk/ostree/deploy/default/deploy/21feec9ecc834a262dbf57c898cd38845d6eab2bf10a6ecbdc12eaa35339589a.0
+   bls edited: /mnt/proofboot/loader/entries/ostree-1.conf
+-rw-------. 1 root root  88 Sep 13 04:22 /mnt/proofdisk/ostree/deploy/default/deploy/21feec9ecc834a262dbf57c898cd38845d6eab2bf10a6ecbdc12eaa35339589a.0/etc/ostree/auth.json
+-rw-r--r--. 1 root root 267 Sep 13 04:22 /mnt/proofdisk/ostree/deploy/default/deploy/21feec9ecc834a262dbf57c898cd38845d6eab2bf10a6ecbdc12eaa35339589a.0/etc/systemd/system/garg-upgrade-test.service
+== booting the raw disk WITH INTERNET; the unit will run bootc upgrade
+== verdict parsing
+=== GARG-UPGRADE-TEST begin 2026-09-13T11:22:54Z
+--- credential in place:
+-rw-------. 1 root root 88 Sep 13 11:22 /etc/ostree/auth.json
+--- bootc status:
+apiVersion: org.containers.bootc/v1
+kind: BootcHost
+metadata:
+  name: host
+spec:
+  image:
+    image: ghcr.io/aitherium/garg-appliance:latest
+    transport: registry
+  bootOrder: default
+status:
+  staged: null
+  booted:
+    image:
+      image:
+        image: ghcr.io/aitherium/garg-appliance:latest
+        transport: registry
+      version: '9'
+      timestamp: 2026-07-31T22:34:55Z
+      imageDigest: sha256:bbed09581a8b3f0667c12e30cee93b7371cd75a217e0acb81f94ede6f4e9b3b0
+      architecture: amd64
+    cachedUpdate: null
+    incompatible: false
+    pinned: false
+    softRebootCapable: false
+    downloadOnly: false
+--- bootc upgrade --check:
+error: Upgrading: Preparing import: Fetching manifest: failed to invoke method OpenImage: Requesting bearer token: received unexpected HTTP status: 403 Forbidden
+check_exit=0
+--- bootc upgrade:
+error: Upgrading: Preparing import: Fetching manifest: failed to invoke method OpenImage: Requesting bearer token: received unexpected HTTP status: 403 Forbidden
+upgrade_exit=0
+--- bootc status after:
+apiVersion: org.containers.bootc/v1
+kind: BootcHost
+metadata:
+  name: host
+spec:
+  image:
+    image: ghcr.io/aitherium/garg-appliance:latest
+    transport: registry
+  bootOrder: default
+status:
+  staged: null
+  booted:
+    image:
+      image:
+        image: ghcr.io/aitherium/garg-appliance:latest
+        transport: registry
+      version: '9'
+      timestamp: 2026-07-31T22:34:55Z
+      imageDigest: sha256:bbed09581a8b3f0667c12e30cee93b7371cd75a217e0acb81f94ede6f4e9b3b0
+      architecture: amd64
+    cachedUpdate: null
+    incompatible: false
+    pinned: false
+    softRebootCapable: false
+    downloadOnly: false
+=== GARG-UPGRADE-TEST end
+VERDICT: AUTH-WALL (the pull was rejected — token/credential is the gap)
+
+[exited with code 0]
