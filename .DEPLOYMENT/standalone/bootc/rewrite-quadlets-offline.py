@@ -21,7 +21,7 @@ import sys
 
 MAP = {
     "ghcr.io/aitherium/aitheros-base:latest": "localhost/aitheros-sovereign:latest",
-    "docker.io/minio/minio:latest": "localhost/minio:latest",
+    "quay.io/minio/minio:latest": "localhost/minio:latest",
     "docker.io/library/redis:7-alpine": "localhost/redis:7-alpine",
 }
 
