@@ -25,16 +25,22 @@
     "awvision",
     "awscreen",
     "awrise",
-    "awwall"
+    "awwall",
+    "awdk",
+    "awsh",
+    "awbrowse",
+    "awnet",
+    "awnode",
+    "awtunnel"
   ],
   "metrics": {
     "files": {
-      "value": 11,
-      "as_of": "2026-09-12T08:36:19-07:00"
+      "value": 14,
+      "as_of": "2026-09-13T18:22:41-07:00"
     },
     "tests": {
       "value": 0,
-      "as_of": "2026-09-12T08:36:19-07:00"
+      "as_of": "2026-09-13T18:22:41-07:00"
     }
   }
 }
