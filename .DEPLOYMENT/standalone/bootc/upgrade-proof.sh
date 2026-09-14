@@ -75,17 +75,23 @@ timeout 1500 qemu-system-x86_64 -name garg-upgrade-proof \
   -netdev user,id=net0 -device virtio-net-pci,netdev=net0 \
   -serial "file:$SER" -display none -no-reboot || true
 
-echo "== verdict parsing"
-if grep -q "GARG-UPGRADE-TEST end" "$SER" 2>/dev/null; then
-    sed -n '/GARG-UPGRADE-TEST begin/,/GARG-UPGRADE-TEST end/p' "$SER" | tr -d '\r'
-    if sed -n '/GARG-UPGRADE-TEST begin/,/GARG-UPGRADE-TEST end/p' "$SER" | grep -qiE "denied|unauthorized|401|403|authentication required|credential"; then
-        echo "VERDICT: AUTH-WALL (the pull was rejected — token/credential is the gap)"
-    elif sed -n '/GARG-UPGRADE-TEST begin/,/GARG-UPGRADE-TEST end/p' "$SER" | grep -qiE "Staged|up to date|Up to date|Queued for next boot"; then
-        echo "VERDICT: AUTHED-PULL-OK (bootc reached the registry and got/posted the image)"
+echo "== verdict parsing (from the guest's own /var log, serial as fallback)"
+LOG=/var/tmp/garg-rig/upgrade-test.log
+rm -f "$LOG"
+LOOP2=$(losetup -Pf --show "$RAW") && mkdir -p /mnt/proofdisk && mount -o ro,norecovery "${LOOP2}p3" /mnt/proofdisk 2>/dev/null   && cp /mnt/proofdisk/ostree/deploy/default/var/log/garg-upgrade-test.log "$LOG" 2>/dev/null; umount /mnt/proofdisk 2>/dev/null; losetup -d "$LOOP2" 2>/dev/null
+[ -s "$LOG" ] || LOG="$SER"
+if grep -q "GARG-UPGRADE-TEST end" "$LOG" 2>/dev/null; then
+    sed -n '/GARG-UPGRADE-TEST begin/,/GARG-UPGRADE-TEST end/p' "$LOG" | tr -d ''
+    BLOCK=$(sed -n '/GARG-UPGRADE-TEST begin/,/GARG-UPGRADE-TEST end/p' "$LOG")
+    if echo "$BLOCK" | grep -qiE "Staged|Queued for next boot|upgrade_exit=0.*" && echo "$BLOCK" | grep -qiE "staged:|Queued|Staged"; then :; fi
+    if echo "$BLOCK" | grep -qiE "denied|unauthorized|401|403|authentication required"; then
+        echo "VERDICT: AUTH-WALL (the pull was rejected - see the error line above)"
+    elif echo "$BLOCK" | grep -qiE "Queued for next boot|staged: *$|Staged|No update available|up to date|Up to date"; then
+        echo "VERDICT: AUTHED-PULL-OK (bootc reached the registry through the credential)"
     else
-        echo "VERDICT: UNCLEAR — read the block above"
+        echo "VERDICT: UNCLEAR - read the block above"
     fi
 else
-    echo "VERDICT: NO-RUN (unit never completed) — serial tail:"
-    tail -30 "$SER" 2>/dev/null
+    echo "VERDICT: NO-RUN (unit never completed) - tail:"
+    tail -30 "$LOG" 2>/dev/null
 fi
