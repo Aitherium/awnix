@@ -40,8 +40,14 @@ RUN useradd -m -s /bin/bash -c "awnix Bonsai inference (unprivileged)" bonsai
 # with no CUDA runtime. Pinned to the SAME build as that layer on purpose -- two
 # public images serving different llama.cpp builds is a support surface nobody
 # asked for.
-ARG PRISM_RELEASE=prism-b9596-9fcaed7
-ARG PRISM_ASSET=llama-prism-b9596-9fcaed7-bin-ubuntu-vulkan-x64.tar.gz
+# prism-b10685 is the newest fork release that ships binaries and the first the
+# awnix layers pin that can serve Bonsai 2 27B (Ternary-Bonsai-2-27B-{PTQ1_0,PQ2_0}
+# + its Walsh-Hadamard rotation; stock llama.cpp loads those files and emits
+# gibberish). prism-b10687's release job failed (cudart zips only) -- do not pin it
+# until its llama-* assets exist. Same pin as install-bonsai.{sh,ps1} and assemble.sh.
+# Vulkan lane => PTQ1_0 is the Bonsai 2 format for this image (awnix-models.yaml).
+ARG PRISM_RELEASE=prism-b10685-7dffb15
+ARG PRISM_ASSET=llama-prism-b10685-7dffb15-bin-ubuntu-vulkan-x64.tar.gz
 RUN mkdir -p /opt/bonsai/bin /opt/bonsai/models /opt/bonsai/lib \
     && curl -fsSL -o /tmp/llama.tar.gz \
         "https://github.com/PrismML-Eng/llama.cpp/releases/download/${PRISM_RELEASE}/${PRISM_ASSET}" \
