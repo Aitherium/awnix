@@ -103,11 +103,21 @@ def _shell_argv() -> list[str]:
 def _wsl(script: str, timeout: int = 120) -> tuple[int, str]:
     """BYTES not text=True (Windows' text pipe turns \\n into \\r\\n, which lands
     inside the command and breaks bash). Same plumbing as the build tool."""
-    r = subprocess.run(
-        _shell_argv(),
-        input=script.replace("\r\n", "\n").encode("utf-8"),
-        capture_output=True, timeout=timeout,
-    )
+    try:
+        r = subprocess.run(
+            _shell_argv(),
+            input=script.replace("\r\n", "\n").encode("utf-8"),
+            capture_output=True, timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        # A busy or wedging distro does not answer `df` in 30s. Letting this
+        # escape made the tool CRASH, and rebuild-staged.sh printed its own
+        # refusal -- "not enough free disk to build" -- for a measurement that
+        # never happened. Measured 2026-09-20 on aitheros-shop-backend with
+        # 294 GB free on the host: the next reader is sent to free disk that is
+        # not full. A probe that cannot run says so (free_gb -> None -> exit 2);
+        # it does not name a cause.
+        return 124, f"timeout: no answer in {timeout}s"
     out = (r.stdout.decode("utf-8", errors="replace")
            + r.stderr.decode("utf-8", errors="replace"))
     return r.returncode, out
@@ -280,6 +290,24 @@ def _self_test() -> int:
     with mock.patch.object(sys.modules[__name__], "free_gb", return_value=None):
         if preflight(10.0, clear=True, prune_volumes=False) != 2:
             print("SELF-TEST FAIL: unmeasurable disk did not exit DEAD")
+            failures += 1
+
+    # 4b. A probe that TIMES OUT is unmeasurable, not a crash and not a cause.
+    #     Before 2026-09-20 subprocess.TimeoutExpired escaped _wsl, the tool died
+    #     with a traceback, and its caller printed "not enough free disk to build"
+    #     with 294 GB free on the host.
+    def _boom(*_a, **_k):
+        raise subprocess.TimeoutExpired(cmd="df", timeout=30)
+
+    with mock.patch.object(subprocess, "run", _boom):
+        if _wsl("df -BG /", timeout=30)[0] != 124:
+            print("SELF-TEST FAIL: a timing-out probe did not return the timeout code")
+            failures += 1
+        if free_gb() is not None:
+            print("SELF-TEST FAIL: a timing-out probe produced a free-space NUMBER")
+            failures += 1
+        if preflight(10.0, clear=False, prune_volumes=False) != 2:
+            print("SELF-TEST FAIL: a timing-out probe did not exit DEAD")
             failures += 1
 
     # 5. Engine storage init: healthy store passes (0).
