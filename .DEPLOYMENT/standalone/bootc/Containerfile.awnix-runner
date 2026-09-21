@@ -50,10 +50,22 @@ RUN mkdir -p /opt/actions-runner && cd /opt/actions-runner \
 # here. Same install shape as provision_runner_toolchain.sh (newest patch of
 # the series, actions/python-versions linux-24.04 tarball, setup.sh with
 # RUNNER_TOOL_CACHE set).
+#
+# The index is versions-manifest.json on raw.githubusercontent.com — the file
+# setup-python itself reads — NOT api.github.com. The API allows 60 anonymous
+# requests an hour PER IP, and a busy shared CI runner spends them: measured
+# 2026-09-21 (run 35567008554) this step got `curl: (22) ... 403` on the AWS
+# runner, the runner layer failed, and runner-ai and the garg appliance — which
+# build FROM it — then died on "localhost/awnix-runner:latest: connection
+# refused", an error that names a registry and hides the real cause two layers
+# up. The manifest carries the same download URLs and has no such limit; it is
+# fetched ONCE rather than once per series.
 RUN mkdir -p /opt/actions-runner/_work/_tool && \
+    manifest="$(mktemp)" && \
+    curl -fsSL --retry 3 --retry-delay 5 -o "$manifest" \
+      "https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json" && \
     for series in 3.10 3.11 3.12; do \
-      asset_url="$(curl -fsSL "https://api.github.com/repos/actions/python-versions/releases?per_page=100" \
-        | grep -oE "https://[^\"]*python-${series}\.[0-9]+-linux-24\.04-x64\.tar\.gz" \
+      asset_url="$(grep -oE "https://[^\"]*python-${series}\.[0-9]+-linux-24\.04-x64\.tar\.gz" "$manifest" \
         | sort -V | tail -1)"; \
       [ -n "$asset_url" ] || { echo "awnix-runner: no linux python ${series} build published" >&2; exit 1; }; \
       tmp="$(mktemp -d)"; \
@@ -61,6 +73,7 @@ RUN mkdir -p /opt/actions-runner/_work/_tool && \
       ( cd "$tmp" && RUNNER_TOOL_CACHE=/opt/actions-runner/_work/_tool bash ./setup.sh >/dev/null ); \
       rm -rf "$tmp"; \
     done && \
+    rm -f "$manifest" && \
     chown -R runner:runner /opt/actions-runner/_work/_tool
 
 # First-boot registration script. Root (cloud-init) invokes this and drops
