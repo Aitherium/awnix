@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Rebuild → export → import → VERIFY an awnix fleet-host distro, idempotently.
 
