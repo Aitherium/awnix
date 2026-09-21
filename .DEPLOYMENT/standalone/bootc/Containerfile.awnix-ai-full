@@ -25,6 +25,16 @@
 # deliberately SCOPED to /opt/bonsai/lib and one exec, and never replaces the
 # base image's own libstdc++/libc/loader.
 FROM quay.io/centos-bootc/centos-bootc:stream10 AS newer-libstdcxx
+# Collect the five runtime files through their STABLE SONAME symlinks. This stage is a
+# FLOATING tag, and two of the files used to be copied by their versioned names
+# (libgcc_s-14-20260629.so.1, libstdc++.so.6.0.33). Upstream rebuilt gcc, the file
+# became libgcc_s-14-20260724.so.1, and every image built FROM this one -- including
+# the garg appliance -- stopped building (run 35603911911, 2026-09-21). `cp -L`
+# dereferences libgcc_s.so.1 and libstdc++.so.6, which do not change name.
+RUN mkdir -p /out && cp -L /usr/lib64/libstdc++.so.6 /usr/lib64/libgcc_s.so.1 \
+        /usr/lib64/libc.so.6 /usr/lib64/libm.so.6 /lib64/ld-linux-x86-64.so.2 /out/ \
+    && for f in libstdc++.so.6 libgcc_s.so.1 libc.so.6 libm.so.6 ld-linux-x86-64.so.2; do \
+         test -s "/out/$f" || { echo "newer-libstdcxx: $f missing upstream" >&2; exit 1; }; done
 
 FROM localhost/awnix-full:latest
 
@@ -57,11 +67,11 @@ RUN mkdir -p /opt/bonsai/bin /opt/bonsai/models /opt/bonsai/lib \
     && chown -R bonsai:bonsai /opt/bonsai
 
 # The scoped GLIBCXX chain. Identical to Containerfile.awnix-runner-ai.
-COPY --from=newer-libstdcxx /usr/lib64/libstdc++.so.6.0.33 /opt/bonsai/lib/libstdc++.so.6
-COPY --from=newer-libstdcxx /lib64/ld-linux-x86-64.so.2 /opt/bonsai/lib/ld-linux-x86-64.so.2
-COPY --from=newer-libstdcxx /usr/lib64/libc.so.6 /opt/bonsai/lib/libc.so.6
-COPY --from=newer-libstdcxx /usr/lib64/libm.so.6 /opt/bonsai/lib/libm.so.6
-COPY --from=newer-libstdcxx /usr/lib64/libgcc_s-14-20260629.so.1 /opt/bonsai/lib/libgcc_s.so.1
+COPY --from=newer-libstdcxx /out/libstdc++.so.6 /opt/bonsai/lib/libstdc++.so.6
+COPY --from=newer-libstdcxx /out/ld-linux-x86-64.so.2 /opt/bonsai/lib/ld-linux-x86-64.so.2
+COPY --from=newer-libstdcxx /out/libc.so.6 /opt/bonsai/lib/libc.so.6
+COPY --from=newer-libstdcxx /out/libm.so.6 /opt/bonsai/lib/libm.so.6
+COPY --from=newer-libstdcxx /out/libgcc_s.so.1 /opt/bonsai/lib/libgcc_s.so.1
 RUN chmod 755 /opt/bonsai/lib/*.so* \
     && chown -R bonsai:bonsai /opt/bonsai/lib
 
