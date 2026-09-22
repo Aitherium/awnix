@@ -41,6 +41,11 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awasp
+  tagline: Stream a multi-gigabyte model onto a device that cannot hold it all at once.
+  status: planned
+  available: false
+  reason: 'status: planned'
 - id: awavatar
   tagline: One character spec in, a rigged, animated, multi-style avatar pack out.
   status: public
@@ -53,17 +58,17 @@ packages:
   reason: ''
 - id: awbeads
   tagline: A spatial canvas for a page — arrange things, connect them, and keep the arrangement.
-  status: unpublished
+  status: no-pages
   available: true
   reason: ''
 - id: awbonsai
   tagline: Run a real model in the visitor's own browser — no server round trip, no upload.
-  status: planned
-  available: false
-  reason: 'status: planned'
+  status: no-pages
+  available: true
+  reason: ''
 - id: awbrain
   tagline: Your history as a wiki of linked markdown — claims pinned to the evidence.
-  status: unpublished
+  status: no-pages
   available: true
   reason: ''
 - id: awbrowse
@@ -78,7 +83,7 @@ packages:
   reason: 'status: planned'
 - id: awclassify
   tagline: Classify any document -- what it is, who may read it, who it is for, what it is about.
-  status: unpublished
+  status: no-pages
   available: true
   reason: ''
 - id: awdaemons
@@ -88,6 +93,18 @@ packages:
   reason: ''
 - id: awdata
   tagline: Open labelled corpora you can train and measure against, with the code that built them.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awdecide
+  tagline: One typed-decision contract -- choice / score / bool with a probability -- over a ladder of
+    backends you already run (rules, tiny local models, an LLM's logprobs), fail-closed, with a Brier
+    ledger that resolves every decision against its outcome.
+  status: planned
+  available: false
+  reason: 'status: planned'
+- id: awdeck
+  tagline: An outline becomes a narrated video -- and the file says which voice really spoke it.
   status: planned
   available: false
   reason: 'status: planned'
@@ -119,7 +136,7 @@ packages:
   reason: ''
 - id: awevolve
   tagline: Point an agent at a file and a command that scores it, and let it improve.
-  status: unpublished
+  status: no-pages
   available: true
   reason: ''
 - id: awfind
@@ -169,7 +186,7 @@ packages:
   reason: 'status: planned'
 - id: awkit
   tagline: Render an agent panel from a tool result — one component, any React app.
-  status: unpublished
+  status: no-pages
   available: true
   reason: ''
 - id: awkno
@@ -182,6 +199,11 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awlab
+  tagline: Run one experiment, keep the score, and let a loop decide against it.
+  status: planned
+  available: false
+  reason: 'status: planned'
 - id: awlog
   tagline: Ask your logs what is actually failing, instead of grepping them.
   status: planned
@@ -195,6 +217,12 @@ packages:
 - id: awmail
   tagline: Give an agent an email address — send, and actually receive.
   status: public
+  available: true
+  reason: ''
+- id: awmine
+  tagline: Mine what your agents did -- outcomes, lessons and procedures out of the transcripts they left
+    behind.
+  status: no-pages
   available: true
   reason: ''
 - id: awmod
@@ -229,7 +257,7 @@ packages:
   reason: ''
 - id: awpack
   tagline: First-party agent packs — the ones we build, versioned and installable on their own.
-  status: no-pages
+  status: public
   available: true
   reason: ''
 - id: awpool
@@ -285,6 +313,11 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awreport
+  tagline: File a bug report that has already scrubbed your secrets and collapsed the duplicate.
+  status: no-pages
+  available: true
+  reason: ''
 - id: awresearch
   tagline: Ask a research question, get a cited report you can check.
   status: public
@@ -304,9 +337,9 @@ packages:
   tagline: 'OpenRouter for your own fleet: pick a model backend by cost/latency/ capability, fail over,
     fit the context window, stream. Standalone, OpenAI-compatible, no Aither-specifics required to be
     valuable.'
-  status: planned
-  available: false
-  reason: 'status: planned'
+  status: no-pages
+  available: true
+  reason: ''
 - id: awrtifact
   tagline: Deliberately chunk artifacts into GitHub release assets — the productized aitherkvcache mirror
     lane.
@@ -371,14 +404,14 @@ packages:
 - id: awstorage
   tagline: Every drive on every node, indexed, classified and diffed -- so you can see what you own before
     you delete it.
-  status: no-pages
+  status: public
   available: true
   reason: ''
 - id: awswarm
   tagline: Run one model too big for any single GPU across a pool of small ones.
-  status: planned
-  available: false
-  reason: 'status: planned'
+  status: no-pages
+  available: true
+  reason: ''
 - id: awsync
   tagline: Keep one client in step with a platform — and never confuse "cannot tell" with "fine".
   status: merged
@@ -452,6 +485,29 @@ profiles:
   - awskills
   - awkno
   - awsettings
+  status: partial
+  available: true
+  reason: ''
+- id: agentic-orchestrator
+  name: An orchestrator for agent workloads -- stateful, governed, no cluster
+  what: 'The substrate a cluster orchestrator gives agent workloads, as bricks a stranger adopts one at
+    a time on one machine: awrun is the unit of work (priority, suspend, resume, declarative apply, limits
+    and egress that FAIL CLOSED); awflow is why a resumed run continues instead of restarting (the journal
+    is the checkpoint, finished model calls replay); awrise is the clock; awrouter and awnode decide wh'
+  packages:
+  - awrun
+  - awflow
+  - awrise
+  - awrouter
+  - awnode
+  - awdk
+  - awrepl
+  - awnix
+  - awiam
+  - awbac
+  - awdit
+  - awseal
+  - awshare
   status: partial
   available: true
   reason: ''
@@ -556,6 +612,25 @@ profiles:
   status: partial
   available: true
   reason: ''
+- id: mine-what-you-ran
+  name: Mine what you ran -- transcripts in, packs and outcomes out
+  what: 'The owner''s ask, 2026-09-20: mine Claude Code and other agent terminal sessions automatically
+    and turn what they contain into agent packs, skill packs, tool packs, RL outcomes, world-model and
+    awpredict training, AitherCNS state and ARC-solver evidence. awmine reads the transcripts (it is the
+    miner AitherHarvest never had for this source -- measured that day: 954 transcripts changed, zero
+    mined); '
+  packages:
+  - awmine
+  - awtoll
+  - awm
+  - awdata
+  - awdecide
+  - awskills
+  - awdk
+  - awrise
+  status: partial
+  available: true
+  reason: ''
 - id: one-surface
   name: One surface — agent panels, not hand-built UIs
   what: 'OWNER DECISION 2026-08-19, recorded because it was made in a transcript and would otherwise be
@@ -569,9 +644,48 @@ profiles:
   - awnode
   - awiam
   - awbac
-  status: planned
-  available: false
-  reason: 'status: planned'
+  status: partial
+  available: true
+  reason: ''
+- id: open-scheduler
+  name: The scheduler, open -- route, queue, clock
+  what: 'MicroScheduler for someone else''s agents, as three bricks a stranger adopts alone: awrouter
+    decides which backend serves model X right now (the STATELESS routing plane extracted from AitherMicroScheduler.py
+    -- 19,535 lines / 107 imports, never lifted), awrun is the durable priority queue, awrise is the clock
+    that wakes work and records what happened. awnode is the local gateway an app points at in'
+  packages:
+  - awrouter
+  - awrun
+  - awrise
+  - awnode
+  - awdk
+  status: partial
+  available: true
+  reason: ''
+- id: personal-agent-home
+  name: A personal agent that lives with you -- desk, browser, site, devices, tunnels
+  what: 'Owner directive 2026-09-21, the day Meta announced Muse: the same journey has to compose HERE
+    from bricks a stranger can install -- a desk body (awdesk) that hosts the aitherium.com Living Desktop
+    over the real desktop and embodies an agent as an avatar; the browser body (AitherConnect) that puts
+    the same overlay over any page; a companion (awsprite) that grows a knowledge base from what its owner'
+  packages:
+  - awdesk
+  - AitherConnect
+  - awsprite
+  - awdk
+  - awm
+  - awkno
+  - awknowledge
+  - awnboard
+  - awiam
+  - awtunnel
+  - awnet
+  - awnode
+  - awnix
+  - awsh
+  status: partial
+  available: true
+  reason: ''
 - id: personal-mesh-pool
   name: A pool across your own devices
   what: 'Owner directive 2026-08-24: someone with a laptop, a desktop and a phone should be able to join
@@ -613,6 +727,22 @@ profiles:
   status: partial
   available: true
   reason: ''
+- id: set-and-forget
+  name: Set and forget -- the clock, the queue, and the record
+  what: 'What a scheduled agent needs so that "it ran" is a fact and not a hope: a host clock that wakes
+    it (awrise), a durable queue it hands work to (awrun), a line a human can read when a wake goes wrong
+    (awrelay), a card when a wake needs a decision (awask), and the agent that gets woken (awdk). Named
+    2026-09-18 (plan .AITHEROS/39) because every member exists and every one was proposed as the place
+    the'
+  packages:
+  - awrise
+  - awrun
+  - awrelay
+  - awask
+  - awdk
+  status: partial
+  available: true
+  reason: ''
 - id: shared-worktree
   name: Many agents, one repo
   what: Several agents editing one codebase without sweeping each other's work or re-deriving what the
@@ -623,6 +753,21 @@ profiles:
   - awrelay
   - awm
   status: ready
+  available: true
+  reason: ''
+- id: the-daily-driver
+  name: The daily driver
+  what: 'Using every agent, skill and fleet tool from a terminal without Claude Code. awsh is the door,
+    the awdk harness daemon (:8362) is what it opens onto, awnode is the fleet behind it, awdesk''s Console
+    is the same door with a face, and the skills are read where they already live. Done when: `adk harness
+    new --harness awdk --agent saga --skill gauntlet` answers as Saga following the protocol (LIVE 2026'
+  packages:
+  - awsh
+  - awdk
+  - awnode
+  - awdesk
+  - awskills
+  status: partial
   available: true
   reason: ''
 - id: the-front-door
@@ -666,6 +811,39 @@ profiles:
   - awbrowse
   - awresearch
   - awm
+  status: partial
+  available: true
+  reason: ''
+- id: train-what-you-run
+  name: Train what you run -- harvest, train, score, keep-or-revert, on a wake
+  what: 'The closed learning loop (pillar 6) scheduled by the thing it improves. Every utterance->intent->tool->outcome
+    and every ledger row (prediction vs what happened) is harvested (AitherHarvest /import/batch -- 5,151
+    lines / 32 imports, so a SINK on awrise, never a brick); the trainer fine-tunes the intent router
+    and the decide door on it (AitherTrainer, 4,902 / 56, a consumer whose training routines '
+  packages:
+  - awrise
+  - awdata
+  - awlab
+  - awevolve
+  - awdecide
+  - awdk
+  status: partial
+  available: true
+  reason: ''
+- id: wake-learning-loop
+  name: A scheduler that learns -- pillars 2, 3 and 6 for wakes
+  what: 'Every wake becomes evidence: on start, awm recall hands the job its own history (what failed
+    last, what fixed it); before an expensive wake fires, awpredict reads the ledger as an environment
+    and says whether it will time out again; on finish, the row is remembered, and awevolve may tune interval/timeout
+    under AVO006 (the scorer is never the mutable file). Registered 2026-09-19 at planned: fleet-g'
+  packages:
+  - awrise
+  - awm
+  - awpredict
+  - awdecide
+  - awembed
+  - awevolve
+  - awdk
   status: partial
   available: true
   reason: ''
@@ -949,8 +1127,9 @@ services:
     sandbox uses — not yet exposed as a chat-agent tool inside the dgg-devops pack itself (a different
     tool-registration plane; see awdk/adk/builtin_tools.py's TOOL_CATEGORIES vs. .toolpack.yaml's mcp_tools).
   group: products
-  entitlement: full
-  reason: ''
+  entitlement: platform-only
+  reason: 'Platform-only: a deployed tenant app belonging to a specific customer (dgg.aitherium.com),
+    the same class as JGames. Not a pack a node installs.'
 - id: Daydream
   description: Creative background ideation — generates ideas during idle time
   group: cognition
@@ -1438,6 +1617,13 @@ services:
     face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons. Keeping the shipped
     surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts 23 apps that open
     broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
+- id: VoiceCloner
+  description: Self-hosted zero-shot voice cloning (Chatterbox, MIT code + weights). A cloned voice is
+    a verified artefact with a required consent statement; non-commercial engines are refused. CPU torch
+    by design -- the 5090 belongs to the LLM lanes.
+  group: perception
+  entitlement: addon:perception
+  reason: group 'perception' maps to add-on 'perception' via source_groups
 - id: Watch
   description: The all-seeing watchdog — monitors health of every service, auto-restarts, emits pain to
     Pulse, provides system heartbeat for agent context injection
@@ -1498,7 +1684,7 @@ groups:
 - minimal
 - social
 - storage
-unroled_services: 70
+unroled_services: 67
 unroled_service_names:
 - AitherChronos
 - AitherCivics
@@ -1510,7 +1696,6 @@ unroled_service_names:
 - AitherOne
 - AitherPDS
 - AitherSocial
-- AitherStudioPair
 - AitherSupport
 - Bluetooth
 - Cert
@@ -1520,7 +1705,6 @@ unroled_service_names:
 - CommunicationCore
 - CompetitiveIntel
 - Conductor
-- DirectorySurface
 - Discord
 - DiscordRelayBridge
 - ElysiumBackend
@@ -1551,7 +1735,6 @@ unroled_service_names:
 - Registry
 - Relay
 - Repowise
-- Retrieval
 - SMS
 - SMTP
 - STTP
