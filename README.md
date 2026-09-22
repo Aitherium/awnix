@@ -2,7 +2,7 @@
 
 <!-- aither-header:start GENERATED from the ecosystem registry. Edits here are overwritten; change the registry instead. -->
 
-**[Docs](https://aitherium.github.io/awnix/)**  ·  [Source](https://github.com/Aitherium/awnix)  ·  [The Aither World](https://aitherium.github.io/)
+**[Docs](https://aitherium.github.io/awnix/)**  ·  [Source](https://github.com/Aitherium/awnix)  ·  `podman build -t awnix:latest -f Containerfile .`  ·  [The Aither World](https://aitherium.github.io/)
 
 > **The Aither World** is an operating system for agents — a Linux you can hand to one, the runtimes it works in, and the tools it works with. **awnix** is one of its 65 bricks — each installs on its own, runs offline, and needs no account.
 >
