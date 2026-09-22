@@ -84,10 +84,19 @@ RUN python3.11 -m pip install --no-cache-dir \
 # tree requires >= 20 (measured 2026-09-22, run 35736823902: EBADENGINE on
 # every inquirer package, then the install died and ai-full, which builds on
 # this layer, could not even start). Pick the stream explicitly.
+#
+# `rm -f` the two bins before the global install: the very next run
+# (35743978959, same commit) got node 20 clean and then died
+# `npm error EEXIST: file already exists /usr/local/bin/aither` on a
+# guaranteed-fresh layer -- root cause not pinned down (a buildah cache/retry
+# artifact is the leading guess), but a bare `npm install -g` is not supposed
+# to need a pre-existing target gone, so making it idempotent is correct
+# regardless of why the file was there.
 RUN dnf module reset -y nodejs \
     && dnf module enable -y nodejs:20 \
     && dnf install -y nodejs npm \
     && node --version | grep -qE '^v(2[0-9]|[3-9][0-9])\.' \
+    && rm -f /usr/local/bin/aither /usr/local/bin/aither-shell \
     && npm install -g @aitherium/shell-cli \
     && dnf clean all \
     && rm -rf /var/cache/dnf
