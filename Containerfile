@@ -303,7 +303,11 @@ RUN cd /tmp && \
     rm -f obscura.tar.gz obscura obscura-worker && \
     obscura --version \
       || { echo "FATAL: obscura installed but does not execute"; exit 1; } && \
-    echo "obscura: ${OBSCURA_VERSION} installed, sha256-verified, executes"
+    mkdir -p /usr/share/licenses/obscura && \
+    curl -fsSL -o /usr/share/licenses/obscura/LICENSE \
+      "https://raw.githubusercontent.com/h4ckf0r0day/obscura/v${OBSCURA_VERSION}/LICENSE" \
+      || { echo "FATAL: obscura LICENSE not installed -- we redistribute the binary, so shipping the Apache-2.0 text is an obligation, not a nicety"; exit 1; } && \
+    echo "obscura: ${OBSCURA_VERSION} installed, sha256-verified, executes, licence shipped"
 
 # ── Rootless podman ────────────────────────────────────────────────────────
 COPY storage.conf /etc/containers/storage.conf
