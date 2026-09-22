@@ -6,7 +6,7 @@
 # base (Ollama, Cockpit, a 272-port firewall, an `aither` service account) —
 # awnix is the opposite by design: "No services. No agent. No account."
 # (AitherOS/config/ecosystem.yaml, awnix entry). Capabilities go in the base
-# (the twelve aw* tools below); the AGENT layers on top separately (three
+# (the 18 aw* tools below); the AGENT layers on top separately (three
 # lines in a Dockerfile — see the agent-runner layer this base is built for).
 # Putting the agent in the base instead would mean swapping agents loses
 # every guarantee the base provides.
@@ -88,7 +88,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     && dnf clean all
 
 # CentOS Stream 9's DEFAULT `python3` is 3.9.25 (kept old on purpose — it's
-# the system python dnf/yum depend on, never touch it). All twelve aw* tools
+# the system python dnf/yum depend on, never touch it). All 18 aw* tools
 # declare `requires-python >= 3.10` (measured live 2026-08-20: pip on 3.9
 # reports "Could not find a version that satisfies the requirement awgit
 # (from versions: none)" even though the PyPI index answers fine — every
@@ -372,5 +372,5 @@ RUN . /usr/lib/os-release \
     && grep -q '^NAME="awnix"$' /usr/lib/os-release
 
 LABEL com.aitheros.layer="awnix-base" \
-      com.aitheros.description="awnix — immutable Linux + the twelve aw* tools, no services/agent/account" \
+      com.aitheros.description="awnix — immutable Linux + the 18 aw* tools, no services/agent/account" \
       org.opencontainers.image.licenses="Apache-2.0"
