@@ -80,7 +80,14 @@ RUN python3.11 -m pip install --no-cache-dir \
 # -tool (score_awnix.py), and it is taken knowingly: -full is the
 # batteries-included variant and the interactive shell is the most user-facing
 # thing in the family.
-RUN dnf install -y nodejs npm \
+# The stream9 default module is nodejs:16; @aitherium/shell-cli's dependency
+# tree requires >= 20 (measured 2026-09-22, run 35736823902: EBADENGINE on
+# every inquirer package, then the install died and ai-full, which builds on
+# this layer, could not even start). Pick the stream explicitly.
+RUN dnf module reset -y nodejs \
+    && dnf module enable -y nodejs:20 \
+    && dnf install -y nodejs npm \
+    && node --version | grep -qE '^v(2[0-9]|[3-9][0-9])\.' \
     && npm install -g @aitherium/shell-cli \
     && dnf clean all \
     && rm -rf /var/cache/dnf
