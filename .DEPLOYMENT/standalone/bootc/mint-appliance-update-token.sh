@@ -29,16 +29,21 @@ pl=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now-60)) $((now+540)) "$APP_ID" 
 sig=$(printf '%s.%s' "$hdr" "$pl" | openssl dgst -sha256 -sign "$KEY" -binary | b64url)
 JWT="$hdr.$pl.$sig"
 
+# The JWT is fed to curl through a stdin config (-K -), never -H: an argv
+# value is world-readable in /proc/<pid>/cmdline for the life of the call
+# (ARGV001, D-1953).
+gh_curl() { printf 'header = "Authorization: Bearer %s"\n' "$JWT" | curl -s -K - -H "Accept: application/vnd.github+json" "$@"; }
+
 echo "== app identity (JWT -> /app):"
-curl -s -o /tmp/app.json -w "   HTTP %{http_code}\n" -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github+json" https://api.github.com/app
+gh_curl -o /tmp/app.json -w "   HTTP %{http_code}\n" https://api.github.com/app
 python3 -c "import json; d=json.load(open('/tmp/app.json')); print('   slug=%s id=%s perms.packages=%s' % (d.get('slug'), d.get('id'), (d.get('permissions') or {}).get('packages','none')))" 2>/dev/null || head -c 200 /tmp/app.json
 
 echo "== installation $INST permissions:"
-curl -s -o /tmp/inst.json -w "   HTTP %{http_code}\n" -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github+json" "https://api.github.com/app/installations/$INST"
+gh_curl -o /tmp/inst.json -w "   HTTP %{http_code}\n" "https://api.github.com/app/installations/$INST"
 python3 -c "import json; d=json.load(open('/tmp/inst.json')); print('   account=%s packages=%s' % ((d.get('account') or {}).get('login'), (d.get('permissions') or {}).get('packages','none')))" 2>/dev/null || head -c 200 /tmp/inst.json
 
 echo "== mint installation token (request packages:read):"
-code=$(curl -s -o /tmp/tok.json -w "%{http_code}" -X POST -H "Authorization: Bearer $JWT" -H "Accept: application/vnd.github+json" \
+code=$(gh_curl -o /tmp/tok.json -w "%{http_code}" -X POST \
   -d '{"permissions":{"packages":"read"}}' "https://api.github.com/app/installations/$INST/access_tokens")
 echo "   HTTP $code"
 if [ "$code" != "201" ]; then

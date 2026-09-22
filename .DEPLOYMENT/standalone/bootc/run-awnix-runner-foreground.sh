@@ -99,9 +99,16 @@ run_as() {  # run_as <command-string>, as root or as runner per AS_ROOT
 }
 
 if [ ! -f "$DEST/.runner" ]; then
-  run_as "./config.sh \
+  # The token never enters argv -- neither config.sh's (it reads
+  # ACTIONS_RUNNER_INPUT_TOKEN from the environment) nor run_as's command
+  # string: the inner shell reads it from a 0600 file removed right after
+  # (ARGV001/ARGV002, D-1953).
+  TOKEN_FILE="$(mktemp /tmp/awnix-runner-token.XXXXXX)"
+  chmod 600 "$TOKEN_FILE"; printf '%s' "$TOKEN" > "$TOKEN_FILE"
+  chown runner:runner "$TOKEN_FILE" 2>/dev/null || true
+  trap 'rm -f "$TOKEN_FILE"' EXIT
+  run_as "ACTIONS_RUNNER_INPUT_TOKEN=\"\$(cat '$TOKEN_FILE')\" ./config.sh \
     --url '$GH_RUNNER_URL' \
-    --token '$TOKEN' \
     --name '$NAME' \
     --labels '$LABELS' \
     --work _work \

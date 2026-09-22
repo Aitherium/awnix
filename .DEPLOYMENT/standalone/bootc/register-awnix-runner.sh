@@ -45,9 +45,15 @@ fi
 
 chown -R runner:runner "$DEST"
 
-su - runner -c "cd '$DEST' && ./config.sh \
+# The token never enters argv -- neither config.sh's (it reads
+# ACTIONS_RUNNER_INPUT_TOKEN from the environment) nor su's -c string: the
+# inner shell reads it from a 0600 file that is removed right after
+# (ARGV001/ARGV002, D-1953).
+TOKEN_FILE="$(mktemp /run/awnix-runner-token.XXXXXX)"
+chmod 600 "$TOKEN_FILE"; printf '%s' "$TOKEN" > "$TOKEN_FILE"; chown runner:runner "$TOKEN_FILE"
+trap 'rm -f "$TOKEN_FILE"' EXIT
+su - runner -c "cd '$DEST' && ACTIONS_RUNNER_INPUT_TOKEN=\"\$(cat '$TOKEN_FILE')\" ./config.sh \
   --url '$GH_RUNNER_URL' \
-  --token '$TOKEN' \
   --name '$NAME' \
   --labels '$LABELS' \
   --work _work \
