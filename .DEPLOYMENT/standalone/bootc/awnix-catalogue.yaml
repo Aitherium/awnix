@@ -530,10 +530,11 @@ profiles:
   reason: 'status: planned'
 - id: browser-companion-graduation
   name: Grow a companion in the browser, then take it home
-  what: 'Owner directive 2026-08-24, reinforcing the existing `.PRODUCTS/.SPRITE/` Phase 2/3 roadmap (`AitherOS/dev/prompts/aithersprite-knowledge-companion-program.md`):
-    AitherSprite today is playable but shallow -- flat per-sprite knowledge rows, titles-only in the talk
-    prompt, server-side inference only, and "download it" is a paid pack with no guided path to actually
-    WIRE it to real local tools and dat'
+  what: 'Owner directive 2026-08-24, reinforcing the existing AitherSprite Phase 2/3 roadmap (the product
+    architecture doc and the knowledge-companion program doc): AitherSprite today is playable but shallow
+    -- flat per-sprite knowledge rows, titles-only in the talk prompt, server-side inference only, and
+    "download it" is a paid pack with no guided path to actually WIRE it to real local tools and data.
+    The'
   packages:
   - awsprite
   - awbonsai
@@ -1393,11 +1394,6 @@ services:
   reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
     is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
     packs instead of being taxed on the thing that makes the product good.'
-- id: NIM
-  description: NVIDIA NIM LLM Microservice - containerized, production-grade LLM inference (OpenAI-compatible)
-  group: gpu
-  entitlement: addon:gpu-inference
-  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
 - id: Nemotron
   description: NVIDIA Nemotron Orchestrator - fine-tuned LLM optimized for multi-agent orchestration and
     planning
@@ -1599,11 +1595,6 @@ services:
   group: products
   entitlement: platform-only
   reason: 'Platform-only: a deployed tenant app belonging to a specific collaboration.'
-- id: VLLM
-  description: vLLM OpenAI-compatible inference server - continuous batching, paged attention
-  group: gpu
-  entitlement: addon:gpu-inference
-  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
 - id: VLLMSwap
   description: vLLM hot-swap model server - Ollama-style model swapping for level 9/10 tasks
   group: gpu
