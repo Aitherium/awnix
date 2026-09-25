@@ -295,9 +295,9 @@ LAYERS: tuple[Layer, ...] = (
         # Sizes are checked, not just existence: a truncated GGUF is an image that
         # ships and then fails to load, which reads as a bad model.
         verify_cmd=(
-            "test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf "
-            "&& test -s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf "
-            "&& [ \"$(stat -c%s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf)\" -gt 900000000 ] "
+            "test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-PQ2_0.gguf "
+            "&& test -s /opt/bonsai/models/Ternary-Bonsai-4B-PQ2_0.gguf "
+            "&& [ \"$(stat -c%s /opt/bonsai/models/Ternary-Bonsai-4B-PQ2_0.gguf)\" -gt 900000000 ] "
             "&& test -f /opt/gobbonet/chat.html "
             "&& python3.11 -c \"from adk.packs.gobbonet import campaign_memory, cards, "
             "retrieval; print('pack ok')\" "
@@ -401,9 +401,9 @@ LAYERS: tuple[Layer, ...] = (
         tag="localhost/garg-appliance:latest",
         containerfile="Containerfile.garg-appliance",
         verify_cmd=(
-            "test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf "
-            "&& test -s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf "
-            "&& [ \"$(stat -c%s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf)\" -gt 900000000 ] "
+            "test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-PQ2_0.gguf "
+            "&& test -s /opt/bonsai/models/Ternary-Bonsai-4B-PQ2_0.gguf "
+            "&& [ \"$(stat -c%s /opt/bonsai/models/Ternary-Bonsai-4B-PQ2_0.gguf)\" -gt 900000000 ] "
             "&& test -x /opt/qdrant/qdrant "
             "&& test -d /opt/gargbot/backend/portal_kit_backend "
             "&& python3.11 -c \"import sys; sys.path.insert(0, '/opt/gargbot/backend'); "
