@@ -257,6 +257,26 @@ LAYERS: tuple[Layer, ...] = (
                      "are enabled (an overlay appliance whose units are disabled boots to "
                      "a black screen and reports success)",
     ),
+    Layer(
+        name="desktop-open",
+        tag="localhost/awnix-desktop-open:latest",
+        containerfile="Containerfile.awnix-desktop-open",
+        # FROM fedora-bootc:42, not the awnix chain: EL9 has no tiling Wayland
+        # compositor. Its own context (the bootc dir) carries the sway defaults and
+        # the shared greenboot health check.
+        verify_cmd=(
+            "command -v sway && command -v waybar && command -v tuigreet "
+            "&& command -v awsh && python3 -c 'import adk' "
+            "&& test -s /etc/sway/config.d/50-awnix.conf "
+            "&& grep -q 'bindsym $mod+a exec' /etc/sway/config.d/50-awnix.conf "
+            "&& systemctl is-enabled greetd.service "
+            "&& systemctl is-enabled greenboot-healthcheck.service "
+            "&& test \"$(systemctl get-default)\" = graphical.target "
+            "&& echo AWNIX_DESKTOP_OPEN_OK"
+        ),
+        verify_label="sway, waybar, the greeter, awsh and adk are present; the agent key is "
+                     "bound; greetd and greenboot are enabled and the machine boots graphical",
+    ),
     # ── awnix-full ─ the batteries-included variant ──────────────────────
     # This layer was declared in awnix-variants.yaml with `iso: true` and existed in
     # NEITHER this tool nor the ISO workflow, so `awnix-full` could be pushed as an
@@ -1068,14 +1088,20 @@ def _bootc_dir() -> Path:
     return here.parents[3] / ".DEPLOYMENT" / "standalone" / "bootc"
 
 
+#: Upstream bootc roots a layer may start from. fedora-bootc is here for ONE layer,
+#: desktop-open: EL9 packages no tiling Wayland compositor (measured 2026-09-26).
+#: Anything else is still a parallel chain and still fails.
+UPSTREAM_BOOTC_ROOTS = ("quay.io/centos-bootc/", "quay.io/fedora/fedora-bootc:")
+
+
 def _chain_is_unbroken() -> bool:
-    """Each layer's parent is the upstream base or the tag of the layer before it."""
+    """Each layer's parent is an upstream bootc root or the tag of an earlier layer."""
     seen: set[str] = set()
     for layer in LAYERS:
         parent = _parent_of(layer.containerfile)
         if not parent:
             return False
-        if not (parent.startswith("quay.io/centos-bootc/") or parent in seen):
+        if not (parent.startswith(UPSTREAM_BOOTC_ROOTS) or parent in seen):
             return False
         seen.add(layer.tag)
     return True
