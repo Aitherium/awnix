@@ -45,7 +45,10 @@ sources:
 # budget -- half because llama.cpp needs room for the KV cache and context on top, and
 # a model that loads then dies mid-generation is worse than one that never loaded.
 defaults:
-  ladder: [bonsai-1.7b, bonsai-4b, bonsai-8b, bonsai-27b]
+  # The top rung is Bonsai 2 27B (PTQ1_0): smaller than Bonsai 1 27B (5671 vs 6833 MB)
+  # and it scored 0.9165 against Bonsai 1's 0.7821 on AitherBench. Every image that
+  # reads this catalogue pins a PrismML llama.cpp build that serves it.
+  ladder: [bonsai-1.7b, bonsai-4b, bonsai-8b, bonsai2-27b]
   # A deliberate floor: below this, refuse and say so rather than thrashing swap.
   min_budget_mb: 900
   # Weights must fit within budget/headroom_divisor. Lives HERE, not in a constant in
@@ -88,7 +91,26 @@ models:
     file: "Ternary-Bonsai-27B-Q2_0.gguf"
     size_mb: 6833
     quant: Q2_0
-    note: "Wants ~14 GB to be comfortable. Was the unconditional default until 2026-08-21."
+    note: >-
+      Bonsai 1. Off the default ladder since 2026-09-26 (bonsai2-27b replaces it);
+      still fetchable with --model bonsai-27b.
+
+  bonsai2-27b:
+    source: huggingface
+    path: "Ternary-Bonsai-2-27B-gguf/resolve/main/Ternary-Bonsai-2-27B-PTQ1_0.gguf"
+    file: "Ternary-Bonsai-2-27B-PTQ1_0.gguf"
+    size_mb: 5671
+    size_bytes: 5946648928
+    # The Hugging Face LFS object id (X-Linked-ETag), read 2026-09-26 from the live
+    # resolve URL. That id IS the sha256 of the bytes -- LFS content-addresses by it --
+    # so this is the upstream's own digest, not a figure copied from a doc.
+    sha256: "53107f530aa52eb00912263ab1ee29bd199261c87cd7b4ad4ca1318c1fe33ee3"
+    quant: PTQ1_0
+    requires: prism-llama.cpp
+    note: >-
+      Bonsai 2, 1.75 bpw with a Walsh-Hadamard rotation. Needs the PrismML llama.cpp
+      fork (stock llama.cpp loads it and emits gibberish); every awnix inference layer
+      pins one. PQ2_0 (7206 MB) is the faster CUDA format; this is the Vulkan/CPU one.
 
   # ── the fleet models: OPT-IN, never reached by the default ladder ─────────────────
   # Real, measured, and ours. Listed so a booted box can run what the fleet runs without
