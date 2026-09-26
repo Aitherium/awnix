@@ -332,6 +332,30 @@ COPY awnix-catalogue.yaml /usr/local/sbin/awnix-catalogue.yaml
 COPY awnix-setup.service /usr/lib/systemd/system/awnix-setup.service
 RUN chmod 0755 /usr/bin/awnix-setup     && systemctl enable awnix-setup.service
 
+# ── self-healing updates ─────────────────────────────────────────────────────────────
+# `bootc upgrade` stages a whole new image and keeps the old one, so an update can
+# always be undone by `bootc rollback`. greenboot makes that AUTOMATIC: every boot runs
+# the required health checks, and a freshly updated deployment that fails them
+# GREENBOOT_MAX_BOOT_ATTEMPTS times in a row rolls itself back to the previous image.
+# An update that breaks the box undoes itself -- nobody lands in emergency mode.
+#
+# Only greenboot itself is installed, NOT greenboot-default-health-checks: its DNS
+# check fails any box that boots offline and would roll back a laptop for being on a
+# plane. awnix-health-check.sh asserts what an update can break and a location cannot.
+# Every unit greenboot ships with an [Install] section is enabled, and the build FAILS
+# if the health check did not end up enabled -- a silently absent rollback is worse
+# than none, because the docs would promise it.
+RUN dnf install -y --setopt=install_weak_deps=False greenboot \
+    && dnf clean all \
+    && for u in $(rpm -ql greenboot | grep -E '/systemd/system/[^/]+\.(service|target)$'); do \
+         grep -q '^\[Install\]' "$u" && systemctl enable "$(basename "$u")"; \
+       done; \
+    systemctl is-enabled greenboot-healthcheck.service
+COPY awnix-health-check.sh /etc/greenboot/check/required.d/10-awnix-core.sh
+RUN chmod 0755 /etc/greenboot/check/required.d/10-awnix-core.sh \
+    && mkdir -p /etc/greenboot \
+    && printf 'GREENBOOT_MAX_BOOT_ATTEMPTS=3\n' > /etc/greenboot/greenboot.conf
+
 # ── identity ────────────────────────────────────────────────────────────────────────
 # Booted in WSL2 on 2026-08-21 and it said `PRETTY_NAME="CentOS Stream 9"`. True about
 # the lineage and useless as identity: nothing a user or a script reads said awnix, so
