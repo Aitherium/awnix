@@ -1,0 +1,75 @@
+# ==============================================================================
+# awnix-desktop-open -- a keyboard-first tiling desktop on the agent OS.
+#
+# WHY A FEDORA BASE. Measured 2026-09-26: CentOS Stream 9 + EPEL + CRB package no
+# tiling Wayland compositor at all -- sway, waybar, wofi, mako, greetd and cage are
+# absent; weston is the only compositor. fedora-bootc:42 ships every piece (sway 1.10,
+# waybar, foot, wofi, mako, greetd/tuigreet, tesseract, whisper-cpp, greenboot), so
+# the open desktop is a bootc image on that base rather than a source build on el9.
+# The awnix-desktop variant (weston + AitherDesktop, BUSL-1.1) is unchanged.
+#
+# What it is:
+#   sway + waybar + foot + wofi + mako, greetd/tuigreet login, one palette
+#   Super+A      awsh -- the agent, answering from the local model
+#   Super+Space  launcher        Super+Ctrl+Print  screen text -> clipboard (tesseract)
+#   awdk + awsh baked in; greenboot rolls a failed update back (same check as awnix)
+#
+# Build: podman build -t awnix-desktop-open:latest -f Containerfile.awnix-desktop-open .
+# Licence: Apache-2.0.
+# ==============================================================================
+FROM quay.io/fedora/fedora-bootc:42
+
+RUN dnf -y install --setopt=install_weak_deps=False \
+        sway swaybg swayidle swaylock waybar foot wofi mako \
+        grim slurp wl-clipboard tesseract \
+        greetd tuigreet \
+        greenboot \
+        python3-pip nodejs npm git curl jq \
+        fonts-filesystem google-noto-sans-mono-fonts \
+    && dnf clean all
+
+RUN python3 -m pip install --no-cache-dir "awdk>=3.8.27" && adk --help >/dev/null
+# On a bootc image /root is a symlink into /var, which is empty at build time, so npm
+# cannot create its cache there. Give it a throwaway home for the install.
+RUN HOME=/tmp/npmhome npm install -g --cache /tmp/npmhome/cache @aitherium/awsh \
+    && rm -rf /tmp/npmhome \
+    && command -v awsh
+
+COPY desktop-open/awnix.conf /etc/sway/config.d/50-awnix.conf
+
+# Login: tuigreet on tty1 starts sway. greetd runs the greeter as its own user.
+RUN printf '[terminal]\nvt = 1\n\n[default_session]\ncommand = "tuigreet --time --remember --cmd sway"\nuser = "greetd"\n' \
+        > /etc/greetd/config.toml \
+    && systemctl enable greetd.service \
+    && systemctl set-default graphical.target
+
+# Self-healing updates, identical to Containerfile.awnix: every greenboot unit with an
+# [Install] section is enabled and the build fails if the health check is not.
+RUN for u in $(rpm -ql greenboot | grep -E '/systemd/system/[^/]+\.(service|target)$'); do \
+         grep -q '^\[Install\]' "$u" && systemctl enable "$(basename "$u")"; \
+       done; \
+    systemctl is-enabled greenboot-healthcheck.service
+COPY awnix-health-check.sh /etc/greenboot/check/required.d/10-awnix-core.sh
+RUN chmod 0755 /etc/greenboot/check/required.d/10-awnix-core.sh \
+    && printf 'GREENBOOT_MAX_BOOT_ATTEMPTS=3\n' > /etc/greenboot/greenboot.conf
+
+# fedora-bootc names no default root filesystem (CentOS bootc does), and
+# bootc-image-builder refuses the ISO without one: "cannot build manifest: no default
+# root filesystem type specified in container". bootc reads this at install time.
+RUN mkdir -p /usr/lib/bootc/install \
+    && printf '[install.filesystem.root]\ntype = "xfs"\n' > /usr/lib/bootc/install/00-awnix.toml
+
+# Fails the build if the desktop would not start: sway must parse its config.
+# /usr/bin/sway carries a file capability (cap_sys_nice) that a build container cannot
+# grant, so exec'ing it here is EPERM (126). A plain copy drops the xattr and parses
+# the same config.
+RUN cp /usr/bin/sway /tmp/sway-validate \
+    && mkdir -p -m 0700 /tmp/xdg \
+    && XDG_RUNTIME_DIR=/tmp/xdg WLR_BACKENDS=headless WLR_RENDERER=pixman \
+       WLR_LIBINPUT_NO_DEVICES=1 /tmp/sway-validate --validate --config /etc/sway/config \
+    && rm -rf /tmp/sway-validate /tmp/xdg \
+    && bootc container lint
+
+LABEL com.aitheros.layer="awnix-desktop-open" \
+      com.aitheros.description="awnix open desktop: sway tiling Wayland, Super+A local agent, greenboot rollback" \
+      org.opencontainers.image.licenses="Apache-2.0"
