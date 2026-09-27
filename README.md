@@ -33,7 +33,7 @@ Every build is a bootable ISO. Pick one, download it in one piece, check it, boo
 | awnix-full | the whole aw* stack, no local model | [awnix-full-x86_64.iso](https://artifact.aitherium.com/awnix-full-x86_64.iso) |
 | awnix-ai | runner + local model | [awnix-ai-x86_64.iso](https://artifact.aitherium.com/awnix-ai-x86_64.iso) |
 | awnix | the immutable base + the aw* tools | [awnix-x86_64.iso](https://artifact.aitherium.com/awnix-x86_64.iso) |
-| awnix-desktop-open | a keyboard-first tiling desktop: `Super+A` opens the agent on the local model | [releases](https://github.com/Aitherium/awnix/releases) |
+| awnix-desktop-open | a keyboard-first tiling desktop: `Super+A` opens the agent on the local model | [awnix-desktop-open-x86_64.iso](https://artifact.aitherium.com/awnix-desktop-open-x86_64.iso) |
 
 Each file is the same bytes as the matching [GitHub release](https://github.com/Aitherium/awnix/releases),
 which also carries the split parts, an assemble script and `SHA256SUMS`.
