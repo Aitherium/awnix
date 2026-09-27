@@ -20,8 +20,42 @@ happened, undo it, and prove it.
 podman build -t awnix:latest -f Containerfile .
 ```
 
-That's the whole install. The OS is a container image: you build it, you sign it,
+That builds it from source. The OS is a container image: you build it, you sign it,
 you roll it back.
+
+## Download and install
+
+Every build is a bootable ISO. Pick one, download it in one piece, check it, boot it.
+
+| Variant | What you get | Download |
+|---|---|---|
+| **awnix-ai-full** (recommended) | the whole aw* stack + a local model sized to your hardware on first boot (Bonsai 1.7B up to Bonsai 2 27B) | [awnix-ai-full-x86_64.iso](https://artifact.aitherium.com/awnix-ai-full-x86_64.iso) |
+| awnix-full | the whole aw* stack, no local model | [awnix-full-x86_64.iso](https://artifact.aitherium.com/awnix-full-x86_64.iso) |
+| awnix-ai | runner + local model | [awnix-ai-x86_64.iso](https://artifact.aitherium.com/awnix-ai-x86_64.iso) |
+| awnix | the immutable base + the aw* tools | [awnix-x86_64.iso](https://artifact.aitherium.com/awnix-x86_64.iso) |
+| awnix-desktop-open | a keyboard-first tiling desktop: `Super+A` opens the agent on the local model | [releases](https://github.com/Aitherium/awnix/releases) |
+
+Each file is the same bytes as the matching [GitHub release](https://github.com/Aitherium/awnix/releases),
+which also carries the split parts, an assemble script and `SHA256SUMS`.
+
+```bash
+curl -LO https://artifact.aitherium.com/awnix-ai-full-x86_64.iso
+sha256sum awnix-ai-full-x86_64.iso
+# compare with SHA256SUMS on the matching release page (awnix-iso-ai-full-<date>)
+```
+
+Write it to a USB stick (balenaEtcher, Rufus, or `dd`) and boot it, or boot it in a VM with
+4 GB of RAM and 20 GB of disk. On first boot `awnix-setup` asks three things, all skippable:
+a hostname, which extra aw* components to add, and whether to link the box to your account.
+
+**Updates are whole images.** `sudo bootc upgrade && sudo systemctl reboot` moves to the new
+image and keeps the old one. If the new image fails its health checks three boots in a row,
+the machine goes back to the previous one by itself; `sudo bootc rollback` does it by hand.
+
+**Building on it:** the [Aither World Guide](https://aitherium.github.io/awknowledge/) walks from
+first agent to your own pack. `pip install awdk`, then `adk pack new yourname.tool` scaffolds a
+pack; `adk pack validate`, `adk pack dev` and `adk pack build` check it, load it and produce a
+bundle with its sha256.
 
 ---
 
