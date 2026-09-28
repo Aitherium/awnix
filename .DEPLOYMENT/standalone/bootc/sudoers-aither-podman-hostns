@@ -1,5 +1,0 @@
-# /etc/sudoers.d/aither-podman-hostns -- let `sudo podman` find /usr/local/bin/podman.
-# The fleet tooling calls `wsl -d awnix --exec sudo -n podman ...`; EL9's secure_path
-# omits /usr/local/bin, so sudo would bypass the host-namespace wrapper and `podman
-# exec` into any container with a named User= fails (see podman-hostns.sh).
-Defaults secure_path = /usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
