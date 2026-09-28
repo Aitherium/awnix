@@ -419,7 +419,10 @@ LAYERS: tuple[Layer, ...] = (
         name="fleet",
         tag="localhost/aitheros-fleet:latest",
         containerfile="Containerfile.aitheros-fleet",
-        contexts=(("deploy", "../.."), ("awstorage", "../../../AitherOS/packages/awstorage")),
+        # devtools: fleet_runtime_agent.py, the one host-units.manifest source outside
+        # .DEPLOYMENT (Containerfile.aitheros-fleet section 7).
+        contexts=(("deploy", "../.."), ("awstorage", "../../../AitherOS/packages/awstorage"),
+                  ("devtools", "../../../AitherOS/dev/tools")),
         verify_cmd=("command -v nvidia-ctk docker podman-compose wg >/dev/null "
                     "&& systemctl is-enabled podman-ghcr-auth.service aither-nvidia-cdi.service "
                     "aither-gpu-boot.service fleet-pulse-beat.timer >/dev/null "
