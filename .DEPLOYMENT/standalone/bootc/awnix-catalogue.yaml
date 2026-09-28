@@ -100,9 +100,9 @@ packages:
   tagline: One typed-decision contract -- choice / score / bool with a probability -- over a ladder of
     backends you already run (rules, tiny local models, an LLM's logprobs), fail-closed, with a Brier
     ledger that resolves every decision against its outcome.
-  status: planned
-  available: false
-  reason: 'status: planned'
+  status: no-pages
+  available: true
+  reason: ''
 - id: awdeck
   tagline: An outline becomes a narrated video -- and the file says which voice really spoke it.
   status: planned
@@ -264,9 +264,9 @@ packages:
   tagline: 'The free half of the elastic work pool: dispatches public-safe work onto the free GitHub-hosted
     runners of the public aw* mirrors, so their idle CI minutes become compute. awrun remains the paid/self-hosted
     lane; this is its free twin.'
-  status: planned
-  available: false
-  reason: 'status: planned'
+  status: no-pages
+  available: true
+  reason: ''
 - id: awpredict
   tagline: Predict what your environment does next, and how surprised you were.
   status: public
@@ -398,9 +398,9 @@ packages:
   reason: 'status: planned'
 - id: awsprite
   tagline: Hatch a companion that grows only from what you teach it, then take it home.
-  status: planned
-  available: false
-  reason: 'status: planned'
+  status: no-pages
+  available: true
+  reason: ''
 - id: awstorage
   tagline: Every drive on every node, indexed, classified and diffed -- so you can see what you own before
     you delete it.
@@ -936,11 +936,11 @@ services:
   entitlement: addon:creative
   reason: group 'creative' maps to add-on 'creative' via source_groups
 - id: AitherIntegrate
-  description: Integration Loop Orchestrator — consolidates capture→map→fill/CRM→rebrand end-to-end integration
+  description: 'Integration Loop Orchestrator — consolidates capture→map→fill/CRM→rebrand end-to-end integration
     pipelines. Chains intake (HAR mine/capture), map (auto-map with vision fallback to OmniParser), transform
     (FormBridge fill or UNTETHER ingest), and deliver (Iris rebrand). Read-only/idempotent where possible;
-    approval-gated for external actions. Always-on backing service for Iris and agents to call for integration
-    jobs.
+    approval-gated for external actions. DELIVERY IS NOT IMPLEMENTED: an approved job reports delivery_status=not_implemented,
+    never "completed". No standalone container (absorbed_by Demiurge; no compose entry).'
   group: business
   entitlement: addon:business
   reason: group 'business' maps to add-on 'business' via source_groups
@@ -950,12 +950,6 @@ services:
   group: billing
   entitlement: addon:business
   reason: group 'billing' maps to add-on 'business' via source_groups
-- id: AitherNanoGPT
-  description: Pure Python MicroGPT service + NanoGPT Lab (experiment sweeps, eval leaderboard, cartridge
-    promotion)
-  group: gpu
-  entitlement: addon:gpu-inference
-  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
 - id: AitherStructuredML
   description: 'TabFM (tabular classify/regress) + TimesFM (time-series forecast) — zero-shot / in-context
     structured-data foundation models. Non-LLM: a direct fabric service, NOT routed through MicroScheduler.
@@ -987,7 +981,7 @@ services:
   reason: group 'automation' maps to add-on 'automation' via source_groups
 - id: AutomationCore
   description: 'RETIRED (AF-15) — superseded by swarm dispatch. COMPOUND: Autonomic + AutomatedActions
-    + DesktopBridge + Steward + ForgeDispatch.'
+    + DesktopBridge + ForgeDispatch (Steward runs standalone on 8221).'
   group: automation
   entitlement: addon:automation
   reason: group 'automation' maps to add-on 'automation' via source_groups
@@ -1025,12 +1019,6 @@ services:
   group: perception
   entitlement: addon:perception
   reason: group 'perception' maps to add-on 'perception' via source_groups
-- id: CUDADocs
-  description: NVIDIA CUDA Toolkit - live access to NVIDIA's curated CUDA documentation and code examples
-    via MCP
-  group: gpu
-  entitlement: addon:gpu-inference
-  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
 - id: Chaos
   description: 'Adversarial Red Team & Security Agent — The Seven Deadly Sins framework plus comprehensive
     security operations: code review, vulnerability scanning, penetration testing, dependency auditing,
@@ -1181,7 +1169,9 @@ services:
     federation. NOT retired: owner decision 2026-08-12 repurposed this from the superseded Agent Marketplace
     (that surface moved to api.aitherium.com) into the mesh/relay hub. Serving on 3100 (Next.js reports
     Ready) while the container reports UNHEALTHY - the healthcheck still probes the old marketplace surface
-    and must be repointed at the hub before it can be trusted. ["disabled"]; tunnel route removed.'
+    and must be repointed at the hub before it can be trusted. NOT YET A HUB: the code is still the marketplace
+    catalog/publish app and elysium.aitherium.com routes to Veil (tunnel-routes.yaml), not here - no public
+    route reaches this container.'
   group: ui
   entitlement: addon:automation
   reason: 'owner ruling (addon automation): Owner ruling 2026-08-18. The portal and the Living Desktop
@@ -1200,11 +1190,6 @@ services:
   reason: group 'training' maps to add-on 'training' via source_groups
 - id: Exo
   description: Clustered inference
-  group: gpu
-  entitlement: addon:gpu-inference
-  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
-- id: ExoNodes
-  description: Distributed LLM mesh
   group: gpu
   entitlement: addon:gpu-inference
   reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
@@ -1350,21 +1335,16 @@ services:
     is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
     packs instead of being taxed on the thing that makes the product good.'
 - id: MCPPortal
-  description: MCP tools discovery portal — mcp.aitherium.com. Browse 100+ AI tools, connect Claude Code/Desktop
-    to AitherOS via the Model Context Protocol, manage API keys and usage.
+  description: 'MCP tools discovery portal. NOT on mcp.aitherium.com: that hostname routes straight to
+    MCPGateway (tunnel-routes.yaml, "no MCPPortal in the hot path"), and no public route targets this
+    container. Browse AI tools, connect Claude Code/Desktop to AitherOS via the Model Context Protocol,
+    manage API keys.'
   group: ui
   entitlement: addon:automation
   reason: 'owner ruling (addon automation): Owner ruling 2026-08-18. The portal and the Living Desktop
     are the product''s face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons.
     Keeping the shipped surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts
     23 apps that open broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
-- id: MediaForge
-  description: Managed media tool (FastAPI) with a privacy torrent-VPN stack. Self-provisions its AitherTunnel
-    WireGuard peer + AitherSecrets-scoped config from the fleet master key (no human paste). Built from
-    the media-forge sibling repo's own Dockerfile (native libtorrent).
-  group: perception
-  entitlement: addon:perception
-  reason: group 'perception' maps to add-on 'perception' via source_groups
 - id: MemoryCore
   description: 'COMPOUND: Persona + Conduit + SensoryBuffer + Chain. Identity/affect state, sensory buffering,
     and memory chaining.'
@@ -1394,12 +1374,6 @@ services:
   reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
     is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
     packs instead of being taxed on the thing that makes the product good.'
-- id: Nemotron
-  description: NVIDIA Nemotron Orchestrator - fine-tuned LLM optimized for multi-agent orchestration and
-    planning
-  group: gpu
-  entitlement: addon:gpu-inference
-  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
 - id: OmniNodeSettlementReconciler
   description: Sum-chain attestation settlement — maps on-chain InferenceAttestation to compute credits.
   group: mesh
@@ -1502,6 +1476,12 @@ services:
   group: security
   entitlement: addon:security-plus
   reason: group 'security' maps to add-on 'security-plus' via source_groups
+- id: Shop
+  description: Aitherium Shop storefront UI (shop.aitherium.com).
+  group: ui
+  entitlement: platform-only
+  reason: 'Platform-only: our own storefront at shop.aitherium.com; tenants get the storefront through
+    awkit, not by installing this container.'
 - id: ShopBackend
   description: Storefront/commerce backend for tenant shops.
   group: products
@@ -1589,17 +1569,12 @@ services:
   reason: 'Add-on mesh: outbound reach for a box behind NAT. A single sovereign appliance on its own LAN
     does not need it; joining sites does.'
 - id: VIBE
-  description: Vibe — tenant application (vibe.aitherium.com). Outside-contributor collaboration on a
-    ternary-quantised Qwen3.8-27B. Same awkit product backend gargbot and dgg run, selected by the vibe
-    brain pack; job queue, runner fleet, compute quotas and an artifact store for weights and benchmarks.
+  description: Vibe — tenant application (vibe.aitherium.com). Group workspace for collaborators who met
+    on Discord to run shared projects. Same awkit product backend gargbot and dgg run, selected by the
+    vibe brain pack.
   group: products
   entitlement: platform-only
   reason: 'Platform-only: a deployed tenant app belonging to a specific collaboration.'
-- id: VLLMSwap
-  description: vLLM hot-swap model server - Ollama-style model swapping for level 9/10 tasks
-  group: gpu
-  entitlement: addon:gpu-inference
-  reason: group 'gpu' maps to add-on 'gpu-inference' via source_groups
 - id: Veil
   description: Dashboard
   group: ui
@@ -1675,7 +1650,7 @@ groups:
 - minimal
 - social
 - storage
-unroled_services: 67
+unroled_services: 66
 unroled_service_names:
 - AitherChronos
 - AitherCivics
@@ -1728,7 +1703,6 @@ unroled_service_names:
 - Repowise
 - SMS
 - SMTP
-- STTP
 - SecurityCore
 - Slack
 - SocialEngine
@@ -1814,6 +1788,7 @@ models:
 - id: bonsai-27b
 - id: bonsai-4b
 - id: bonsai-8b
+- id: bonsai2-27b
 - id: deepseek-v4-flash
 - id: gemma4-12b
 - id: orchestrator

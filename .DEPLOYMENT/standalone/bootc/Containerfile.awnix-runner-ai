@@ -110,6 +110,13 @@ COPY --chown=root:root awnix-model-select.py /usr/local/sbin/awnix-model-select.
 COPY --chown=root:root awnix-models.yaml /usr/local/sbin/awnix-models.yaml
 RUN chmod 755 /usr/local/sbin/serve-awnix-bonsai.sh              /usr/local/sbin/awnix-model-select.py     && chmod 644 /usr/local/sbin/awnix-models.yaml
 
+# The image must LOAD a model, not merely start llama-server: on 2026-09-27 this
+# image passed every other check and shipped unable to load any model (#9468).
+# Runs the real serve script on the smallest catalogue model; weights are deleted
+# before this layer closes. See awnix-model-load-check.sh.
+COPY --chown=root:root awnix-model-load-check.sh /usr/local/libexec/awnix-model-load-check.sh
+RUN bash /usr/local/libexec/awnix-model-load-check.sh
+
 LABEL com.aitheros.layer="awnix-runner-ai" \
       com.aitheros.description="awnix-runner + PrismML llama.cpp binary (Bonsai-capable, model fetched at first boot)" \
       org.opencontainers.image.licenses="Apache-2.0"

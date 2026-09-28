@@ -92,6 +92,13 @@ RUN chmod 755 /usr/local/sbin/serve-awnix-bonsai.sh /usr/local/sbin/awnix-model-
 # fails at first boot on the box that needed it.
 ENV BONSAI_USER=bonsai
 
+# The image must LOAD a model, not merely start llama-server: on 2026-09-27 this
+# image passed every other check and shipped unable to load any model (#9468).
+# Runs the real serve script on the smallest catalogue model; weights are deleted
+# before this layer closes. See awnix-model-load-check.sh.
+COPY --chown=root:root awnix-model-load-check.sh /usr/local/libexec/awnix-model-load-check.sh
+RUN bash /usr/local/libexec/awnix-model-load-check.sh
+
 LABEL com.aitheros.layer="awnix-ai-full" \
       com.aitheros.base="awnix-full" \
       com.aitheros.description="Every aw* package plus PrismML llama.cpp -- the aw* stack WITH inference (model fetched and sized at first boot)" \
