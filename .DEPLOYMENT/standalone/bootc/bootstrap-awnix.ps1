@@ -103,6 +103,9 @@ function Invoke-SelfTest {
         Ck 'leading blank lines do not hide an HTML page' (Test-LooksLikeHtml -Path $e)
 
         Ck 'the target is one this script knows' ($Target -in @('container','wsl','iso'))
+        . (Join-Path (Split-Path -Parent $PSCommandPath) 'awnix-distro-guards.ps1')
+        Ck 'the import/unregister refusals hold' ((Invoke-AwnixGuardSelfTest) -eq 0)
+        Ck 'no unregister hint is printed' (-not ((Get-Content -LiteralPath $PSCommandPath -Raw) -match ('Say "undo' + ' with')))
     } finally { Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue }
     Write-Host ''
     if ($script:fail -eq 0) { Write-Host 'SELF-TEST PASS'; return 0 }
@@ -160,16 +163,42 @@ switch ($Target) {
         $sh = Join-Path $Here 'awnix-to-wsl.sh'
         if (-not (Test-Path $sh)) { throw "awnix-to-wsl.sh is not beside this script" }
 
+        # The refusals (awnix-distro-guards.ps1). On a host whose FLEET already runs
+        # in a distro named awnix, the default -Name is the fleet: importing over it
+        # is refused, and so is importing any second distro while the fleet runs.
+        . (Join-Path $Here 'awnix-distro-guards.ps1')
+        $why = Test-AwnixDistroProtected -Name $Name
+        if ($why) { throw "refusing to import as '$Name': $why. Pass -Name <another name>." }
+        $co = Test-AwnixCotenancy -Name $Name
+        if ($co) { throw "refusing to import '$Name': $co" }
+        # The export runs in the DEFAULT distro (`wsl.exe` with no -d). On a fleet host
+        # that is usually the fleet itself; the check above proved it Stopped, and
+        # booting it here would bring it up without its data disk AND make the import
+        # a co-tenant of it. Refuse rather than start it.
+        $lv = (& wsl.exe -l -v 2>&1 | Out-String) -replace "`0", ''
+        $defaultRow = ($lv -split "`r?`n" | Where-Object { $_.TrimStart().StartsWith('*') } | Select-Object -First 1)
+        $defaultDistro = if ($defaultRow) { (($defaultRow.Trim().TrimStart('*').Trim()) -split '\s+')[0] } else { '' }
+        if ($defaultDistro -and ($defaultDistro -ieq (Get-AitherFleetDistro))) {
+            throw "refusing to export: the default WSL distro is the fleet distro '$defaultDistro'; the export would boot it. Set another default (wsl --set-default <distro with podman>) for this run."
+        }
+        $stage = Resolve-AwnixStageRoot
+        $stageWsl = ConvertTo-AwnixWslPath $stage
+
         $inside = ($Here -replace '\\','/') -replace '^([A-Za-z]):', { "/mnt/" + $_.Groups[1].Value.ToLower() }
-        Say "exporting $Image inside WSL"
-        & wsl.exe -u root -- sh -c "cd '$inside' && sh awnix-to-wsl.sh --image '$Image' --name '$Name'"
+        Say "exporting $Image inside WSL (stage dir $stage)"
+        & wsl.exe -u root -- sh -c "cd '$inside' && AITHER_WSL_STAGE_DIR='$stageWsl' sh awnix-to-wsl.sh --image '$Image' --name '$Name'"
         if ($LASTEXITCODE -ne 0) { throw "the export step failed (exit $LASTEXITCODE)" }
 
-        # awnix-to-wsl.sh stages here; keep the two in step or the import points
-        # at a tarball that is not there.
-        $tar = "C:/AitherOS-Data/wsl/$Name-rootfs.tar"
-        $dir = "C:/AitherOS-Data/wsl/$Name"
+        # awnix-to-wsl.sh stages under the same AITHER_WSL_STAGE_DIR; keep the two in
+        # step or the import points at a tarball that is not there.
+        $tar = "$stage/$Name-rootfs.tar"
+        $dir = "$stage/$Name"
         if (-not (Test-Path $tar)) { throw "the export produced no tarball at $tar" }
+        $space = Test-AwnixFreeSpacePure -FreeBytes (Get-AwnixFreeBytes $stage) -NeedBytes (Get-Item $tar).Length -Where $stage
+        if ($space) { throw "refusing to import: $space" }
+        # The fleet may have come up while the export ran; judge co-tenancy AT the import.
+        $co = Test-AwnixCotenancy -Name $Name
+        if ($co) { throw "refusing to import '$Name': $co" }
 
         Say "importing as WSL2 distro '$Name'"
         & wsl.exe --import $Name $dir $tar --version 2
@@ -181,7 +210,8 @@ switch ($Target) {
         $listed = (& wsl.exe -l -q) -replace "`0","" | ForEach-Object { $_.Trim() }
         if ($listed -notcontains $Name) { throw "$Name imported but is not listed by wsl -l -q" }
         Say "registered. Try:  wsl -d $Name -- adk gobbonet --ui /opt/gobbonet"
-        Say "undo with:        wsl --unregister $Name"
+        # No 'wsl --unregister' hint: printed on a host whose fleet is named awnix it
+        # was a copy-paste away from deleting the fleet root (2026-09-27).
         exit 0
     }
     'iso' {

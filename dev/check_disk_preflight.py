@@ -46,6 +46,7 @@ for an unclassified reason).
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -53,7 +54,7 @@ import sys
 #: The podman store lives on the fleet filesystem — inside the WSL distro on
 #: the workstation, or the host on a Linux runner. Same ladder as
 #: build_awnix_images._host_prefix.
-DISTRO = "Debian"
+DISTRO = os.environ.get("AITHER_FLEET_DISTRO", "awnix")
 
 
 class DeadError(RuntimeError):

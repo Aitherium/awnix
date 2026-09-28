@@ -6,11 +6,11 @@ This replaces a hand-typed sequence run BY HAND in two distinct sessions
 while building the awrun/awnix plan (`.DEPLOYMENT/standalone/bootc/`):
 
     cd .DEPLOYMENT/standalone/bootc
-    wsl -d Debian -u root podman build --no-cache -t awnix-base:latest \\
+    wsl -d awnix -u root podman build --no-cache -t awnix-base:latest \\
         -f Containerfile.awnix .
-    wsl -d Debian -u root podman build --no-cache -t awnix-runner:latest \\
+    wsl -d awnix -u root podman build --no-cache -t awnix-runner:latest \\
         -f Containerfile.awnix-runner .
-    wsl -d Debian -u root podman build --no-cache -t awnix-runner-ai:latest \\
+    wsl -d awnix -u root podman build --no-cache -t awnix-runner-ai:latest \\
         -f Containerfile.awnix-runner-ai .
 
 Recorded in AitherOS/config/automation_backlog.yaml as `status: automated`,
@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import inspect
+import os
 import re
 import shutil
 import subprocess
@@ -55,7 +56,7 @@ for _s in (sys.stdout, sys.stderr):
         except (ValueError, OSError) as _e:
             _enc_note = f"could not set UTF-8 output: {_e}"
 
-DISTRO = "Debian"
+DISTRO = os.environ.get("AITHER_FLEET_DISTRO", "awnix")
 BOOTC_DIR = "AitherOS-Fresh/.DEPLOYMENT/standalone/bootc"  # WSL-side, relative to the C: mount
 
 #: GB of free space the preflight must see before ANY layer build starts
@@ -408,6 +409,38 @@ LAYERS: tuple[Layer, ...] = (
                     "&& echo AITHEROS_APPLIANCE_OK"),
         verify_label="the control plane and its autostart unit are installed",
     ),
+    # ── the AitherOS fleet HOST (the awnix cutover target, 2026-09-27) ────────────
+    # Private: both names are in check_awnix_public_lane.py's FORBIDDEN floor, and
+    # .github/workflows/build-awnix-fleet.yml builds them on the aws awnix runner.
+    # `deploy` / `awstorage` are named contexts because the host units and scripts
+    # live in .DEPLOYMENT/{scripts,systemd} and AitherOS/packages/awstorage, outside
+    # the bootc dir (the same reason the appliance takes `context`).
+    Layer(
+        name="fleet",
+        tag="localhost/aitheros-fleet:latest",
+        containerfile="Containerfile.aitheros-fleet",
+        contexts=(("deploy", "../.."), ("awstorage", "../../../AitherOS/packages/awstorage")),
+        verify_cmd=("command -v nvidia-ctk docker podman-compose wg >/dev/null "
+                    "&& systemctl is-enabled podman-ghcr-auth.service aither-nvidia-cdi.service "
+                    "aither-gpu-boot.service fleet-pulse-beat.timer >/dev/null "
+                    "&& python3.11 -c 'import awstorage.cli' "
+                    "&& echo AITHEROS_FLEET_OK"),
+        verify_label="the host packages (nvidia-ctk, docker shim, podman-compose, wg) and "
+                     "the host units Debian carried by hand are baked and enabled",
+    ),
+    Layer(
+        name="fleet-wsl",
+        tag="localhost/aitheros-fleet-wsl:latest",
+        containerfile="Containerfile.aitheros-fleet-wsl",
+        verify_cmd=("grep -q '^systemd=true' /etc/wsl.conf "
+                    "&& test -x /usr/libexec/aither/aither-attach-fleet-data.sh "
+                    "&& sh /usr/libexec/aither/aither-attach-fleet-data.sh --self-test >/dev/null "
+                    "&& systemctl is-enabled bootc-fetch-apply-updates.timer 2>&1 "
+                    "| grep -qx masked "
+                    "&& echo AITHEROS_FLEET_WSL_OK"),
+        verify_label="systemd-as-PID-1 wsl.conf, the fleet-data attach unit, and the "
+                     "bootc updater masked (a WSL import is not a bootc deployment)",
+    ),
     # ── the garg single-tenant appliance ─────────────────────────────────────────
     # The self-service fallback for garg.aitherium.com. NOT built by the generic
     # podman build alone: the Containerfile COPYs .gargbot-backend (the tenant's
@@ -440,7 +473,7 @@ def _host_prefix() -> list[str]:
     """How to reach a shell that can see podman, on THIS host.
 
     🚨 THIS TOOL ASSUMED WINDOWS+WSL AND SO COULD RUN NOWHERE ELSE. Every build went
-    through `wsl -d Debian -u root`, which on any Linux box is
+    through `wsl -d awnix -u root`, which on any Linux box is
     `FileNotFoundError: [Errno 2] No such file or directory: 'wsl'` -- measured
     2026-08-21 on the AWS awnix runner, which is the box actually provisioned to do
     these builds (podman + buildah, nothing else contending for it) while the
@@ -904,6 +937,10 @@ def main() -> int:
                      help="build only this layer (and its verification) -- still requires its "
                           "parent tag to already exist")
     ap.add_argument("--force", action="store_true", help="rebuild even if the tag already exists")
+    ap.add_argument("--force-top", action="store_true",
+                    help="rebuild ONLY the named --layer even if its tag exists; its ancestors "
+                         "are built only when absent (a leaf lane such as the fleet host must "
+                         "not rebuild the whole awnix chain on every change)")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--iso", action="store_true",
                     help="build bootable media from an already-built layer "
@@ -1033,9 +1070,14 @@ def main() -> int:
 
     all_ok = True
     for layer in wanted:
-        if not build_layer(layer, force=args.force):
+        if not build_layer(layer, force=force_for(layer, wanted, args.force, args.force_top)):
             all_ok = False
     return 0 if all_ok else 1
+
+
+def force_for(layer: Layer, wanted: list, force: bool, force_top: bool) -> bool:
+    """--force rebuilds the whole chain; --force-top only the last (requested) layer."""
+    return force or (force_top and bool(wanted) and layer is wanted[-1])
 
 
 def _parent_of(containerfile: str) -> str:
@@ -1263,7 +1305,7 @@ def _self_test() -> int:
     # behaviour; it pins an accident.
     # ── the host ladder ──────────────────────────────────────────────────────────
     # This tool assumed Windows+WSL and so could run NOWHERE else: every build shelled
-    # `wsl -d Debian -u root`, which on the AWS awnix runner -- the box actually
+    # `wsl -d awnix -u root`, which on the AWS awnix runner -- the box actually
     # provisioned for these builds -- is `FileNotFoundError: 'wsl'`. Both directions are
     # asserted, because a ladder that always takes one rung is not a ladder.
     _real_which = shutil.which
@@ -1319,6 +1361,13 @@ def _self_test() -> int:
     # rather than on top of it, so the appliance carried none of the aw* tools and
     # every awnix fix had to be made twice. A `len(LAYERS) == N` arm cannot express
     # that -- both chains had a perfectly good length.
+    _fleet = next(x for x in LAYERS if x.name == "fleet-wsl")
+    _chain = chain_for(_fleet)
+    check("the fleet-wsl chain is base -> fleet -> fleet-wsl (parameterised FROM resolves)",
+          [x.name for x in _chain] == ["base", "fleet", "fleet-wsl"])
+    check("--force-top forces only the requested layer, never its ancestors",
+          [force_for(x, _chain, False, True) for x in _chain] == [False, False, True]
+          and all(force_for(x, _chain, True, False) for x in _chain))
     check("the awnix chain is intact (base -> runner -> runner-ai)",
           [x.name for x in LAYERS[:3]] == ["base", "runner", "runner-ai"])
     check("the appliance STACKS on awnix rather than running parallel to it",

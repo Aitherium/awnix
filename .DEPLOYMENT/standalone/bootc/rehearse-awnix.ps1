@@ -25,17 +25,33 @@
   it is not systemd. Acting without re-asserting has only proven that the commands
   ran.
 
+  THE REFUSALS (2026-09-27). The fleet now RUNS in a distro named `awnix`, and this
+  script used to default -Name to `awnix` and open with `wsl --unregister $Name` --
+  with no arguments it would have deleted the live fleet root. Now:
+    * -Name defaults to `awnix-rehearse`, a throwaway;
+    * an unregister or import whose name is the RESOLVED fleet distro, or whose
+      registration holds cutover state, is refused (awnix-distro-guards.ps1);
+    * an import (or -VerifyOnly boot) of a second distro while the fleet distro is
+      Running is refused -- the check_wsl_cotenancy rule;
+    * the tarball and the throwaway land under AITHER_WSL_STAGE_DIR (default E:),
+      after a free-space check, never on a C: with 3.8 GB free.
+
 .EXAMPLE
-  .\rehearse-awnix.ps1                     # export current image, import, verify
+  .\rehearse-awnix.ps1                     # export, import as awnix-rehearse, verify
   .\rehearse-awnix.ps1 -Build              # rebuild the image first
-  .\rehearse-awnix.ps1 -Name awnix-test    # a throwaway alongside the real one
+  .\rehearse-awnix.ps1 -Name awnix-test    # another throwaway name
   .\rehearse-awnix.ps1 -SelfTest
 #>
 [CmdletBinding()]
 param(
     [string]$Image = 'localhost/aitheros-fleet:latest',
-    [string]$Name  = 'awnix',
-    [string]$Distro = 'Debian',
+    # A THROWAWAY name. The fleet's own name is refused below, whatever is passed.
+    [string]$Name  = 'awnix-rehearse',
+    # The distro that runs the export (it needs podman + the image). It must NOT be
+    # the fleet distro: the import requires the fleet Stopped, and an export there
+    # would boot it without its data disk. Empty = the fleet name, which is refused
+    # with a message naming this parameter.
+    [string]$Distro = '',
     [switch]$Build,
     # Run ONLY the assertion against an already-imported distro. The identity probe
     # (pid1 / podman / unit count) was run standalone three times in one session
@@ -47,6 +63,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $Here 'awnix-distro-guards.ps1')
+if (-not $Distro) { $Distro = Get-AitherFleetDistro }
 function Say  { param([string]$m) Write-Host "  $m" }
 function Fail { param([string]$m) Write-Host "  FAIL: $m" -ForegroundColor Red; exit 1 }
 # Exit 2 is "could not judge", and it is a DIFFERENT answer from exit 1. Collapsing
@@ -69,6 +87,11 @@ if ($SelfTest) {
     # The wedge detector must fire on the real string, and not on ordinary output.
     if (-not (Wedged 'Catastrophic failure')) { Write-Host '  SELFTEST: wedge detector missed the real string'; $ok = $false }
     if (Wedged 'pid1=systemd')                { Write-Host '  SELFTEST: wedge detector cried wolf'; $ok = $false }
+    if ((Invoke-AwnixGuardSelfTest) -ne 0)    { Write-Host '  SELFTEST: a refusal guard failed'; $ok = $false }
+    # The default must never be the fleet's name, whatever the fleet is called.
+    $src = Get-Content -LiteralPath (Join-Path $Here 'rehearse-awnix.ps1') -Raw
+    if ($src -notmatch "\[string\]\`$Name\s*=\s*'awnix-rehearse'") { Write-Host '  SELFTEST: -Name no longer defaults to awnix-rehearse'; $ok = $false }
+    if ($src -match "--unregister',\s*'awnix'") { Write-Host '  SELFTEST: a literal unregister of awnix is back'; $ok = $false }
     Write-Host ("  SELF-TEST: " + $(if ($ok) { 'PASS' } else { 'FAIL' }))
     exit $(if ($ok) { 0 } else { 1 })
 }
@@ -94,13 +117,38 @@ function Assert-FleetHost {
     Say 'OK: systemd is PID 1 and podman is present'
 }
 
-if ($VerifyOnly) { Assert-FleetHost -DistroName $Name; exit 0 }
+function Refuse { param([string]$m) Write-Host "  REFUSED: $m" -ForegroundColor Red; exit 1 }
+
+if ($VerifyOnly) {
+    # Booting a non-fleet distro to probe it IS starting a second distro.
+    $co = Test-AwnixCotenancy -Name $Name
+    if ($co) { Refuse $co }
+    Assert-FleetHost -DistroName $Name; exit 0
+}
+
+# Every refusal is judged BEFORE anything is built, exported or deleted.
+$why = Test-AwnixDistroProtected -Name $Name
+if ($why) { Refuse "will not unregister or replace '$Name': $why" }
+$co = Test-AwnixCotenancy -Name $Name
+if ($co) { Refuse "will not import '$Name': $co" }
+# The co-tenancy rule above just proved the fleet distro is STOPPED. Building or
+# exporting inside it would boot it -- WITHOUT its data disk (only the
+# AitherOS-AttachFleetData task mounts that), so every unit starts on empty data
+# dirs -- and the import below would then refuse anyway, because the fleet is now
+# Running. So the export distro must be another podman-capable distro.
+if ($Distro -ieq (Get-AitherFleetDistro)) {
+    Refuse "-Distro '$Distro' is the fleet distro: exporting there would boot the stopped fleet without its data disk, and the import would then be refused. Pass -Distro <another distro with podman and the image>."
+}
+
+$StageRoot = Resolve-AwnixStageRoot
+$StageWsl  = ConvertTo-AwnixWslPath $StageRoot
+Say "stage dir: $StageRoot (AITHER_WSL_STAGE_DIR)"
 
 if ($Build) {
     Say "building $Image"
     # --dns: build containers inherit the host's Tailscale-only resolver and cannot
     # reach it, so public names fail while the fleet's own containers resolve fine.
-    $b = Wsl-Text @('-d', $Distro, '-u', 'root', 'sh', '-c',
+    $b = Wsl-Text @('-d', $Distro, '-u', 'root', '--', 'sh', '-c',
         "cd /mnt/c/AitherOS-Fresh/.DEPLOYMENT/standalone/bootc && podman build --dns 10.89.0.1 -t $Image -f Containerfile.aitheros-fleet . 2>&1 | tail -3")
     if (Wedged $b) { Fail 'WSL is wedged (E_UNEXPECTED); nothing was changed' }
     if ($b -notmatch 'Successfully tagged') { Say $b; Fail 'build did not tag an image' }
@@ -108,24 +156,36 @@ if ($Build) {
 }
 
 # Idempotent: a previous rehearsal must not make this one fail. Unregistering a
-# distro whose only content came from an image is not destructive -- the image is
-# the source of truth, which is the whole property the cutover is buying.
+# THROWAWAY whose only content came from an image is not destructive -- the image is
+# the source of truth. The guards above already refused the fleet and any
+# registration holding cutover state; they are re-asserted here, at the call.
 $existing = Wsl-Text @('-l', '-q')
 if ($existing -split "`r?`n" | Where-Object { $_.Trim() -eq $Name }) {
-    Say "unregistering existing '$Name'"
+    $why = Test-AwnixDistroProtected -Name $Name
+    if ($why) { Refuse "will not unregister '$Name': $why" }
+    Say "unregistering the previous throwaway '$Name'"
     $null = Wsl-Text @('--unregister', $Name)
 }
 
+# The export's free-space check runs inside awnix-to-wsl.sh (it knows the image size).
 Say "exporting $Image"
-$e = Wsl-Text @('-d', $Distro, '-u', 'root', 'sh', '-c',
-    "cd /mnt/c/AitherOS-Fresh/.DEPLOYMENT/standalone/bootc && sh awnix-to-wsl.sh --image '$Image' --name '$Name'")
+$e = Wsl-Text @('-d', $Distro, '-u', 'root', '--', 'sh', '-c',
+    "cd /mnt/c/AitherOS-Fresh/.DEPLOYMENT/standalone/bootc && AITHER_WSL_STAGE_DIR='$StageWsl' sh awnix-to-wsl.sh --image '$Image' --name '$Name'")
 if (Wedged $e) { Fail 'WSL is wedged (E_UNEXPECTED) during export' }
 if ($e -notmatch 'exported (\d+) bytes') { Say $e; Fail 'export did not report a byte count' }
-Say ("exported " + $Matches[1] + " bytes")
+$tarBytes = [int64]$Matches[1]
+Say ("exported $tarBytes bytes")
 
-$tar = "C:/AitherOS-Data/wsl/$Name-rootfs.tar"
-$dir = "C:/AitherOS-Data/wsl/$Name"
+$tar = "$StageRoot/$Name-rootfs.tar"
+$dir = "$StageRoot/$Name"
 if (-not (Test-Path $tar)) { Fail "the export produced no tarball at $tar" }
+
+# The import writes an ext4.vhdx at least the size of the tarball, on the same drive.
+$space = Test-AwnixFreeSpacePure -FreeBytes (Get-AwnixFreeBytes $StageRoot) -NeedBytes $tarBytes -Where $StageRoot
+if ($space) { Refuse "will not import: $space" }
+# The fleet may have come up while the export ran; judge co-tenancy AT the import.
+$co = Test-AwnixCotenancy -Name $Name
+if ($co) { Refuse "will not import '$Name': $co" }
 
 Say "importing as '$Name'"
 & wsl.exe --import $Name $dir $tar --version 2 | Out-Null
