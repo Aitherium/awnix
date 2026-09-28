@@ -40,6 +40,11 @@ sources:
     # `parts:` is concatenated back in order before use, and the join is verified
     # against sha256 when one is recorded.
 
+# BONSAI 1 FILES ARE THE PQ2_0 GGUFS (2026-09-27). The PrismML build every awnix
+# image pins (prism-b10685) reads `Q2_0` as the upstream group-64 format and REFUSES the
+# legacy group-128 Q2_0 files ("use the PQ2_0 version of this model (ggml type id
+# 142)"). Same bytes per weight, same size, a different type id.
+
 # ── the default ladder ──────────────────────────────────────────────────────────────
 # Bonsai only. The selector takes the LARGEST whose weights fit HALF the detected
 # budget -- half because llama.cpp needs room for the KV cache and context on top, and
@@ -60,37 +65,39 @@ defaults:
 models:
   bonsai-1.7b:
     source: huggingface
-    path: "Ternary-Bonsai-1.7B-gguf/resolve/main/Ternary-Bonsai-1.7B-Q2_0.gguf"
-    file: "Ternary-Bonsai-1.7B-Q2_0.gguf"
+    path: "Ternary-Bonsai-1.7B-gguf/resolve/main/Ternary-Bonsai-1.7B-PQ2_0.gguf"
+    file: "Ternary-Bonsai-1.7B-PQ2_0.gguf"
     size_mb: 441
     size_bytes: 463290464
-    sha256: "d97d94eb564590c9f0300e54d3f87bbbb25a78693d0ade9f6e177973dcb8228a"
-    quant: Q2_0
+    sha256: "de68ba48a8dacb21979915991e7741b917869d71410a370df951c0c3a237ae50"
+    quant: PQ2_0
     note: "Runs on a phone-class GPU or plain CPU. The floor of the ladder."
 
   bonsai-4b:
     source: huggingface
-    path: "Ternary-Bonsai-4B-gguf/resolve/main/Ternary-Bonsai-4B-Q2_0.gguf"
-    file: "Ternary-Bonsai-4B-Q2_0.gguf"
+    path: "Ternary-Bonsai-4B-gguf/resolve/main/Ternary-Bonsai-4B-PQ2_0.gguf"
+    file: "Ternary-Bonsai-4B-PQ2_0.gguf"
     size_mb: 1025
     size_bytes: 1074969344
-    sha256: "4e0bf8b737b0431552f8c2c97695ab7c0cb214c94bcdeb4f5f267e67ddf28b8b"
-    quant: Q2_0
+    sha256: "829abec7eb92f5bf464762be7c9e8a45d777c714543a1474fc90cee20e698beb"
+    quant: PQ2_0
     note: "The 4 GB-card model — a GTX 1050 Ti lands here."
 
   bonsai-8b:
     source: huggingface
-    path: "Ternary-Bonsai-8B-gguf/resolve/main/Ternary-Bonsai-8B-Q2_0.gguf"
-    file: "Ternary-Bonsai-8B-Q2_0.gguf"
+    path: "Ternary-Bonsai-8B-gguf/resolve/main/Ternary-Bonsai-8B-PQ2_0.gguf"
+    file: "Ternary-Bonsai-8B-PQ2_0.gguf"
+    sha256: "1376f942aa90e60f7b570c1d81b3916fea1315ff85aa1c4d19006af68fb4b922"
     size_mb: 2081
-    quant: Q2_0
+    quant: PQ2_0
 
   bonsai-27b:
     source: huggingface
-    path: "Ternary-Bonsai-27B-gguf/resolve/main/Ternary-Bonsai-27B-Q2_0.gguf"
-    file: "Ternary-Bonsai-27B-Q2_0.gguf"
+    path: "Ternary-Bonsai-27B-gguf/resolve/main/Ternary-Bonsai-27B-PQ2_0.gguf"
+    file: "Ternary-Bonsai-27B-PQ2_0.gguf"
+    sha256: "e4781999f1997ef97ce0c58d05750835acc999d18d83ee6489ba7ac7b14cb5f6"
     size_mb: 6833
-    quant: Q2_0
+    quant: PQ2_0
     note: >-
       Bonsai 1. Off the default ladder since 2026-09-26 (bonsai2-27b replaces it);
       still fetchable with --model bonsai-27b.

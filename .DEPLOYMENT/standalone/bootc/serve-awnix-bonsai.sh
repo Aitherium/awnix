@@ -198,6 +198,11 @@ for _so in "$BINDIR"/libggml*.so*; do
 done
 
 pkill -f "$BIN" 2>/dev/null || true
+# ggml ALSO scans the current directory. On an installed bootc system /opt can be
+# read-only, the symlinks above then fail silently (|| true), and nothing loads.
+# Starting from the binary's own directory makes that scan find the backends
+# either way (measured 2026-09-27 on ghcr.io/aitherium/awnix-ai-full:2026.09.27).
+cd "$BINDIR" || die "cannot enter $BINDIR"
 # shellcheck disable=SC2086
 sudo -u "$BONSAI_USER" bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $SERVE_ARGS >/opt/bonsai/server.log 2>&1 &"
 
