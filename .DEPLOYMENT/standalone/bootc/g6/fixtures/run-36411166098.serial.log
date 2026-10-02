@@ -1,0 +1,88 @@
+# G6 markers from hosted run 36411166098 job g6-proof (none), serial.log filtered to lines containing G6.
+# Each marker appears twice (ttyS0 + /dev/kmsg); the parser must count each boot once.
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=1 role=n
+[    5.619713] G6-MARK: boot=1 role=n
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof agent (upg…e, rollback, greenboot fallback)...
+G6: boot=1 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=none phase=init sentinel=ok role=n
+[    6.644557] G6: boot=1 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=none phase=init sentinel=ok role=n
+G6-PLAN: steps=upgrade,rollback,fallback greenboot_max=3 grub_counting=present inject=none
+[    6.660233] G6-PLAN: steps=upgrade,rollback,fallback greenboot_max=3 grub_counting=present inject=none
+G6-WANT: stable=n1
+[    6.666516] G6-WANT: stable=n1
+[  OK  ] Stopped awnix G6 proof agent (upgrade, rollback, greenboot fallback).
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=2 role=n
+[    5.123895] G6-MARK: boot=2 role=n
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof agent (upg…e, rollback, greenboot fallback)...
+G6: boot=2 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=none phase=upgrade sentinel=ok role=n
+[    6.019795] G6: boot=2 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=none phase=upgrade sentinel=ok role=n
+G6-STEP: upgrade rc=0
+[   21.044277] G6-STEP: upgrade rc=0
+[  OK  ] Stopped awnix G6 proof agent (upgrade, rollback, greenboot fallback).
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=3 role=n1
+[    5.103577] G6-MARK: boot=3 role=n1
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof agent (upg…e, rollback, greenboot fallback)...
+G6: boot=3 booted=sha256:e70aaebcbed2606d0eb07caa3f407bdf9f8c8b2908860c7c068fc56c54bc134f staged=none rollback=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c phase=verify-upgrade sentinel=ok role=n1
+[    6.023253] G6: boot=3 booted=sha256:e70aaebcbed2606d0eb07caa3f407bdf9f8c8b2908860c7c068fc56c54bc134f staged=none rollback=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c phase=verify-upgrade sentinel=ok role=n1
+G6-STEP: rollback rc=0 via=bootc
+[    7.102702] G6-STEP: rollback rc=0 via=bootc
+[  OK  ] Stopped awnix G6 proof agent (upgrade, rollback, greenboot fallback).
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=4 role=n
+[    5.099663] G6-MARK: boot=4 role=n
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof agent (upg…e, rollback, greenboot fallback)...
+G6: boot=4 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=sha256:e70aaebcbed2606d0eb07caa3f407bdf9f8c8b2908860c7c068fc56c54bc134f phase=verify-rollback sentinel=ok role=n
+[    5.997156] G6: boot=4 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=sha256:e70aaebcbed2606d0eb07caa3f407bdf9f8c8b2908860c7c068fc56c54bc134f phase=verify-rollback sentinel=ok role=n
+G6-WANT: stable=n2
+[    6.009885] G6-WANT: stable=n2
+[  OK  ] Stopped awnix G6 proof agent (upgrade, rollback, greenboot fallback).
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=5 role=n
+[    5.102658] G6-MARK: boot=5 role=n
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof agent (upg…e, rollback, greenboot fallback)...
+G6: boot=5 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=sha256:e70aaebcbed2606d0eb07caa3f407bdf9f8c8b2908860c7c068fc56c54bc134f phase=stage-n2 sentinel=ok role=n
+[    6.010937] G6: boot=5 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=sha256:e70aaebcbed2606d0eb07caa3f407bdf9f8c8b2908860c7c068fc56c54bc134f phase=stage-n2 sentinel=ok role=n
+G6-STAGE: n2 rc=0
+[   20.153063] G6-STAGE: n2 rc=0
+[  OK  ] Stopped awnix G6 proof agent (upgrade, rollback, greenboot fallback).
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=6 role=n2
+[    5.232056] G6-MARK: boot=6 role=n2
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=7 role=n2
+[    5.212825] G6-MARK: boot=7 role=n2
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=8 role=n2
+[    5.135404] G6-MARK: boot=8 role=n2
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=9 role=n2
+[    5.902305] G6-MARK: boot=9 role=n2
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof agent (upg…e, rollback, greenboot fallback)...
+G6: boot=9 booted=sha256:3d51562b3da34d850b82b504cee626537c33ce6d9befd50244fe1edb4b599273 staged=none rollback=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c phase=awaiting-fallback sentinel=ok role=n2
+[    6.807794] G6: boot=9 booted=sha256:3d51562b3da34d850b82b504cee626537c33ce6d9befd50244fe1edb4b599273 staged=none rollback=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c phase=awaiting-fallback sentinel=ok role=n2
+G6: still on n2 after 4 boot(s); rebooting to give greenboot its count
+[    6.816687] G6: still on n2 after 4 boot(s); rebooting to give greenboot its count
+[  OK  ] Stopped awnix G6 proof agent (upgrade, rollback, greenboot fallback).
+         Starting awnix G6 proof boot marker...
+G6-MARK: boot=10 role=n
+[    4.561380] G6-MARK: boot=10 role=n
+[  OK  ] Finished awnix G6 proof boot marker.
+         Starting awnix G6 proof agent (upg…e, rollback, greenboot fallback)...
+G6: boot=10 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=sha256:3d51562b3da34d850b82b504cee626537c33ce6d9befd50244fe1edb4b599273 phase=awaiting-fallback sentinel=ok role=n
+[    5.689529] G6: boot=10 booted=sha256:885da2416933acceac575bc37812d41d9368711e26c3469ff4aa09e3e86a527c staged=none rollback=sha256:3d51562b3da34d850b82b504cee626537c33ce6d9befd50244fe1edb4b599273 phase=awaiting-fallback sentinel=ok role=n
+G6-STEP: fallback rc=0 n2_boots=4
+[    5.698241] G6-STEP: fallback rc=0 n2_boots=4
+G6-END
+[    5.712665] G6-END
+[  OK  ] Stopped awnix G6 proof agent (upgrade, rollback, greenboot fallback).

@@ -1,0 +1,15 @@
+# /usr/lib/awsh/shell.yaml -- vendor defaults for awsh on awnix.
+#
+# Lowest layer of the awsh config. Precedence, lowest to highest:
+#   /usr/lib/awsh/shell.yaml < /usr/lib/awsh/shell.d/*.yaml (lexical)
+#   < /etc/awsh/shell.yaml < ~/.aither/shell.yaml < environment
+# Flat `key: value` only. Override in /etc/awsh/shell.yaml, never edit this file
+# (it is replaced on every image update).
+#
+# offline: true means awsh never tries a cloud endpoint. Every URL here is loopback.
+offline: true
+inference_mode: raw
+llm_url: http://127.0.0.1:8199/v1
+identity_url: http://127.0.0.1:8115
+harness_url: http://127.0.0.1:8362
+default_agent: aither

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "id": "updates",
+  "title": "Update channel",
+  "why": "This machine checks for signed updates about every six hours and only ever installs an image whose signature it has verified. Stable moves only after an upgrade-and-rollback proof has passed; beta gets every build first. Updates are staged and wait for a restart unless you turn on automatic restarts in the next step. Change it any time with `awnix update channel stable|beta` or the console's Updates tab.",
+  "kind": "choice",
+  "options": [
+    {"value": "stable", "label": "Stable (recommended)", "detail": "Proven builds only: each one passed the upgrade and rollback drill before it reached this channel."},
+    {"value": "beta", "label": "Beta", "detail": "Every build as soon as it is published and signed, before it is proven. For test machines."}
+  ],
+  "current_cmd": ["awnix", "update", "channel"],
+  "apply_cmd": ["awnix", "update", "channel", "{value}"],
+  "required": false,
+  "timeout_s": 30
+}

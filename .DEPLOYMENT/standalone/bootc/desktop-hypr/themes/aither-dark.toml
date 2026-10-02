@@ -1,0 +1,58 @@
+# awnix theme: Aither Dark. The Aitherium dark-glass palette -- the awnix default.
+# One file per theme; `awnix-theme set aither-dark` renders every surface from it.
+# Every key below is used by a template -- check_awnix_desktop.py fails if one is missing.
+name = "Aither Dark"
+
+[colors]
+bg = "#0b1020"
+bg_alt = "#070b16"
+surface = "#1c2540"
+overlay = "#2a3558"
+fg = "#e6f0ff"
+fg_dim = "#c8d3ea"
+muted = "#8a94b0"
+accent = "#00c8d7"
+accent_alt = "#7c5cff"
+good = "#3ddc97"
+warn = "#ffc857"
+urgent = "#ff5c7a"
+
+[ansi]
+black = "#0b1020"
+red = "#ff5c7a"
+green = "#3ddc97"
+yellow = "#ffc857"
+blue = "#4d8dff"
+magenta = "#b388ff"
+cyan = "#00c8d7"
+white = "#c8d3ea"
+bright_black = "#3a4566"
+bright_red = "#ff7a93"
+bright_green = "#62e6ae"
+bright_yellow = "#ffd67f"
+bright_blue = "#75a8ff"
+bright_magenta = "#c9a8ff"
+bright_cyan = "#4fe0ea"
+bright_white = "#e6f0ff"
+
+[font]
+mono = "JetBrains Mono"
+ui = "Noto Sans"
+size = 11
+
+[shape]
+rounding = 8
+gaps_in = 5
+gaps_out = 10
+border = 2
+inactive_opacity = 0.94
+
+[gtk]
+theme = "Adwaita-dark"
+icons = "Papirus-Dark"
+prefer_dark = true
+
+[wallpaper]
+top = "#070b16"
+bottom = "#141c36"
+glow = "#00c8d7"

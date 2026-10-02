@@ -8,9 +8,18 @@
 #   ./build-awnix-iso.sh                          # ISO from localhost/awnix:latest
 #   ./build-awnix-iso.sh --image localhost/awnix-runner-ai:latest
 #   ./build-awnix-iso.sh --type qcow2 --out /var/tmp/awnix-iso
+#   ./build-awnix-iso.sh --config iso/awnix-installer.toml   # the iso default, explicit
+#   ./build-awnix-iso.sh --no-config                          # bare builder defaults (lab only)
 #
-# Run it INSIDE the podman host (the Debian WSL2 distro here), as root:
-#   wsl -d Debian -u root /mnt/c/AitherOS-Fresh/.DEPLOYMENT/standalone/bootc/build-awnix-iso.sh
+# Run it on a Linux podman host as root -- in practice the hosted/self-hosted CI lane
+# (build-awnix-iso.yml). Never on the fleet host: the builder fills the disk the fleet
+# lives on (see the disk guard below).
+#
+# THE INSTALLER CONFIG (--config, default iso/awnix-installer.toml for --type iso). Without
+# it bootc-image-builder's default Anaconda flow wipes the first disk without asking and
+# creates no user. With it: a seed volume (AWNIX_SEED) makes the install unattended, and
+# no seed means Anaconda ASKS for the disk and the admin. Disk images (qcow2/raw/ami/...)
+# get no config: the builder applies installer kickstarts only to the ISO.
 #
 # WHY THE DISK GUARD IS NOT OPTIONAL. bootc-image-builder writes several GB of
 # intermediate osbuild artifacts before it writes the ISO, into the SAME filesystem the
@@ -25,6 +34,11 @@ TYPE="iso"
 OUT="/var/tmp/awnix-iso"
 MIN_FREE_GB=40
 BIB="quay.io/centos-bootc/bootc-image-builder:latest"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_ISO_CONFIG="$HERE/iso/awnix-installer.toml"
+CONFIG=""          # resolved below: explicit --config, else the iso default
+NO_CONFIG=0
+ISO_TAG=""
 
 # The image types bootc-image-builder can emit that we support. ONE list: it was
 # previously written twice -- in the self-test and in the runtime guard -- so the
@@ -47,6 +61,36 @@ valid_type() {
 }
 
 die() { echo "build-awnix-iso: $*" >&2; exit 1; }
+
+# The config this build uses, or "" for none. ONE function, shared by the runtime and the
+# self-test, so the self-test cannot pass an argv the real path would not produce.
+#   resolve_config TYPE EXPLICIT NO_CONFIG DEFAULT  -> path | "" | "MISSING:<path>"
+resolve_config() {
+  local _type="$1" _explicit="$2" _none="$3" _default="$4" _cfg=""
+  [ "$_none" = "1" ] && { echo ""; return; }
+  if [ -n "$_explicit" ]; then _cfg="$_explicit"
+  elif [ "$_type" = "iso" ]; then _cfg="$_default"
+  else echo ""; return; fi
+  # A RELATIVE --config is tried from the cwd, then from this script's dir: the ISO
+  # workflow passes `iso/awnix-installer.toml` from the repo root (run 36496146031
+  # refused its own shipped config as MISSING).
+  if [ ! -f "$_cfg" ] && [ "${_cfg#/}" = "$_cfg" ] && [ -f "$HERE/$_cfg" ]; then
+    _cfg="$HERE/$_cfg"
+  fi
+  if [ -f "$_cfg" ]; then echo "$_cfg"; else echo "MISSING:$_cfg"; fi
+}
+
+# Render the placeholders into a temp copy (the tracked file is never edited).
+render_config() {  # render_config SRC IMAGE TAG OUTFILE
+  sed -e "s|@@AWNIX_IMAGE_REF@@|$2|g" -e "s|@@AWNIX_ISO_TAG@@|$3|g" "$1" > "$4"
+}
+
+# The builder argv after the builder image, one per line.
+bib_args() {  # bib_args TYPE IMAGE CONFIG_IN_CONTAINER_OR_EMPTY
+  printf '%s\n' --type "$1"
+  if [ -n "$3" ]; then printf '%s\n' --config "$3"; fi
+  printf '%s\n' --local "$2"
+}
 
 # Is this file actually a bootable ISO, or merely a file whose name ends in .iso?
 #
@@ -82,8 +126,11 @@ while [ $# -gt 0 ]; do
     --type)  TYPE="${2:-}";  shift 2 ;;
     --out)   OUT="${2:-}";   shift 2 ;;
     --min-free-gb) MIN_FREE_GB="${2:-}"; shift 2 ;;
+    --config) CONFIG="${2:-}"; shift 2 ;;
+    --no-config) NO_CONFIG=1; shift ;;
+    --iso-tag) ISO_TAG="${2:-}"; shift 2 ;;
     --self-test) SELFTEST=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,29p' "$0"; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
 done
@@ -141,8 +188,33 @@ if [ "${SELFTEST:-0}" = "1" ]; then
   chk "$(valid_type sandwich)" "no" "an unknown type is refused"
   chk "$(valid_type "iso qcow2")" "no" "the whole list is not itself a valid type"
 
+  # --config: the iso argv carries it, a disk image's does not, a missing one is refused.
+  _t="$(mktemp -d)"; : > "$_t/cfg.toml"
+  chk "$(resolve_config iso '' 0 "$_t/cfg.toml")" "$_t/cfg.toml" "iso defaults to the installer config"
+  chk "$(resolve_config qcow2 '' 0 "$_t/cfg.toml")" "" "qcow2 gets no installer config"
+  chk "$(resolve_config ami '' 0 "$_t/cfg.toml")" "" "ami gets no installer config"
+  chk "$(resolve_config iso '' 1 "$_t/cfg.toml")" "" "--no-config means none"
+  chk "$(resolve_config iso '' 0 "$_t/nope.toml")" "MISSING:$_t/nope.toml" "a missing iso config is refused, not skipped"
+  chk "$(resolve_config iso "$_t/nope.toml" 0 "$_t/cfg.toml")" "MISSING:$_t/nope.toml" "a missing --config is refused"
+  chk "$(cd /; resolve_config iso iso/awnix-installer.toml 0 x)" "$HERE/iso/awnix-installer.toml" "a relative --config resolves against the script dir"
+  chk "$(cd /; resolve_config iso iso/no-such.toml 0 x)" "MISSING:iso/no-such.toml" "...and a relative one that exists nowhere is still refused"
+  chk "$(bib_args iso IMG /config.toml | tr '\n' ' ')" "--type iso --config /config.toml --local IMG " "iso argv carries --config"
+  chk "$(bib_args qcow2 IMG '' | tr '\n' ' ')" "--type qcow2 --local IMG " "qcow2 argv has no --config"
+  printf 'ref=@@AWNIX_IMAGE_REF@@ tag=@@AWNIX_ISO_TAG@@\n' > "$_t/in.toml"
+  render_config "$_t/in.toml" "ghcr.io/aitherium/awnix:stable" "awnix-iso-2026.09.27" "$_t/out.toml"
+  chk "$(cat "$_t/out.toml")" "ref=ghcr.io/aitherium/awnix:stable tag=awnix-iso-2026.09.27" "placeholders render into a copy"
+  chk "$(grep -c '@@AWNIX' "$_t/in.toml")" "1" "...and the source file is untouched"
+  chk "$([ -f "$DEFAULT_ISO_CONFIG" ] && echo present || echo absent)" "present" "the shipped iso/awnix-installer.toml exists"
+  rm -rf "$_t"
+
   [ "$fail" = "0" ] && { echo "SELF-TEST PASS"; exit 0; } || { echo "SELF-TEST FAILED"; exit 1; }
 fi
+
+CFG="$(resolve_config "$TYPE" "$CONFIG" "$NO_CONFIG" "$DEFAULT_ISO_CONFIG")"
+case "$CFG" in
+  MISSING:*) die "installer config not found: ${CFG#MISSING:} -- refusing to build an ISO whose
+  installer would wipe the first disk without asking (pass --no-config only for a lab build)" ;;
+esac
 
 [ "$(valid_type "$TYPE")" = "yes" ] || die "unsupported --type '$TYPE' (one of: $AWNIX_TYPES)"
 command -v podman >/dev/null 2>&1 || die "podman not on PATH -- run this inside the podman host"
@@ -165,7 +237,19 @@ echo "build-awnix-iso"
 echo "  image : $IMAGE"
 echo "  type  : $TYPE"
 echo "  out   : $OUT  (${FREE_GB}GB free)"
+echo "  config: ${CFG:-none}"
 echo
+
+CFG_MOUNT=()
+CFG_IN=""
+if [ -n "$CFG" ]; then
+  RENDERED="$(mktemp /var/tmp/awnix-installer.XXXXXX.toml)" || die "cannot create a temp config"
+  render_config "$CFG" "$IMAGE" "${ISO_TAG:-$(date -u +%Y.%m.%d)}" "$RENDERED" || die "cannot render $CFG"
+  trap 'rm -f "$RENDERED"' EXIT
+  CFG_MOUNT=(-v "$RENDERED":/config.toml:ro)
+  CFG_IN=/config.toml
+fi
+mapfile -t BIB_ARGS < <(bib_args "$TYPE" "$IMAGE" "$CFG_IN")
 
 START=$(date +%s)
 # --network=host: bootc-image-builder DEPSOLVES against the CentOS mirrors, so the
@@ -186,8 +270,9 @@ podman run --rm --privileged \
   --security-opt label=type:unconfined_t \
   -v /var/lib/containers/storage:/var/lib/containers/storage \
   -v "$OUT":/output \
+  "${CFG_MOUNT[@]}" \
   "$BIB" \
-  --type "$TYPE" --local "$IMAGE"
+  "${BIB_ARGS[@]}"
 rc=$?
 ELAPSED=$(( $(date +%s) - START ))
 

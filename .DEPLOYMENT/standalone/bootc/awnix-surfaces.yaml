@@ -1,0 +1,494 @@
+# awnix-surfaces.yaml -- which user-facing surface ships in which image, and how.
+#
+# FORMAT: a JSON document with full-line '#' comments. That is valid YAML, and it is
+# what the stdlib can read on the box: awnix-console serves the `surfaces` tab from the
+# installed copy (/usr/share/awnix/surfaces.yaml) with no PyYAML. Keep it JSON.
+#
+# delivery, per variant and surface:
+#   baked          in the image. check_awnix_surfaces AWS002 proves it through the
+#                  Containerfile FROM chain (surface_catalog.<id>.baked_proof, all regexes).
+#   image-private  pulled from a private ghcr package, ONLY with the registry credential
+#                  `aitheros license refresh` mints from an activated license.
+#   link           a hosted URL (host must be in public_hosts, AWS005) or a local
+#                  http://<host>:<port> link; <host> is filled from the request.
+#   absent         not offered.
+#
+# Rules the checker holds (AWS001-AWS007): rows == awnix-variants.yaml; no BUSL or
+# commercial surface baked into a publish:true variant; Living Desktop, AOL and Veil
+# are link-only on every public variant. awnix-desktop-open and awnix-dev carry no
+# console in v1 (D-2662): desktop-open is FROM fedora-bootc and inherits none of
+# Containerfile.awnix, and awnix-dev is the internal sandbox image.
+#
+# cli_contract: dispatcher verb -> the gap that owns /usr/libexec/awnix/awnix-<verb>.
+# cli_sources:  binary name in awnix_console/actions.py -> its source in this directory;
+#               AWS006 runs `<source> --list-verbs` to prove every allowlisted verb exists.
+{
+  "version": 1,
+  "public_hosts": [
+    "aitherium.com",
+    "www.aitherium.com",
+    "desktop.aitherium.com",
+    "docs.aitherium.com",
+    "api.aitherium.com"
+  ],
+  "surface_catalog": {
+    "console": {
+      "label": "Appliance console",
+      "licence": "Apache-2.0",
+      "description": "This page: setup, activation, updates, components.",
+      "baked_proof": [
+        "awnix-console",
+        "systemctl enable[^\n]*awnix-console\\.service"
+      ]
+    },
+    "awsh": {
+      "label": "awsh",
+      "licence": "Apache-2.0",
+      "command": "awsh",
+      "description": "The terminal agent. Run it from an SSH session.",
+      "baked_proof": [
+        "npm install -g[^\n]*@aitherium/awsh"
+      ]
+    },
+    "awdesk": {
+      "label": "AitherDesktop",
+      "licence": "BUSL-1.1",
+      "description": "The desktop overlay. Delivered by a license-gated private pull.",
+      "baked_proof": [
+        "COPY --from=deskapp"
+      ]
+    },
+    "living_desktop": {
+      "label": "Living Desktop",
+      "licence": "BUSL-1.1",
+      "url": "https://desktop.aitherium.com",
+      "description": "The hosted Living Desktop.",
+      "baked_proof": [
+        "__never_baked_in_v1__"
+      ]
+    },
+    "aol": {
+      "label": "AOL",
+      "licence": "BUSL-1.1",
+      "url": "https://aitherium.com",
+      "description": "The hosted AitherOS portal.",
+      "baked_proof": [
+        "__never_baked_in_v1__"
+      ]
+    },
+    "veil": {
+      "label": "Veil",
+      "licence": "BUSL-1.1",
+      "url": "https://aitherium.com",
+      "description": "The hosted Veil dashboard.",
+      "baked_proof": [
+        "__never_baked_in_v1__"
+      ]
+    },
+    "gargbot_ui": {
+      "label": "GargBot",
+      "licence": "commercial",
+      "description": "The GargBot product on this box.",
+      "baked_proof": [
+        "COPY \\.gargbot-backend /opt/gargbot/backend"
+      ]
+    }
+  },
+  "cli_contract": {
+    "update": "updates",
+    "component": "components",
+    "license": "activation",
+    "setup": "installer-setup",
+    "console": "console-surfaces",
+    "endpoints": "portability",
+    "doctor": "console-surfaces"
+  },
+  "cli_sources": {
+    "awnix-update": "awnix-update.sh",
+    "awnix-component": "awnix-component.py",
+    "awnix-endpoints": "awnix-endpoints.py",
+    "awnix-setup": "awnix-setup.py",
+    "aitheros": "aitheros-cli.py",
+    "awnix-console": "awnix-console.py",
+    "awnix-mesh": "awnix-mesh.py",
+    "awnix-renewal": "awnix-renewal.py",
+    "awnix-offline-update": "awnix-offline-update.py"
+  },
+  "image_containerfiles": {
+    "localhost/awnix-base:latest": "Containerfile.awnix",
+    "localhost/awnix-runner:latest": "Containerfile.awnix-runner",
+    "localhost/awnix-runner-ai:latest": "Containerfile.awnix-runner-ai",
+    "localhost/awnix-full:latest": "Containerfile.awnix-full",
+    "localhost/awnix-ai-full:latest": "Containerfile.awnix-ai-full",
+    "localhost/aitheros-bootc-base:latest": "Containerfile.base",
+    "localhost/aitheros-bootc-desktop:latest": "Containerfile.desktop",
+    "localhost/aitheros-bootc-gpu:latest": "Containerfile.gpu-nvidia"
+  },
+  "variants": {
+    "awnix": {
+      "console": {
+        "bind": "auto",
+        "profile": "awnix",
+        "brand": "awnix"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "image-private"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "awnix-ai": {
+      "console": {
+        "bind": "auto",
+        "profile": "awnix",
+        "brand": "awnix"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "image-private"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "awnix-full": {
+      "console": {
+        "bind": "auto",
+        "profile": "awnix",
+        "brand": "awnix"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "image-private"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "awnix-ai-full": {
+      "console": {
+        "bind": "auto",
+        "profile": "awnix",
+        "brand": "awnix"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "image-private"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "awnix-desktop": {
+      "console": {
+        "bind": "auto",
+        "profile": "awnix",
+        "brand": "awnix desktop"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "baked"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "awnix-desktop-open": {
+      "console": {
+        "bind": "absent",
+        "profile": "none",
+        "brand": "none",
+        "debt": "D-2662",
+        "reason": "does not inherit Containerfile.awnix's license/update/console plane in v1"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "absent"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "absent"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "awnix-hypr": {
+      "console": {
+        "bind": "127.0.0.1",
+        "profile": "awnix",
+        "brand": "awnix"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "absent"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "gobbonet-appliance": {
+      "console": {
+        "bind": "auto",
+        "profile": "gobbonet",
+        "brand": "GobboNet"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "image-private"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "garg-appliance": {
+      "console": {
+        "bind": "0.0.0.0",
+        "profile": "garg",
+        "brand": "GargBot"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "image-private"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "baked",
+          "url": "https://<host>:8900"
+        }
+      }
+    },
+    "awnix-dev": {
+      "console": {
+        "bind": "absent",
+        "profile": "none",
+        "brand": "none",
+        "debt": "D-2662",
+        "reason": "does not inherit Containerfile.awnix's license/update/console plane in v1"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "absent"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "absent"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "aitheros-cloud": {
+      "console": {
+        "bind": "auto",
+        "profile": "aitheros",
+        "brand": "AitherOS"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "image-private"
+        },
+        "living_desktop": {
+          "delivery": "image-private"
+        },
+        "aol": {
+          "delivery": "image-private"
+        },
+        "veil": {
+          "delivery": "image-private"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
+    "aitheros": {
+      "console": {
+        "bind": "auto",
+        "profile": "aitheros",
+        "brand": "AitherOS"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "baked"
+        },
+        "awsh": {
+          "delivery": "baked"
+        },
+        "awdesk": {
+          "delivery": "image-private"
+        },
+        "living_desktop": {
+          "delivery": "image-private"
+        },
+        "aol": {
+          "delivery": "image-private"
+        },
+        "veil": {
+          "delivery": "image-private"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+# /usr/lib/systemd/user/awsh-agent.service -- the local agent daemon awsh talks to.
+#
+# 127.0.0.1:9001, offline (no gateway, no portal, no mesh join at startup). The model
+# URL comes from the awsh config layers: `awnix awsh first-run` resolves llm_url
+# (vendor /usr/lib/awsh/shell.yaml, shell.d/, /etc/awsh/shell.yaml, ~/.aither/shell.yaml)
+# and writes it to ~/.aither/awsh-agent.env, which systemd reads just before ExecStart.
+[Unit]
+Description=awsh local agent daemon (loopback 127.0.0.1:9001, offline)
+Documentation=man:awnix-awsh(8)
+# No After=default.target: WantedBy=default.target already orders the target
+# after this unit, so the pair would be an ordering cycle.
+
+[Service]
+Type=simple
+Environment=AITHER_OFFLINE=1
+Environment=AITHER_HOST=127.0.0.1
+Environment=AITHER_PORT=9001
+Environment=AITHER_LLM_BACKEND=vllm
+Environment=AITHER_LLM_BASE_URL=http://127.0.0.1:8199/v1
+Environment=AITHER_LLM_STRICT_BASE_URL=1
+Environment=AITHER_PREFER_LOCAL=true
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=-/usr/libexec/awnix/awnix-awsh first-run --quiet
+EnvironmentFile=-%h/.aither/awsh-agent.env
+ExecStart=/usr/bin/python3.11 -m adk.server --host 127.0.0.1 --port 9001 --backend vllm --identity aither
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

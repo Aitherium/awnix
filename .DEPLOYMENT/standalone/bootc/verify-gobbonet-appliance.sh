@@ -49,15 +49,18 @@ python3.11 -c "from adk.packs.gobbonet import campaign_memory, cards, retrieval"
 python3.11 -c "import awm" 2>/dev/null && ok "awm (scoped memory)" || bad "awm missing"
 command -v adk >/dev/null && ok "adk on PATH" || bad "adk not on PATH"
 
-# 6. the aw* stack
-python3.11 - <<'PY'
-mods = ["awgit","awgraph","awrelay","awm","awshare","awnode","awprism","awreason","awrecurse","awrepl","awsync"]
+# 6. the aw* stack. No `awsync`: its PyPI name is a third party's and ours ships
+# inside AitherConnect, so no image installs it (D-2700; AVW008 keeps it out).
+# A missing module now COUNTS toward $fail -- it used to print FAIL and exit 0.
+python3.11 - <<'PY' || fail=$((fail+1))
+mods = ["awgit","awgraph","awrelay","awm","awshare","awnode","awprism","awreason","awrecurse","awrepl"]
 missing = []
 for m in mods:
     try: __import__(m)
     except Exception: missing.append(m)
 print(("  ok   aw* stack: %d/%d import" % (len(mods)-len(missing), len(mods))) if not missing
       else ("  FAIL aw* missing: " + ", ".join(missing)))
+raise SystemExit(1 if missing else 0)
 PY
 
 echo

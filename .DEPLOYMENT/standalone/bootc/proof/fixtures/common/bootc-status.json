@@ -1,0 +1,25 @@
+{
+  "apiVersion": "org.containers.bootc/v1",
+  "kind": "BootcHost",
+  "status": {
+    "booted": {
+      "image": {
+        "image": {
+          "image": "ghcr.io/aitherium/awnix:airgap",
+          "transport": "registry"
+        },
+        "imageDigest": "sha256:4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f"
+      }
+    },
+    "rollback": {
+      "image": {
+        "image": {
+          "image": "ghcr.io/aitherium/awnix:airgap",
+          "transport": "registry"
+        },
+        "imageDigest": "sha256:3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e"
+      }
+    },
+    "staged": null
+  }
+}

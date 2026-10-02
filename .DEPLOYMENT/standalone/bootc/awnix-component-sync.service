@@ -1,0 +1,27 @@
+# Re-align installed add-on components to the lock baked into the BOOTED image.
+#
+# The lock is per-image, so after `bootc upgrade` or `bootc rollback` the pins move
+# with the OS; this unit makes the installed venvs/quadlets follow on the next boot.
+# It replaces the component-sync hunks that used to live in garg-firstboot and
+# garg-update. Never fatal: exit 1 (an op failed), 2 (no lock) and 3 (not entitled)
+# are recorded, and boot continues. Prints the boot-proof serial marker
+#   awnix-components: <n> baked, <m> installed, lock <sha12>
+# to /dev/console for boot-proof-garg.sh (COMPONENTS-MISSING verdict).
+[Unit]
+Description=awnix: align add-on components to this image's lock
+Wants=network-online.target
+After=network-online.target systemd-tmpfiles-setup.service
+Before=garg-firstboot.service
+ConditionPathExists=/usr/libexec/awnix/awnix-component
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/awnix/awnix-component sync --json --serial /dev/console
+SuccessExitStatus=1 2 3
+StandardOutput=append:/var/log/awnix/components-sync.json
+StandardError=journal+console
+TimeoutStartSec=1800
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

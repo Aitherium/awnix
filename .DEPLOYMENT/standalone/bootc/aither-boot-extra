@@ -1,0 +1,14 @@
+# aither-boot-extra -- units boot starts AFTER the platform ring that are NOT in the
+# kernel/platform rings of AitherOS/config/fleet_rings.yaml. Read by aither-fleet-boot-core.sh
+# (/etc/aither-boot-extra first -- sync_boot_path.py installs it from origin/develop -- and this
+# tracked copy as the fallback). One unit per line; `#`
+# starts a comment. Before 2026-09-30 this list lived only in /etc on the host (not
+# reproducible) and the GPU units the active posture declares `on` were in no boot path.
+#
+# GPU units stay in the `models` ring (game mode must be able to park them) and boot from here.
+# check_fleet_rings.py FRG008 fails when a unit `on` in model-postures.yaml's active posture
+# is not booted; FRG006 when a `requires:` dependency is not.
+aither-orchestrator.service       # the brain (model-postures: on)
+aither-code-embed-gguf.service    # platform embedder, 1024-d, ~1.5 GB VRAM (model-postures: on)
+aither-aither-directory.service   # directory plane
+aither-worker.service             # runs every routine (embed migration, backups, probes)

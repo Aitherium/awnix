@@ -1,0 +1,48 @@
+# The awnix admin docs: every guide chapter and man page, rendered only by awman.py.
+#
+# Per-page metadata (name, section, applies_to, cli, verbs_from, verbs_mode, files_from,
+# status, debt_id) lives in each source's front matter; this file is the index and the
+# variant policy. check_awnix_docs.py (AWD001-AWD010) binds both to the code.
+#
+#   variants      every variant these docs describe (ids from awnix-variants.yaml)
+#   public        the publish:true variants the --public render keeps; nothing else
+#                 reaches the public web copy (AWD010)
+#   out_of_scope  iso:true variants these docs do not cover yet, each with a debt id
+version: 1
+
+variants: [awnix, awnix-ai, awnix-full, awnix-ai-full, gobbonet-appliance, garg-appliance, aitheros, aitheros-cloud, awnix-hypr]
+
+public: [awnix, awnix-ai, awnix-full, awnix-ai-full, gobbonet-appliance]
+
+out_of_scope:
+  awnix-desktop: D-2697
+  awnix-desktop-open: D-2697
+
+chapters:
+  - guide/01-install.md
+  - guide/02-first-boot-activation.md
+  - guide/03-users-ssh.md
+  - guide/04-networking.md
+  - guide/05-storage.md
+  - guide/06-updates-rollback-channels.md
+  - guide/07-components.md
+  - guide/08-backup-restore.md
+  - guide/09-troubleshooting.md
+  - guide/11-secure-boot-nvidia.md
+  - guide/12-mesh.md
+
+man:
+  - man/awnix.7.md
+  - man/awnix.8.md
+  - man/awnix-update.8.md
+  - man/awnix-update.conf.5.md
+  - man/awnix-component.8.md
+  - man/awnix-console.8.md
+  - man/awnix-endpoints.8.md
+  - man/awnix-setup.8.md
+  - man/awnix-seed.json.5.md
+  - man/awnix-offline-update.8.md
+  - man/awnix-mesh.8.md
+  - man/awnix-backup.8.md
+  - man/awnix-secureboot.8.md
+  - man/awnix-awsh.8.md

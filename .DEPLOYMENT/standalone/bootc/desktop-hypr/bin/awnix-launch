@@ -1,0 +1,5 @@
+#!/bin/sh
+# awnix-launch -- the application launcher (fuzzel), in the current theme.
+c="${XDG_CONFIG_HOME:-$HOME/.config}/awnix/theme/fuzzel.ini"
+[ -f "$c" ] && exec fuzzel --config="$c" "$@"
+exec fuzzel "$@"

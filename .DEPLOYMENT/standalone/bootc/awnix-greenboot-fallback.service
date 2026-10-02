@@ -1,0 +1,13 @@
+# Finish greenboot's fallback: reboot when greenboot failed this boot, a fallback is
+# armed for the next one, and greenboot itself did not reboot (greenboot 0.16.4 does
+# not, on the last attempt -- hosted G6 runs 36415942227 / 36417253922).
+# Started by OnFailure= of greenboot-healthcheck.service (awnix-greenboot-fallback.conf).
+[Unit]
+Description=awnix: reboot into the fallback deployment after a failed greenboot
+DefaultDependencies=no
+ConditionPathExists=/usr/libexec/awnix/awnix-greenboot-fallback.sh
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/awnix/awnix-greenboot-fallback.sh
+StandardOutput=journal+console

@@ -1,0 +1,24 @@
+#!/bin/sh
+# awnix-session -- what greetd starts: make sure a theme is rendered and the user's
+# override file exists (Hyprland complains about a `source =` that points at nothing),
+# then run Hyprland on the vendor config. A broken theme never blocks the login: the
+# session still starts with Hyprland's defaults, and the error is in the journal.
+set -u
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+mkdir -p "$cfg/hypr"
+if [ ! -e "$cfg/hypr/awnix-user.conf" ]; then
+    printf '%s\n' "# Your Hyprland settings. Sourced LAST, so anything here wins." \
+        "# Rebind a key:  unbind = SUPER, B   then   bind = SUPER, B, exec, chromium" \
+        > "$cfg/hypr/awnix-user.conf"
+fi
+awnix-theme ensure || echo "awnix-session: awnix-theme ensure failed" >&2
+# greetd starts this directly, not through a login shell, so /etc/profile.d is not read.
+# awsh-offline.sh keeps an awsh older than 1.19 (which reads no vendor config layer) on
+# this machine's model server too; everything Hyprland starts inherits it.
+if [ -r /etc/profile.d/awsh-offline.sh ]; then
+    set +u
+    . /etc/profile.d/awsh-offline.sh
+    set -u
+fi
+export XDG_CURRENT_DESKTOP=Hyprland XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=Hyprland
+exec Hyprland --config /usr/share/awnix/desktop/hyprland.conf

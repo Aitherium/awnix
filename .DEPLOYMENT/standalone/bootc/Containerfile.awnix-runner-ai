@@ -44,17 +44,28 @@
 # image's own libstdc++/libc/loader, and everything else that links against
 # them, is untouched.
 # ═══════════════════════════════════════════════════════════════════════════════
-FROM quay.io/centos-bootc/centos-bootc:stream10 AS newer-libstdcxx
-# Collect the five runtime files through their STABLE SONAME symlinks. This stage is a
+FROM quay.io/centos-bootc/centos-bootc:stream10@sha256:57cabe59d0332f9060a8d2768021d2c7457d855857ff2068a0566b3bd19b6cfa AS newer-libstdcxx
+# Pinned by digest from base-images.lock (G9; bump with pin_awnix_base.py --refresh).
+# Collect the five runtime files through their STABLE SONAME symlinks. This stage was a
 # FLOATING tag, and two of the files used to be copied by their versioned names
 # (libgcc_s-14-20260629.so.1, libstdc++.so.6.0.33). Upstream rebuilt gcc, the file
 # became libgcc_s-14-20260724.so.1, and every image built FROM this one -- including
 # the garg appliance -- stopped building (run 35603911911, 2026-09-21). `cp -L`
 # dereferences libgcc_s.so.1 and libstdc++.so.6, which do not change name.
-RUN mkdir -p /out && cp -L /usr/lib64/libstdc++.so.6 /usr/lib64/libgcc_s.so.1 \
-        /usr/lib64/libc.so.6 /usr/lib64/libm.so.6 /lib64/ld-linux-x86-64.so.2 /out/ \
-    && for f in libstdc++.so.6 libgcc_s.so.1 libc.so.6 libm.so.6 ld-linux-x86-64.so.2; do \
-         test -s "/out/$f" || { echo "newer-libstdcxx: $f missing upstream" >&2; exit 1; }; done
+# The loader's name is per arch (G13, check_awnix_multiarch AMA001): pick it by
+# TARGETARCH, defaulting to the build host's own arch, never to x86.
+ARG TARGETARCH
+RUN case "${TARGETARCH:-$(uname -m)}" in \
+      amd64|x86_64) LDSO=/lib64/ld-linux-x86-64.so.2 ;; \
+      arm64|aarch64) LDSO=/lib/ld-linux-aarch64.so.1 ;; \
+      *) echo "newer-libstdcxx: unsupported arch ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
+    esac; \
+    mkdir -p /out && cp -L /usr/lib64/libstdc++.so.6 /usr/lib64/libgcc_s.so.1 \
+        /usr/lib64/libc.so.6 /usr/lib64/libm.so.6 "$LDSO" /out/ \
+    && for f in libstdc++.so.6 libgcc_s.so.1 libc.so.6 libm.so.6 "$(basename "$LDSO")"; do \
+         test -s "/out/$f" || { echo "newer-libstdcxx: $f missing upstream" >&2; exit 1; }; done \
+    && set -- /out/ld-linux-*.so.* && [ "$#" -eq 1 ] \
+    || { echo "newer-libstdcxx: expected exactly one staged loader" >&2; exit 1; }
 
 FROM localhost/awnix-runner:latest
 
@@ -70,9 +81,19 @@ FROM localhost/awnix-runner:latest
 # gibberish). prism-b10687's release job failed (cudart zips only) -- do not pin it
 # until its llama-* assets exist. Same pin as install-bonsai.{sh,ps1} and assemble.sh.
 # Vulkan lane => PTQ1_0 is the Bonsai 2 format for this image (awnix-models.yaml).
+# PRISM_ASSET stays overridable; empty picks the release's vulkan asset for the
+# target arch (G13): -x64 on amd64, -arm64 on arm64, anything else fails loudly.
 ARG PRISM_RELEASE=prism-b10685-7dffb15
-ARG PRISM_ASSET=llama-prism-b10685-7dffb15-bin-ubuntu-vulkan-x64.tar.gz
-RUN mkdir -p /opt/bonsai/bin /opt/bonsai/models /opt/bonsai/lib \
+ARG PRISM_ASSET=
+ARG TARGETARCH
+RUN if [ -z "$PRISM_ASSET" ]; then \
+      case "${TARGETARCH:-$(uname -m)}" in \
+        amd64|x86_64) PRISM_ASSET="llama-${PRISM_RELEASE}-bin-ubuntu-vulkan-x64.tar.gz" ;; \
+        arm64|aarch64) PRISM_ASSET="llama-${PRISM_RELEASE}-bin-ubuntu-vulkan-arm64.tar.gz" ;; \
+        *) echo "runner-ai: no PrismML asset for arch ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
+      esac; \
+    fi \
+    && mkdir -p /opt/bonsai/bin /opt/bonsai/models /opt/bonsai/lib \
     && curl -fsSL -o /tmp/llama.tar.gz \
         "https://github.com/PrismML-Eng/llama.cpp/releases/download/${PRISM_RELEASE}/${PRISM_ASSET}" \
     && tar -xzf /tmp/llama.tar.gz -C /opt/bonsai/bin \
@@ -85,7 +106,8 @@ RUN mkdir -p /opt/bonsai/bin /opt/bonsai/models /opt/bonsai/lib \
 # base image's own libstdc++/libc/loader or anything else linked against
 # them.
 COPY --from=newer-libstdcxx /out/libstdc++.so.6 /opt/bonsai/lib/libstdc++.so.6
-COPY --from=newer-libstdcxx /out/ld-linux-x86-64.so.2 /opt/bonsai/lib/ld-linux-x86-64.so.2
+# By glob: the stage staged exactly one loader, named for the target arch.
+COPY --from=newer-libstdcxx /out/ld-linux-* /opt/bonsai/lib/
 COPY --from=newer-libstdcxx /out/libc.so.6 /opt/bonsai/lib/libc.so.6
 COPY --from=newer-libstdcxx /out/libm.so.6 /opt/bonsai/lib/libm.so.6
 COPY --from=newer-libstdcxx /out/libgcc_s.so.1 /opt/bonsai/lib/libgcc_s.so.1

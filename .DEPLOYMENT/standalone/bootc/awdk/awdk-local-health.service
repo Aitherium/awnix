@@ -1,0 +1,22 @@
+[Unit]
+# One-shot boot proof for awdk-local: waits up to 120 s for the daemon, the local
+# llama.cpp model and a sealed egress probe, then prints ONE serial marker line:
+#   awdk-local: <ok|degraded|dark> model=<id> bind=127.0.0.1:9001 airgap=<strict|audit|off>
+# boot-proof-garg.sh greps it. A non-ok verdict fails this unit, never the boot.
+Description=awdk local agent health marker
+After=awdk-local.service
+Wants=awdk-local.service
+ConditionPathExists=/usr/libexec/awnix/awnix-awdk
+
+[Service]
+Type=oneshot
+EnvironmentFile=/usr/lib/awdk/awdk.env
+EnvironmentFile=-/etc/awdk/awdk.env
+ExecStart=/usr/libexec/awnix/awnix-awdk health --marker --wait 120
+StandardOutput=journal+console
+TimeoutStartSec=300
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target

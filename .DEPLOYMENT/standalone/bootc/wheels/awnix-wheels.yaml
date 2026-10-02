@@ -1,0 +1,221 @@
+# awnix vendored wheels -- the INPUT to every wheels/<layer>.lock.txt.
+#
+# Why this exists (AFRL proof plan gap G12, "build needs network"): every awnix
+# image used to `pip install` aw* packages from PyPI or `git+https://...@main` at
+# build time, and awnix-setup / awnix-component did the same at RUN time. An
+# image that resolves differently on every rebuild is not immutable, and an
+# appliance whose first boot reaches pypi.org is not air-gap capable.
+#
+# The shape now:
+#   this file  --refresh_awnix_wheel_lock.py --write-->  wheels/<layer>.lock.txt
+#                                                        wheels/<layer>.constraints.txt
+#   CI         --stage-awnix-wheelhouse.sh --layer L-->  wheelhouse/<layer>/*.whl + SHA256SUMS
+#   image      COPY wheelhouse/<layer> -> /usr/share/awnix/wheelhouse/<layer>
+#              awnix-wheelhouse verify --layer L
+#              pip install --no-index --find-links=... --constraint=... <same names>
+#
+# STATUS (2026-09-28): tooling only. No Containerfile COPYs a wheelhouse or runs
+# the --no-index install yet (check_awnix_vendored_wheels.py is known-fail on
+# AVW001/AVW003/AVW004 under D-2700), so at the IMAGE level G12 is at most
+# BUILT-UNMEASURED: nothing here proves an image builds or boots offline.
+#
+# Editing a layer here changes its input_sha256, so `refresh --check` and
+# check_awnix_vendored_wheels.py AVW006 go red until the lock is regenerated
+# (`python AitherOS/dev/tools/refresh_awnix_wheel_lock.py --write`, or the
+# awnix-wheel-lock-refresh workflow, which opens a PR).
+#
+# Target rules:
+#   * pypi targets are PEP 508 names with optional extras ("awdk[memory]").
+#     A name is only listed once its PyPI project is OURS. `awsync` is NOT:
+#     pypi.org/project/awsync is JKCT/awsync, an unrelated third party (measured
+#     2026-09-28, v0.4.5, home github.com/JKCT/awsync). Ours ships inside
+#     AitherConnect and has no wheel. awnix-full, gobbonet and garg still name it
+#     on their pip lines, so AVW003 flags it there -- dependency confusion
+#     arriving through a batteries-included list.
+#   * git targets: {name, repo, ref}. The refresh pins ref -> a 40-hex sha with
+#     `git ls-remote`; the lock never carries a branch name (AVW002). Every
+#     former git+https@main target (awrecover, awseal, awvoice, awvision,
+#     awscreen, awrise, awwall, awbrain, awnet, awtunnel, awbac, awdit, ...) is
+#     now published on PyPI, so there are no git targets today; the kind stays
+#     for the next brick without a slot.
+#   * provenance: `refresh --write` refuses to lock an aw* target whose PyPI
+#     release metadata does not name Aitherium (project_urls, home_page,
+#     author/maintainer email). Measured 2026-09-28: 29 of the 33 aw* targets
+#     do; the 4 below do not, so they are ATTESTED (not proven) ours -- their
+#     author strings and versions match AitherOS/packages/<name>/pyproject.toml.
+#     Each entry names its debt row; `refresh --check` fails an entry without one.
+#
+# python/platform match the wave-1 component lock target (CentOS Stream 9 bootc,
+# glibc 2.34, python3.11): wheels tagged manylinux_2_34 and every older
+# manylinux tag are eligible.
+schema: 1
+python: "3.11"
+platform: manylinux_2_34_x86_64
+
+provenance_attested:
+  awpredict: "D-2700 PyPI 0.1.0 has no author or urls; matches AitherOS/packages/awpredict"
+  awrise: "D-2700 PyPI 0.4.0 author email is personal, no urls; matches AitherOS/packages/awrise"
+  awscreen: "D-2700 PyPI 1.0.0 author 'Aither', no urls; matches AitherOS/packages/awscreen"
+  awvision: "D-2700 PyPI 0.3.0 author 'AitherOS', no urls; matches AitherOS/packages/awvision"
+
+layers:
+  base:
+    containerfiles:
+      - .DEPLOYMENT/standalone/bootc/Containerfile.awnix
+    ship_wheelhouse: true
+    pypi:
+      - awgit
+      - awgraph
+      - awrelay
+      - awm
+      - awshare
+      - awrecover
+      - awseal
+      - awvoice
+      - awvision
+      - awscreen
+      - awrise
+      - awwall
+      - awbrain
+      - awdk
+      - awbrowse
+      - awnode
+      - awnet
+      - awtunnel
+    git: []
+
+  # The public repo's Containerfile (sync-awnix.yml builds it). sync_awnix_public.py
+  # copies public.lock.txt / public.constraints.txt next to it.
+  public:
+    containerfiles:
+      - awnix/Containerfile
+    ship_wheelhouse: true
+    pypi:
+      - awdk
+      - awgit
+      - awgraph
+      - awrelay
+      - awshare
+      - awseal
+      - awm
+      - awrecover
+      - awbrowse
+      - awfind
+      - awnest
+      - awnboard
+      - awmail
+      - awreason
+      - awrecurse
+      - awprism
+      - awrepl
+      - awresearch
+      - awkno
+      - awbrain
+    git: []
+
+  full:
+    extends: base
+    containerfiles:
+      - .DEPLOYMENT/standalone/bootc/Containerfile.awnix-full
+    ship_wheelhouse: true
+    pypi:
+      - awdk
+      - awnode
+      - awprism
+      - awreason
+      - awrecurse
+      - awrepl
+      - awbac
+      - awbrowse
+      - awdit
+      - awfind
+      - awiam
+      - awkno
+      - awmail
+      - awnboard
+      - awnest
+      - awnet
+      - awpredict
+      - awresearch
+      - awrun
+      - awtunnel
+    git: []
+
+  # runner / runner-ai install no Python packages (llama.cpp + the GitHub runner
+  # tarball only), so they have no layer; gobbonet and garg build FROM runner-ai.
+  gobbonet:
+    extends: base
+    containerfiles:
+      - .DEPLOYMENT/standalone/bootc/Containerfile.gobbonet-appliance
+    ship_wheelhouse: true
+    pypi:
+      - awdk[memory]
+      - awnode
+      - awprism
+      - awreason
+      - awrecurse
+      - awrepl
+    git: []
+
+  garg:
+    extends: base
+    containerfiles:
+      - .DEPLOYMENT/standalone/bootc/Containerfile.garg-appliance
+    ship_wheelhouse: true
+    pypi:
+      - awdk[memory]
+      - awnode
+      - awprism
+      - awreason
+      - awrecurse
+      - awrepl
+    git: []
+
+  # The GargBot backend's requirements.txt lives in the private garg repo and is
+  # staged into the build context as .gargbot-backend/ (see Containerfile.garg-
+  # appliance). It is MIRRORED here so the lock is reproducible from this tree;
+  # when the staged file is present, refresh --check compares the two and fails
+  # on drift. sqlalchemy[asyncio] is the Containerfile's own addition (greenlet).
+  # ship_wheelhouse: false -- the closure carries torch + CUDA wheels
+  # (sentence-transformers); keeping the .whl files in /usr/share next to the
+  # installed site-packages would double several GB of the ISO. They are staged,
+  # hash-checked and installed --no-index at build time, then dropped.
+  garg-backend:
+    extends: garg
+    containerfiles:
+      - .DEPLOYMENT/standalone/bootc/Containerfile.garg-appliance
+    ship_wheelhouse: false
+    requirements_file: .DEPLOYMENT/standalone/bootc/.gargbot-backend/requirements.txt
+    pypi:
+      - fastapi>=0.115.0
+      - uvicorn[standard]>=0.30.0
+      - python-multipart>=0.0.9
+      - pydantic>=2.10.0
+      - pydantic-settings>=2.5.0
+      - httpx>=0.27.0
+      - PyYAML>=6.0
+      - anthropic>=0.40.0
+      - qdrant-client>=1.12.0
+      - sentence-transformers>=3.0.0
+      - python-docx>=1.1.0
+      - openpyxl>=3.1.0
+      - pymupdf>=1.25.0
+      - PyJWT[crypto]>=2.8.0
+      - ldap3>=2.9.0
+      - sqlalchemy[asyncio]>=2.0.30
+      - aiosqlite>=0.20.0
+      - cryptography>=42.0.0
+      - pynacl>=1.5.0
+      - bcrypt>=4.1.0
+      - aiohttp>=3.9.0
+      - beautifulsoup4>=4.12
+    git: []
+
+  # Optional components (awnix component install). The targets are the pinned
+  # pypi rows of the wave-1 component lock, so this layer is only resolvable once
+  # that lock exists in the tree; until then refresh reports it as skipped.
+  components:
+    ship_wheelhouse: true
+    targets_from: .DEPLOYMENT/standalone/bootc/awnix-components.lock.json
+    pypi: []
+    git: []

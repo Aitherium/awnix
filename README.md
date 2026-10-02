@@ -199,25 +199,67 @@ the hard way:
 
 ---
 
-## Make it bootable
+## Administering it
+
+The full admin guide ships in every image and is one command away: `man awnix`. The same
+pages are in `/usr/share/doc/awnix/html` and in the web console's Guide tab.
+
+### Install
+
+Download an ISO from the table above and check it against `SHA256SUMS`. Write it with
+`write-awnix-usb` (it verifies what it wrote and refuses the disk you booted from) or any
+USB writer in DD mode. For an unattended install, make a second stick with
+`make-awnix-seed`: it names the disk, the admin user and SSH keys, and answers first-boot
+setup; a seed never wipes a partitioned disk unless it says `"wipe": true`. See
+`man awnix-seed.json`.
+
+Building your own bootable media from the image instead:
 
 ```bash
 podman run --rm -it --privileged \
   -v /var/lib/containers/storage:/var/lib/containers/storage \
   -v "$PWD/output":/output \
   quay.io/centos-bootc/bootc-image-builder:latest \
-  --type ami --local awnix:latest
+  --type iso --local awnix:latest
 ```
 
-`--type` also takes `iso`, `qcow2`, `vmdk`, `raw`.
+`--type` also takes `ami`, `qcow2`, `vmdk`, `raw`.
 
-## Update it
+### First boot
+
+The box boots without waiting for anyone. Setup is offered on the local console and at
+`https://<box>:9443`, the web console; the banner prints the address, a one-time code and
+the certificate fingerprint to compare before you accept the self-signed certificate.
+After setup, `sudo awnix console code` prints the console's sign-in code. See
+`man awnix-setup` and `man awnix-console`.
+
+### Updates
+
+Updates are whole signed images on a channel, `stable` (the default) or `beta`:
 
 ```bash
-sudo bootc upgrade   # stage
-sudo reboot          # atomic switch
-sudo bootc rollback  # if it went badly
+awnix update status
+sudo awnix update check     # verify the signature, stage it; never reboots on its own
+sudo awnix update apply     # reboot into it
+sudo awnix update rollback  # back to the previous image
 ```
+
+A new image that fails its health checks three boots in a row rolls back by itself. A
+rollback keeps `/var`, but `/etc` comes back as it was when the update was applied, so
+copy any `/etc` change made since then (a license, setup answers, SSH settings) first. See
+`man awnix-update`.
+
+### Components
+
+Optional software installs beside the immutable image, pinned per image and rollback-aware:
+
+```bash
+awnix component list
+sudo awnix component install awbrowse
+sudo awnix component rollback awbrowse
+```
+
+See `man awnix-component`.
 
 ---
 

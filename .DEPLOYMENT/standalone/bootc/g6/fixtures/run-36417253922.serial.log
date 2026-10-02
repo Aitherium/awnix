@@ -1,0 +1,79 @@
+# G6 markers of hosted run 36417253922 (inject=none, HEAD 6acfd26f9b), ANSI stripped, grep 'G6|Greenboot Health'.
+G6-MARK: boot=1 role=n
+[    5.742312] G6-MARK: boot=1 role=n
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Finished Greenboot Health Checks Runner.
+G6: boot=1 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=none phase=init sentinel=ok role=n
+[    7.038969] G6: boot=1 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=none phase=init sentinel=ok role=n
+G6-PLAN: steps=upgrade,rollback,fallback greenboot_max=3 grub_counting=present inject=none
+[    7.053301] G6-PLAN: steps=upgrade,rollback,fallback greenboot_max=3 grub_counting=present inject=none
+G6-WANT: stable=n1
+[    7.060901] G6-WANT: stable=n1
+[  OK  ] Stopped Greenboot Health Checks Runner.
+G6-MARK: boot=2 role=n
+[    5.101513] G6-MARK: boot=2 role=n
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Finished Greenboot Health Checks Runner.
+G6: boot=2 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=none phase=upgrade sentinel=ok role=n
+[    6.141917] G6: boot=2 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=none phase=upgrade sentinel=ok role=n
+G6-STEP: upgrade rc=0
+[   22.632373] G6-STEP: upgrade rc=0
+[  OK  ] Stopped Greenboot Health Checks Runner.
+G6-MARK: boot=3 role=n1
+[    5.120937] G6-MARK: boot=3 role=n1
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Finished Greenboot Health Checks Runner.
+G6: boot=3 booted=sha256:7f27b02bf879d4aa9851e6a4f36c2774271612c20bd940c111009e6999463c1a staged=none rollback=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 phase=verify-upgrade sentinel=ok role=n1
+[    6.230712] G6: boot=3 booted=sha256:7f27b02bf879d4aa9851e6a4f36c2774271612c20bd940c111009e6999463c1a staged=none rollback=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 phase=verify-upgrade sentinel=ok role=n1
+G6-STEP: rollback rc=0 via=bootc
+[    7.503480] G6-STEP: rollback rc=0 via=bootc
+[  OK  ] Stopped Greenboot Health Checks Runner.
+G6-MARK: boot=4 role=n
+[    5.203699] G6-MARK: boot=4 role=n
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Finished Greenboot Health Checks Runner.
+G6: boot=4 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=sha256:7f27b02bf879d4aa9851e6a4f36c2774271612c20bd940c111009e6999463c1a phase=verify-rollback sentinel=ok role=n
+[    6.270968] G6: boot=4 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=sha256:7f27b02bf879d4aa9851e6a4f36c2774271612c20bd940c111009e6999463c1a phase=verify-rollback sentinel=ok role=n
+G6-WANT: stable=n2
+[    6.285700] G6-WANT: stable=n2
+[  OK  ] Stopped Greenboot Health Checks Runner.
+G6-MARK: boot=5 role=n
+[    5.785666] G6-MARK: boot=5 role=n
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Finished Greenboot Health Checks Runner.
+G6: boot=5 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=sha256:7f27b02bf879d4aa9851e6a4f36c2774271612c20bd940c111009e6999463c1a phase=stage-n2 sentinel=ok role=n
+[    6.856289] G6: boot=5 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=sha256:7f27b02bf879d4aa9851e6a4f36c2774271612c20bd940c111009e6999463c1a phase=stage-n2 sentinel=ok role=n
+G6-STAGE: n2 rc=0
+[   23.237853] G6-STAGE: n2 rc=0
+[  OK  ] Stopped Greenboot Health Checks Runner.
+G6-MARK: boot=6 role=n2
+[    5.352130] G6-MARK: boot=6 role=n2
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Stopped Greenboot Health Checks Runner.
+G6-MARK: boot=7 role=n2
+[    5.318319] G6-MARK: boot=7 role=n2
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Stopped Greenboot Health Checks Runner.
+G6-MARK: boot=8 role=n2
+[    5.174879] G6-MARK: boot=8 role=n2
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Stopped Greenboot Health Checks Runner.
+G6-MARK: boot=9 role=n2
+[    5.939791] G6-MARK: boot=9 role=n2
+         Starting Greenboot Health Checks Runner...
+[FAILED] Failed to start Greenboot Health Checks Runner.
+G6: boot=9 booted=sha256:6142ddd67ec942bc2adbbb8e778a4d008e57f7fc09b4c6cfad682bee2d75fd05 staged=none rollback=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 phase=awaiting-fallback sentinel=ok role=n2
+[    7.005780] G6: boot=9 booted=sha256:6142ddd67ec942bc2adbbb8e778a4d008e57f7fc09b4c6cfad682bee2d75fd05 staged=none rollback=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 phase=awaiting-fallback sentinel=ok role=n2
+G6: still on n2 after 4 boot(s); rebooting to give greenboot its count
+[    7.017624] G6: still on n2 after 4 boot(s); rebooting to give greenboot its count
+G6-MARK: boot=10 role=n
+[    5.237196] G6-MARK: boot=10 role=n
+         Starting Greenboot Health Checks Runner...
+[  OK  ] Finished Greenboot Health Checks Runner.
+G6: boot=10 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=sha256:6142ddd67ec942bc2adbbb8e778a4d008e57f7fc09b4c6cfad682bee2d75fd05 phase=awaiting-fallback sentinel=ok role=n
+[    6.322975] G6: boot=10 booted=sha256:aa9458035aad5b32e2ab21386e1aae13edd4484bc54eb77ac54474bb499cdcb2 staged=none rollback=sha256:6142ddd67ec942bc2adbbb8e778a4d008e57f7fc09b4c6cfad682bee2d75fd05 phase=awaiting-fallback sentinel=ok role=n
+G6-STEP: fallback rc=0 n2_boots=4
+[    6.331842] G6-STEP: fallback rc=0 n2_boots=4
+G6-END
+[    6.347119] G6-END
+[  OK  ] Stopped Greenboot Health Checks Runner.

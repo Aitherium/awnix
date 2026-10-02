@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "n_registry": "sha256:2a47f96faf9d7af60670afc725ad2664fbabd54a9629235e9e935541112c10f7",
+  "n1": "sha256:c9f40d514a9bff3b6fe83f930f83cded7bbd9b8f72e079df12735505d8397606",
+  "n2": "sha256:b0a8bea737517fda0ef0ec4ba886fdf201a0063abf3a4e5c8fe4ba1a5c740321",
+  "base_image": "quay.io/centos-bootc/centos-bootc:stream9",
+  "kvm": true,
+  "mode": "vm",
+  "inject": "none",
+  "plan": "upgrade,rollback,fallback",
+  "greenboot_max": 3,
+  "grub_counting": "present",
+  "runner": "GitHub Actions 1000164836 (github-hosted)",
+  "gh_run_id": "36420682028",
+  "started_at": "2026-09-28T12:16:43Z",
+  "ended_at": "2026-09-28T12:24:09Z"
+}

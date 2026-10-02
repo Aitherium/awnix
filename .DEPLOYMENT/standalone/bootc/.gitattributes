@@ -1,0 +1,40 @@
+# Shipped into Linux images: these must check out LF even under core.autocrlf=true,
+# or OFU002 (check_awnix_offline_update.py) sees a CR on a fresh Windows checkout.
+# Scoped to the offline-update (G5) files; peers may widen it to *.conf.
+awnix-offline-update.tmpfiles.conf text eol=lf
+offline-trust.d/** text eol=lf
+# garg LAN HTTPS (GTLS). These ship into the garg appliance image by COPY from the
+# build context, so the bytes ON DISK are what boots: a core.autocrlf=true checkout
+# (every Windows worktree) would otherwise write the unit and conf CRLF. GTLS003
+# rejects a CR on disk; GTLS007 asserts every file below stays covered here.
+garg-tls-proxy.py text eol=lf
+garg-tls-proxy.service text eol=lf
+garg-tls-issue.sh text eol=lf
+garg-tls.conf text eol=lf
+# License lifecycle files ship verbatim into the image (units, tmpfiles, policy) or are
+# read byte-for-byte by check_license_lifecycle.py ALR007: a Windows checkout with
+# core.autocrlf=true must not rewrite them CRLF (a CRLF unit/tmpfiles line breaks on the
+# box, and ALR007 + its self-test go red on the owner machine).
+aither-license-lifecycle.service text eol=lf
+aither-license-lifecycle.timer text eol=lf
+aither-license-lifecycle.tmpfiles.conf text eol=lf
+license-lifecycle.json text eol=lf
+awnix-renewal.py text eol=lf
+docs/man/aither-license-lifecycle.7.md text eol=lf
+docs/man/awnix-renewal.8.md text eol=lf
+# awnix backup|restore|reset payload: these files are COPY-ed into Linux images
+# and read by check_awnix_backup AXB005. A Windows checkout with
+# core.autocrlf=true would otherwise write them CRLF (the blobs are LF).
+awnix-backup.tmpfiles.conf text eol=lf
+backup.d/*.json text eol=lf
+docs/man/awnix-backup.8.md text eol=lf
+# Every awnix-mesh* file ships into the image (a unit, a zone, a dispatcher hook, the CLI).
+# A CRLF checkout of any of them is a unit or hook that cannot parse or start on the box.
+awnix-mesh* text eol=lf
+# awnix wheelhouse files ship into images byte-for-byte: a CRLF pip.conf or lock
+# breaks configparser/pip parsing on the box and test_shipped_scripts_have_no_cr
+# on an autocrlf=true Windows checkout.
+awnix-pip.conf text eol=lf
+awnix-pip-airgap.conf text eol=lf
+wheels/*.txt text eol=lf
+wheels/*.yaml text eol=lf

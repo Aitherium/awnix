@@ -1,0 +1,20 @@
+#!/usr/bin/python3
+"""awnix -- the awnix role CLI (`awnix role list|status|add|remove|configure`).
+
+Installed at /usr/libexec/awnix/awnix-role by Containerfile.awnix, where the appliance
+dispatcher (/usr/bin/awnix) reaches it as `awnix role ...`; the implementation is
+/usr/lib/awnix/awnix_role.py.
+"""
+import os
+import sys
+
+sys.path[:0] = [os.environ.get("AWNIX_LIB_DIR", "/usr/lib/awnix"),
+                os.path.dirname(os.path.realpath(__file__))]
+from awnix_role import main, role_main  # noqa: E402
+
+if __name__ == "__main__":
+    # Installed as /usr/libexec/awnix/awnix-role, the `awnix role` verb of the appliance
+    # dispatcher (/usr/bin/awnix): the dispatcher passes only the verb's own arguments.
+    if os.path.basename(sys.argv[0]) == "awnix-role":
+        sys.exit(role_main(sys.argv[1:]))
+    sys.exit(main())

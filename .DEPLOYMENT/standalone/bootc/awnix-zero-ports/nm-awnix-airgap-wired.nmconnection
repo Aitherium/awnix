@@ -1,0 +1,19 @@
+# awnix airgap profile: every wired NIC comes up with link-local addresses only,
+# so the link is live for the Step 2 capture but the box never asks for DHCP.
+# Installed read-only as /usr/lib/NetworkManager/system-connections/, mode 0600.
+[connection]
+id=awnix-airgap-wired
+uuid=4ae1d14b-075e-4f9c-ad58-e16c72897694
+type=ethernet
+autoconnect=true
+autoconnect-priority=100
+multi-connect=3
+
+[ethernet]
+
+[ipv4]
+method=link-local
+
+[ipv6]
+method=link-local
+addr-gen-mode=stable-privacy

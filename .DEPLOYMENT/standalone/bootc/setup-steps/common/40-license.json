@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "license",
+  "title": "Activate with your license",
+  "why": "Paste the AITHER1 license from your purchase email. It is verified on this box against the vendor key, then exchanged for a registry token so the appliance can pull its private images and updates. You can skip this and activate later with `sudo aitheros login --license @license.lic` or on the Activation tab.",
+  "kind": "secret",
+  "secret_dest": "/var/lib/aither/license/incoming.lic",
+  "apply_cmd": ["aitheros", "license", "refresh", "--json"],
+  "current_cmd": ["aitheros", "status", "--json"],
+  "required": false,
+  "timeout_s": 90
+}

@@ -1,0 +1,384 @@
+# awnix desktop -- THE bindings file. The only place a key or a core action is defined.
+#
+# Two things are generated from it and nothing else defines a binding:
+#   awnix-keys hyprland  -> /usr/share/awnix/desktop/bindings.conf (at image build; the
+#                           Hyprland config sources it and binds no key of its own)
+#   awnix-keys menu      -> the Super+/ menu, read from this file at run time
+# check_awnix_desktop.py (AWDK001-AWDK003) asserts the two agree, every core action is
+# present, and no key combination is bound twice. Change a key HERE; nowhere else.
+#
+# Fields per [[entry]]:
+#   id        unique, stable name (core actions are looked up by it)
+#   desc      what the menu shows
+#   group     menu section
+#   keys      "MODS, KEY" in Hyprland's own syntax; omit for a menu-only action
+#   dispatch  Hyprland dispatcher (default exec); `cmd` is its argument
+#   flags     Hyprland bind flags: l (works while locked), e (repeat), m (mouse)
+#   repeat    "1-9": the entry is expanded once per number, {n} substituted everywhere
+#   menu      false keeps a raw binding out of the menu (mouse drags); default true
+
+[meta]
+mod = "SUPER"
+
+# ── the agent, in plain sight ───────────────────────────────────────────────────
+[[entry]]
+id = "awsh"
+desc = "Ask the agent (awsh, local model)"
+group = "AI"
+keys = "SUPER, A"
+cmd = "foot --app-id=awnix-awsh --title=awsh -e awsh"
+
+[[entry]]
+id = "model"
+desc = "Choose the local model"
+group = "AI"
+cmd = "foot --app-id=awnix-float --title=awnix-model -e awnix-desktop-firstrun --force"
+
+# ── the core ────────────────────────────────────────────────────────────────────
+[[entry]]
+id = "menu"
+desc = "Show every key and action (this menu)"
+group = "Core"
+keys = "SUPER, slash"
+cmd = "awnix-keys menu"
+
+[[entry]]
+id = "launcher"
+desc = "Launch an application"
+group = "Core"
+keys = "SUPER, space"
+cmd = "awnix-launch"
+
+[[entry]]
+id = "terminal"
+desc = "Terminal"
+group = "Core"
+keys = "SUPER, Return"
+cmd = "foot"
+
+[[entry]]
+id = "browser"
+desc = "Web browser"
+group = "Core"
+keys = "SUPER, B"
+cmd = "firefox"
+
+[[entry]]
+id = "editor"
+desc = "Editor (neovim)"
+group = "Core"
+keys = "SUPER, N"
+cmd = "foot -e nvim"
+
+[[entry]]
+id = "console"
+desc = "Settings (awnix console, this machine only)"
+group = "Core"
+keys = "SUPER, comma"
+cmd = "awnix-settings"
+
+[[entry]]
+id = "lock"
+desc = "Lock the screen"
+group = "Core"
+keys = "SUPER, L"
+cmd = "awnix-lock"
+
+[[entry]]
+id = "power"
+desc = "Power: lock, log out, suspend, reboot, shut down"
+group = "Core"
+keys = "SUPER, Escape"
+cmd = "awnix-keys power"
+
+# ── themes ──────────────────────────────────────────────────────────────────────
+[[entry]]
+id = "theme-next"
+desc = "Next theme"
+group = "Themes"
+keys = "SUPER SHIFT, T"
+cmd = "awnix-theme next"
+
+[[entry]]
+id = "themes"
+desc = "Pick a theme"
+group = "Themes"
+keys = "SUPER, T"
+cmd = "awnix-theme pick"
+
+# ── system ──────────────────────────────────────────────────────────────────────
+[[entry]]
+id = "update"
+desc = "Update the system (signed: awnix update check, then apply)"
+group = "System"
+# Never a raw bootc upgrade or bootc switch here: those follow a tag and verify nothing.
+# awnix update resolves one digest, cosign-verifies it, and stages exactly that (AWDK011).
+cmd = "foot --app-id=awnix-float --title=awnix-update -e awnix-desktop-run 'sudo awnix update check; echo; echo reboot into a verified update with: sudo awnix update apply; exec bash'"
+
+[[entry]]
+id = "component"
+desc = "Install a component (awnix component)"
+group = "System"
+cmd = "foot --app-id=awnix-float --title=awnix-component -e awnix-desktop-run 'awnix component list; echo; echo install with: sudo awnix component install ID; exec bash'"
+
+[[entry]]
+id = "toolbox"
+desc = "Dev container (distrobox enter)"
+group = "System"
+cmd = "foot -e distrobox enter"
+
+# ── screenshots ─────────────────────────────────────────────────────────────────
+[[entry]]
+id = "screenshot"
+desc = "Screenshot a region (file + clipboard)"
+group = "Capture"
+keys = ", Print"
+cmd = "awnix-screenshot region"
+
+[[entry]]
+id = "screenshot-full"
+desc = "Screenshot the whole screen"
+group = "Capture"
+keys = "SHIFT, Print"
+cmd = "awnix-screenshot full"
+
+[[entry]]
+id = "screenshot-edit"
+desc = "Screenshot a region and annotate it (swappy)"
+group = "Capture"
+keys = "SUPER, Print"
+cmd = "awnix-screenshot edit"
+
+[[entry]]
+id = "ocr"
+desc = "Copy the text in a region (local OCR)"
+group = "Capture"
+keys = "SUPER CTRL, Print"
+cmd = "awnix-screenshot text"
+
+# ── windows ─────────────────────────────────────────────────────────────────────
+[[entry]]
+id = "close"
+desc = "Close the window"
+group = "Windows"
+keys = "SUPER, Q"
+dispatch = "killactive"
+cmd = ""
+
+[[entry]]
+id = "float"
+desc = "Float / tile the window"
+group = "Windows"
+keys = "SUPER, V"
+dispatch = "togglefloating"
+cmd = ""
+
+[[entry]]
+id = "fullscreen"
+desc = "Fullscreen"
+group = "Windows"
+keys = "SUPER, F"
+dispatch = "fullscreen"
+cmd = "0"
+
+[[entry]]
+id = "split"
+desc = "Toggle split direction"
+group = "Windows"
+keys = "SUPER, J"
+dispatch = "togglesplit"
+cmd = ""
+
+[[entry]]
+id = "focus-left"
+desc = "Focus left"
+group = "Windows"
+keys = "SUPER, left"
+dispatch = "movefocus"
+cmd = "l"
+
+[[entry]]
+id = "focus-right"
+desc = "Focus right"
+group = "Windows"
+keys = "SUPER, right"
+dispatch = "movefocus"
+cmd = "r"
+
+[[entry]]
+id = "focus-up"
+desc = "Focus up"
+group = "Windows"
+keys = "SUPER, up"
+dispatch = "movefocus"
+cmd = "u"
+
+[[entry]]
+id = "focus-down"
+desc = "Focus down"
+group = "Windows"
+keys = "SUPER, down"
+dispatch = "movefocus"
+cmd = "d"
+
+[[entry]]
+id = "move-left"
+desc = "Move window left"
+group = "Windows"
+keys = "SUPER SHIFT, left"
+dispatch = "movewindow"
+cmd = "l"
+
+[[entry]]
+id = "move-right"
+desc = "Move window right"
+group = "Windows"
+keys = "SUPER SHIFT, right"
+dispatch = "movewindow"
+cmd = "r"
+
+[[entry]]
+id = "move-up"
+desc = "Move window up"
+group = "Windows"
+keys = "SUPER SHIFT, up"
+dispatch = "movewindow"
+cmd = "u"
+
+[[entry]]
+id = "move-down"
+desc = "Move window down"
+group = "Windows"
+keys = "SUPER SHIFT, down"
+dispatch = "movewindow"
+cmd = "d"
+
+[[entry]]
+id = "drag-move"
+desc = "Drag to move a window"
+group = "Windows"
+keys = "SUPER, mouse:272"
+dispatch = "movewindow"
+cmd = ""
+flags = "m"
+
+[[entry]]
+id = "drag-resize"
+desc = "Drag to resize a window"
+group = "Windows"
+keys = "SUPER, mouse:273"
+dispatch = "resizewindow"
+cmd = ""
+flags = "m"
+
+# ── workspaces ──────────────────────────────────────────────────────────────────
+[[entry]]
+id = "workspace-{n}"
+desc = "Go to workspace {n}"
+group = "Workspaces"
+keys = "SUPER, {n}"
+dispatch = "workspace"
+cmd = "{n}"
+repeat = "1-9"
+
+[[entry]]
+id = "send-{n}"
+desc = "Send window to workspace {n}"
+group = "Workspaces"
+keys = "SUPER SHIFT, {n}"
+dispatch = "movetoworkspace"
+cmd = "{n}"
+repeat = "1-9"
+
+[[entry]]
+id = "scratchpad"
+desc = "Show / hide the scratchpad"
+group = "Workspaces"
+keys = "SUPER, S"
+dispatch = "togglespecialworkspace"
+cmd = "scratch"
+
+[[entry]]
+id = "to-scratchpad"
+desc = "Send window to the scratchpad"
+group = "Workspaces"
+keys = "SUPER SHIFT, S"
+dispatch = "movetoworkspace"
+cmd = "special:scratch"
+
+# ── media keys (work on the lock screen too) ────────────────────────────────────
+[[entry]]
+id = "volume-up"
+desc = "Volume up"
+group = "Media"
+keys = ", XF86AudioRaiseVolume"
+cmd = "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
+flags = "el"
+
+[[entry]]
+id = "volume-down"
+desc = "Volume down"
+group = "Media"
+keys = ", XF86AudioLowerVolume"
+cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+flags = "el"
+
+[[entry]]
+id = "mute"
+desc = "Mute"
+group = "Media"
+keys = ", XF86AudioMute"
+cmd = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+flags = "l"
+
+[[entry]]
+id = "brightness-up"
+desc = "Brightness up"
+group = "Media"
+keys = ", XF86MonBrightnessUp"
+cmd = "brightnessctl set 5%+"
+flags = "el"
+
+[[entry]]
+id = "brightness-down"
+desc = "Brightness down"
+group = "Media"
+keys = ", XF86MonBrightnessDown"
+cmd = "brightnessctl set 5%-"
+flags = "el"
+
+[[entry]]
+id = "play-pause"
+desc = "Play / pause"
+group = "Media"
+keys = ", XF86AudioPlay"
+cmd = "playerctl play-pause"
+flags = "l"
+
+[[entry]]
+id = "next-track"
+desc = "Next track"
+group = "Media"
+keys = ", XF86AudioNext"
+cmd = "playerctl next"
+flags = "l"
+
+[[entry]]
+id = "prev-track"
+desc = "Previous track"
+group = "Media"
+keys = ", XF86AudioPrev"
+cmd = "playerctl previous"
+flags = "l"
+
+[[entry]]
+id = "audio"
+desc = "Sound settings"
+group = "Media"
+cmd = "pavucontrol"
+
+[[entry]]
+id = "bluetooth"
+desc = "Bluetooth devices"
+group = "Media"
+cmd = "blueman-manager"

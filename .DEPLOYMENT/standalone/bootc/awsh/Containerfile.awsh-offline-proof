@@ -1,0 +1,45 @@
+# Containerfile.awsh-offline-proof -- a light image that proves awsh works with no network.
+#
+# HOSTED CI ONLY (.github/workflows/awsh-offline-proof.yml). Build context = a staged
+# dir holding awdk/, .PRODUCTS/.AITHERSHELL/cli/ and this awsh/ dir at their repo paths.
+# The build itself uses the network (npm, PyPI); the proof RUN uses --network=none.
+#
+# Not the awnix image: that takes an hour to build. This carries exactly the pieces the
+# claim is about -- awsh built from THIS tree, awdk from THIS tree, and the awnix awsh
+# files (vendor config, awnix-awsh) at the paths the image uses -- on Python 3.11,
+# the interpreter awnix ships.
+FROM docker.io/library/node:22-bookworm
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-venv python3-pip iproute2 strace procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# awdk from this tree (the harness daemon and the agent server), in its own venv.
+COPY awdk /src/awdk
+RUN python3 -m venv /opt/awdk \
+    && /opt/awdk/bin/pip install --no-cache-dir /src/awdk uvicorn fastapi httpx \
+    && /opt/awdk/bin/python -c "import adk, adk.harnesses.daemon"
+
+# awsh from this tree: build, pack, install the tarball globally (what npm users get).
+COPY .PRODUCTS/.AITHERSHELL/cli /src/awsh-cli
+RUN cd /src/awsh-cli \
+    && npm ci --no-audit --no-fund \
+    && npm run build \
+    && npm pack \
+    && npm install -g ./aitherium-awsh-*.tgz \
+    && awsh --version \
+    && rm -rf /src/awsh-cli/node_modules
+
+# The awnix awsh files, at their image paths. CR bytes stripped as the image does.
+COPY .DEPLOYMENT/standalone/bootc/awsh /src/awsh-files
+RUN set -eu; \
+    mkdir -p /usr/lib/awsh/shell.d /usr/libexec/awnix /etc/profile.d /etc/awsh; \
+    sed 's/\r$//' /src/awsh-files/shell.yaml > /usr/lib/awsh/shell.yaml; \
+    sed 's/\r$//' /src/awsh-files/awsh-offline.sh > /etc/profile.d/awsh-offline.sh; \
+    sed 's/\r$//' /src/awsh-files/awnix-awsh.py > /usr/libexec/awnix/awnix-awsh; \
+    sed 's/\r$//' /src/awsh-files/awsh-offline-proof.sh > /usr/local/bin/awsh-offline-proof; \
+    chmod 0755 /usr/libexec/awnix/awnix-awsh /usr/local/bin/awsh-offline-proof; \
+    /usr/libexec/awnix/awnix-awsh --self-test
+
+ENV AWDK_PY=/opt/awdk/bin/python
+ENTRYPOINT ["/usr/local/bin/awsh-offline-proof"]

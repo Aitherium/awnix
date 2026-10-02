@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "secureboot",
+  "title": "Secure Boot and the NVIDIA driver",
+  "why": "With Secure Boot on, the kernel loads the NVIDIA driver only if its signing key is enrolled. Enrolling queues the awnix key; at the next reboot a blue MokManager screen asks for the one-time password shown here. Skip this if Secure Boot is off or the box has no NVIDIA GPU.",
+  "kind": "reveal",
+  "current_cmd": ["/usr/libexec/awnix/awnix-secureboot", "status", "--brief"],
+  "reveal_cmd": ["/usr/libexec/awnix/awnix-secureboot", "enroll", "--reveal"],
+  "required": false,
+  "timeout_s": 60,
+  "after": ["license"]
+}

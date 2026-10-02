@@ -1,0 +1,56 @@
+{
+  "base_image": "quay.io/centos-bootc/centos-bootc:stream9",
+  "boots": 10,
+  "digests": {
+    "derived_from_log": false,
+    "n": "sha256:8bffd38456ff9e0132bad46b2b5e83359b3928f93aedc8f8c4da4d5b0b78feec",
+    "n1": "sha256:26f60fdaf579f50f57356090e5246dbf6800deff440f4e4c6759aaa29e762c0e",
+    "n2": "sha256:7fd17160548862406979b8c090057a027981155f6c731423c53ed514dca8eee9",
+    "n_registry": "sha256:b7e0fe450d2552799787db992a8106c610eee98cbd7055104f9fb40511a3a11e"
+  },
+  "ended_at": "2026-09-28T11:38:45Z",
+  "exit_code": 0,
+  "gh_run_id": "36415942227",
+  "greenboot_attempts": 4,
+  "greenboot_max": 3,
+  "grub_counting": "present",
+  "inject": "none",
+  "kvm": true,
+  "mode": "vm",
+  "plan": [
+    "upgrade",
+    "rollback",
+    "fallback"
+  ],
+  "reason": "every planned step booted the expected digest; /var sentinel intact",
+  "runner": "GitHub Actions 1000164790 (github-hosted)",
+  "schema": 1,
+  "started_at": "2026-09-28T11:31:25Z",
+  "state_sentinel_intact": true,
+  "steps": [
+    {
+      "booted_digest": "sha256:26f60fdaf579f50f57356090e5246dbf6800deff440f4e4c6759aaa29e762c0e",
+      "expect_digest": "sha256:26f60fdaf579f50f57356090e5246dbf6800deff440f4e4c6759aaa29e762c0e",
+      "ok": true,
+      "rc": 0,
+      "step": "upgrade"
+    },
+    {
+      "booted_digest": "sha256:8bffd38456ff9e0132bad46b2b5e83359b3928f93aedc8f8c4da4d5b0b78feec",
+      "expect_digest": "sha256:8bffd38456ff9e0132bad46b2b5e83359b3928f93aedc8f8c4da4d5b0b78feec",
+      "ok": true,
+      "rc": 0,
+      "step": "rollback",
+      "via": "bootc"
+    },
+    {
+      "booted_digest": "sha256:8bffd38456ff9e0132bad46b2b5e83359b3928f93aedc8f8c4da4d5b0b78feec",
+      "expect_digest": "!= n2 (n1 or n)",
+      "n2_boots": 4,
+      "ok": true,
+      "rc": 0,
+      "step": "fallback"
+    }
+  ],
+  "verdict": "PASS"
+}

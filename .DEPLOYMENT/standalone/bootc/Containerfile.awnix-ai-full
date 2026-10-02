@@ -24,8 +24,9 @@
 # comment at the top of that file before touching any of this -- the fix is
 # deliberately SCOPED to /opt/bonsai/lib and one exec, and never replaces the
 # base image's own libstdc++/libc/loader.
-FROM quay.io/centos-bootc/centos-bootc:stream10 AS newer-libstdcxx
-# Collect the five runtime files through their STABLE SONAME symlinks. This stage is a
+FROM quay.io/centos-bootc/centos-bootc:stream10@sha256:57cabe59d0332f9060a8d2768021d2c7457d855857ff2068a0566b3bd19b6cfa AS newer-libstdcxx
+# Pinned by digest from base-images.lock (G9; bump with pin_awnix_base.py --refresh).
+# Collect the five runtime files through their STABLE SONAME symlinks. This stage was a
 # FLOATING tag, and two of the files used to be copied by their versioned names
 # (libgcc_s-14-20260629.so.1, libstdc++.so.6.0.33). Upstream rebuilt gcc, the file
 # became libgcc_s-14-20260724.so.1, and every image built FROM this one -- including
@@ -43,7 +44,16 @@ FROM localhost/awnix-full:latest
 # to start if that account is missing, so create it here and name it for what
 # it does. Calling it `runner` to match the other layer's hardcoded string is
 # exactly the drift this rung exists to avoid.
-RUN useradd -m -s /bin/bash -c "awnix Bonsai inference (unprivileged)" bonsai
+#
+# A SYSTEM account (uid < 1000), home under /var/lib. `useradd -m` without --system
+# took uid 1000 -- the first HUMAN uid -- so on the awnix WSL cutover the migrated
+# home (owned by uid 1000) and the first person to log in collided with an inference
+# daemon (2026-09-27). An image bakes no human account; aither-setup creates that one
+# at first boot. The home stays: serve-awnix-bonsai.sh runs `adk mesh onboard` as
+# this user and adk writes ~/.aither.
+RUN useradd --system --create-home --home-dir /var/lib/bonsai --shell /sbin/nologin \
+        -c "awnix Bonsai inference (unprivileged)" bonsai \
+    && test "$(id -u bonsai)" -lt 1000
 
 # Prebuilt binary only, same release channel and same Vulkan reasoning as
 # Containerfile.awnix-runner-ai: one small download that covers NVIDIA/AMD/Intel

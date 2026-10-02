@@ -1,0 +1,22 @@
+# /usr/lib/systemd/user/awnix-model.service -- the local model awsh answers from.
+#
+# A USER unit, enabled for every user by the image (systemctl --global enable). It does
+# nothing until the first-login chooser (awnix-desktop-firstrun) has linked a model as
+# ~/.local/share/awnix/models/current.gguf; from then on it serves that file with the
+# baked llama-server on 127.0.0.1:8199, the URL /usr/lib/awsh/shell.yaml gives awsh.
+# Loopback only: nothing on the network can reach it.
+[Unit]
+Description=awnix local model (llama-server on 127.0.0.1:8199)
+ConditionPathExists=%h/.local/share/awnix/models/current.gguf
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/awnix-model-serve
+Restart=on-failure
+RestartSec=10
+# Exit 2 = nothing to serve or no server in the image: restarting cannot fix either.
+RestartPreventExitStatus=2
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "id": "awnix",
+  "variants": ["*"],
+  "quiesce": {"units": [], "ports": []},
+  "resume": {"units": []},
+  "health": [],
+  "items": [
+    {"id": "admin-user", "path": "/etc/awnix/setup.json", "kind": "users", "class": "config", "backup": false, "reset": ["factory"]},
+    {"id": "setup", "path": "/etc/awnix/setup.json", "kind": "file", "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "link-token", "path": "/etc/awnix/link.token", "kind": "file", "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "endpoints", "path": "/etc/awnix/endpoints.env", "kind": "file", "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "update-conf", "path": "/etc/awnix/update.conf", "kind": "file", "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "console-conf", "path": "/etc/awnix/console.conf", "kind": "file", "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "components-state", "path": "/var/lib/awnix/components/state.json", "kind": "file", "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "components", "path": "/var/lib/awnix/components", "kind": "dir", "class": "config", "backup": false, "reset": ["factory"]},
+    {"id": "mesh-credential", "path": "/etc/awnix/mesh", "kind": "dir", "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "mesh-state", "path": "/var/lib/awnix/mesh", "kind": "dir", "class": "config", "backup": false, "reset": ["factory"]},
+    {"id": "license", "path": "/etc/aither/appliance.lic", "kind": "file", "class": "license", "backup": true, "reset": ["factory"]},
+    {"id": "license-state", "path": "/var/lib/aither/license", "kind": "dir", "class": "license", "backup": false, "reset": ["factory"]},
+    {"id": "eula", "path": "/var/lib/aither/eula", "kind": "dir", "class": "license", "backup": true, "reset": ["factory"]},
+    {"id": "ostree-auth", "path": "/etc/ostree/auth.json", "kind": "file", "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "containers-auth", "path": "/etc/containers/auth.json", "kind": "file", "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "console-tls", "path": "/var/lib/awnix-console/tls", "kind": "dir", "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "channel", "path": "/etc/awnix/channel", "kind": "file", "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "registry-auth", "path": "/etc/awnix/registry-auth.json", "kind": "file", "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "offline-trust", "path": "/etc/awnix/offline-trust.d", "kind": "dir", "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "proof-node-key", "path": "/etc/awnix/proof", "kind": "dir", "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "proof-evidence", "path": "/var/lib/proof", "kind": "dir", "class": "customer", "backup": true, "reset": ["data", "factory"]},
+    {"id": "air-gap", "path": "/etc/aither/air_gap.yaml", "kind": "file", "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "aither-data", "path": "/var/lib/aither", "kind": "dir", "class": "customer", "backup": true, "reset": ["data", "factory"], "exclude": ["license", "eula"]}
+  ]
+}

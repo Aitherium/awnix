@@ -1,0 +1,22 @@
+# AitherSpec L0 base -- every image carries this (awnix-base bakes it as
+# /usr/share/awspec/base.yaml). Later layers win: product -> pack -> site -> posture.
+# Design: docs/architecture/SOVEREIGN-CONFIG-PLANE.md. Resolve / explain / render:
+#   python AitherOS/lib/core/aither_spec.py resolve --from AitherOS/config/spec/base.yaml ...
+#
+# RULES: this is the ONLY spec file allowed to carry the aitherium.com domain; no host
+# fact (IP, drive, distro) lives here or in a product -- those go in sites/ (SPEC002).
+schema: aitherspec/v1
+layer: base
+domain: aitherium.com
+tls:
+  enabled: true
+air_gap:
+  enabled: false
+  cloud_fallback: true
+secrets:
+  # Required, no default: a product or site must say where the vault master key comes
+  # from (tpm | sealed-file | idp-exchange | operator). Enforced from migration step 11.
+  master_key_source: required
+endpoints:
+  identity: {url: "https://idp.aitherium.com/identity"}
+  registry: {url: "https://ghcr.io/aitherium"}

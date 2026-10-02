@@ -1,0 +1,63 @@
+DRAFT -- NOT APPROVED FOR RELEASE. The owner has not approved this wording yet.
+check_eula_firstboot.py --release refuses any image that ships this marker.
+
+GargBot Appliance -- End User Licence Agreement
+Version 0.1.0-draft
+
+Read this agreement before you use the appliance. You accept it by choosing
+"I accept" on the appliance console, by typing ACCEPT at the setup prompt, or
+by supplying its sha256 in a seed or answers file. If you do not accept it,
+do not use the appliance. The appliance stays installed, but the GargBot
+service does not start.
+
+1. Parties. This agreement is between Aitherium ("Licensor") and the person
+   or organisation that installs or operates the appliance ("You").
+
+2. What is licensed. The GargBot appliance image is licensed to You, not sold.
+   It includes the GargBot application, its models and data packs, and the
+   Aitherium tools installed with it (together, the "Software"). Components
+   under open-source licences stay under those licences. They are listed in
+   /usr/share/licenses on the appliance, and nothing here limits your rights
+   under them.
+
+3. Licence grant. Subject to this agreement and to a valid licence for your
+   subscription or purchase, Licensor grants You a non-exclusive,
+   non-transferable licence to install and run the Software on the number of
+   machines your licence covers, for your own internal use.
+
+4. Restrictions. You may not:
+   (a) resell, sublicense, rent or host the Software for third parties
+       unless your licence allows it;
+   (b) remove or change licence checks, notices or this agreement;
+   (c) reverse engineer the Software, except where the law allows it
+       regardless of this restriction;
+   (d) use the Software to break the law or the rights of others.
+
+5. Your data. Your documents, conversations and model outputs stay on your
+   appliance. Licensor does not collect them. The appliance contacts Licensor
+   only for the licence, update and feedback endpoints listed in
+   `awnix endpoints show`. You can switch those endpoints off, and an
+   air-gapped appliance contacts none of them.
+
+6. Updates. Updates are signed. You choose when to apply them, and you can
+   roll back to the previous image. When a licence term ends, the appliance
+   keeps serving. Only updates and new content stop, as your licence
+   describes.
+
+7. Warranty. Except where the law does not allow it, the Software is
+   provided "as is", without warranty of any kind. AI output can be wrong.
+   Check it before you rely on it.
+
+8. Liability. To the extent the law allows, Licensor's total liability under
+   this agreement is limited to the amount You paid for the Software in the
+   twelve months before the claim.
+
+9. Termination. This licence ends automatically if You breach it. When it
+   ends, You must stop using the Software. Sections 7, 8 and 10 survive.
+
+10. General. This agreement is the whole agreement about the Software. A
+    signed order or contract between You and Licensor overrides it where the
+    two conflict.
+
+To see this text again at any time: aither-eula show
+To see what was accepted, when and how: aither-eula status --json

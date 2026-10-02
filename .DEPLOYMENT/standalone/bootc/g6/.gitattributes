@@ -1,0 +1,3 @@
+# G6 harness files are shipped into Linux images and booted: LF only, whatever the
+# checkout platform (check_bootc_g6_proof.py G6P002 fails on any CR byte).
+* text eol=lf

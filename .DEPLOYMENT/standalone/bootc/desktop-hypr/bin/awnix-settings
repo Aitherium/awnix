@@ -1,0 +1,15 @@
+#!/bin/sh
+# awnix-settings -- the awnix console as the desktop's Settings. On this image the
+# console listens on 127.0.0.1 ONLY (/usr/lib/awnix/console.d/desktop.conf), so nothing
+# on the network can reach it. Its sign-in code is root-only: pkexec asks for your
+# password once and the code goes to the clipboard, never to a file.
+set -u
+url=$(/usr/libexec/awnix/awnix-console url 2>/dev/null) || url="https://127.0.0.1:9443/"
+note() { notify-send -a awnix -t 6000 "$@" >/dev/null 2>&1 || true; }
+if code=$(pkexec /usr/libexec/awnix/awnix-console code 2>/dev/null) && [ -n "$code" ]; then
+    printf '%s' "$code" | wl-copy
+    note "Settings" "Sign-in code copied. Paste it on the page."
+else
+    note "Settings" "Sign-in code: run  sudo awnix console code"
+fi
+exec firefox --new-window "$url"

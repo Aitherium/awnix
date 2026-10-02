@@ -24,6 +24,9 @@ param(
     [string]$Image  = $(if ($env:AWNIX_IMAGE) { $env:AWNIX_IMAGE } else { 'ghcr.io/aitherium/gobbonet-appliance:latest' }),
     [string]$Name   = 'awnix',
     [int]$Port      = 8080,
+    # -Target wsl only: where the rootfs tarball and the distro's vhdx are staged.
+    # Default: the user's own %LOCALAPPDATA%\awnix\wsl, never a fixed drive.
+    [string]$StageDir = $(if ($env:AWNIX_WSL_STAGE) { $env:AWNIX_WSL_STAGE } else { Join-Path $env:LOCALAPPDATA 'awnix\wsl' }),
     [switch]$SelfTest
 )
 
@@ -181,12 +184,13 @@ switch ($Target) {
         if ($defaultDistro -and ($defaultDistro -ieq (Get-AitherFleetDistro))) {
             throw "refusing to export: the default WSL distro is the fleet distro '$defaultDistro'; the export would boot it. Set another default (wsl --set-default <distro with podman>) for this run."
         }
-        $stage = Resolve-AwnixStageRoot
+        $stage = ($StageDir -replace '\\','/').TrimEnd('/')
+        New-Item -ItemType Directory -Force -Path $stage | Out-Null
         $stageWsl = ConvertTo-AwnixWslPath $stage
 
         $inside = ($Here -replace '\\','/') -replace '^([A-Za-z]):', { "/mnt/" + $_.Groups[1].Value.ToLower() }
         Say "exporting $Image inside WSL (stage dir $stage)"
-        & wsl.exe -u root -- sh -c "cd '$inside' && AITHER_WSL_STAGE_DIR='$stageWsl' sh awnix-to-wsl.sh --image '$Image' --name '$Name'"
+        & wsl.exe -u root -- sh -c "cd '$inside' && AITHER_WSL_STAGE_DIR='$stageWsl' AWNIX_WSL_STAGE='$stageWsl' sh awnix-to-wsl.sh --image '$Image' --name '$Name'"
         if ($LASTEXITCODE -ne 0) { throw "the export step failed (exit $LASTEXITCODE)" }
 
         # awnix-to-wsl.sh stages under the same AITHER_WSL_STAGE_DIR; keep the two in

@@ -1,0 +1,21 @@
+[Unit]
+Description=awnix: resolve the update channel, verify the signature, stage (never reboots unless AUTO_APPLY=1)
+Documentation=man:awnix-update(8)
+# garg-firstboot arms a legacy credential; aither-license refreshes the licensed one.
+# Ordering against a unit that is absent on a variant is simply ignored.
+After=network-online.target garg-firstboot.service aither-license.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/awnix/awnix-update check
+# Exit 2 is "could not judge" (offline, no credential yet). It is recorded in
+# /var/lib/awnix/update-status.json; it must not mark the unit failed on a box that is
+# simply offline.
+SuccessExitStatus=2
+# A oneshot has no start timeout by default; a hung check would keep the unit
+# "activating" and awnix-update.timer (OnUnitActiveSec) would never fire again.
+# awnix-update bounds each network call itself; this is the backstop.
+TimeoutStartSec=15min
+Nice=10
+IOSchedulingClass=idle

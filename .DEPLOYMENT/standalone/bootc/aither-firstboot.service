@@ -1,0 +1,40 @@
+[Unit]
+# AitherOS first boot on bare metal / VM: create your user, sign in to
+# idp.aitherium.com with a device code, choose your agent. See aither-setup --help.
+#
+# Run-once is DECLARATIVE: the marker aither-setup writes last is the condition, so
+# "setup finished" and "marker written" cannot disagree. `aither-setup --reconfigure`
+# re-runs it; deleting the marker makes the next boot ask again.
+#
+# WSL is excluded: a WSL distro has no tty1. There the OOBE is wsl-distribution.conf's
+# [oobe] command, with the first-login profile hook as the fallback for `wsl --import`.
+#
+# With /etc/aither/setup-seed.json present this runs UNATTENDED (fleets, customers,
+# cloud-init). Without one it asks on tty1; a headless box is set up over SSH instead,
+# where the profile hook offers the same program on the first root login.
+Description=AitherOS first-boot setup (user, Aitherium sign-in, agent)
+ConditionPathExists=!/var/lib/aither/setup.done
+ConditionVirtualization=!wsl
+Wants=network-online.target
+After=network-online.target systemd-user-sessions.service awnix-setup.service
+Before=getty@tty1.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/aither-setup --firstboot
+TimeoutStartSec=infinity
+RemainAfterExit=no
+# An interactive prompt needs a real terminal, or every input() is EOF and setup
+# "completes" having asked nothing.
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+# A failed or cancelled setup must not brick the boot: the machine carries on to a
+# login prompt and the profile hook offers setup again.
+SuccessExitStatus=0 1 130
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,58 @@
+# Containerfile.awnix-airgap -- the "zero open ports" AIRGAP PROFILE as a layer.
+#
+# Goes on top of ANY awnix variant: the base, or the garg appliance.
+#
+#   podman build -f Containerfile.awnix-airgap \
+#       --build-arg BASE=ghcr.io/aitherium/awnix@sha256:<pinned> \
+#       -t localhost/awnix-airgap .DEPLOYMENT/standalone/bootc
+#
+# What the layer does (awnix-zero-ports apply --profile airgap):
+#   - firewalld default zone = awnix, with no services and no ports
+#   - cockpit.socket masked
+#   - sshd key-only (01-awnix.conf) and bound to 127.0.0.1 / ::1 only
+#   - root and every uid>=1000 login account locked (passwd -l)
+#   - awnix-console and gargbot bound to 127.0.0.1
+#   - awnix-proof-step1.service runs the demo Step-1 check on every boot and
+#     writes the verdict to /var/lib/proof/step1-zero-ports.log and the tty banner
+#   - egress (demo Step 2): the call-home timers are MASKED (awnix-update,
+#     aither-license, awnix-mesh; AIRGAP_MASK in the tool), NetworkManager makes
+#     no automatic DHCP profile and runs no connectivity probe, every wired NIC is
+#     link-local only, mDNS/LLMNR are off, and awnix-airgap-net.service turns the
+#     installer's DHCP profile link-local before NetworkManager starts
+#   - first-boot setup (awnix_setup) sees /usr/lib/awnix/profile=airgap and will
+#     not finish without an administrator PASSWORD: a key can never reach the
+#     loopback-only sshd, so the console password is the only login
+#
+# The build FAILS when the result is not zero-ports as built: verify-static runs
+# in the same RUN. For a garg base that means garg-firstboot has to honour
+# GARGBOT_BIND_HOST and GARG_QDRANT_HOST first. A layer that says airgap while
+# gargbot still listens on 0.0.0.0:8900 is exactly the false claim this exists
+# to stop.
+#
+# Per-engagement demo image: built from a pinned digest, never published.
+# The CI proof is .github/workflows/awnix-zero-ports.yml.
+ARG BASE=localhost/awnix-base:latest
+FROM ${BASE}
+
+COPY awnix-zero-ports.sh /usr/libexec/awnix/awnix-zero-ports
+COPY awnix-zero-ports/ /usr/share/awnix/zero-ports/
+
+# CR strip first (the garg CRLF lesson), then prove the tool on this image's own
+# sh/awk/sed before trusting it with the image.
+RUN sed -i 's/\r$//' /usr/libexec/awnix/awnix-zero-ports /usr/share/awnix/zero-ports/* && \
+    chmod 0755 /usr/libexec/awnix/awnix-zero-ports && \
+    chmod 0644 /usr/share/awnix/zero-ports/* && \
+    /usr/libexec/awnix/awnix-zero-ports --self-test
+
+# firewalld is in the base today; install it only if a variant dropped it.
+RUN if ! command -v firewall-offline-cmd >/dev/null 2>&1; then \
+        dnf -y install firewalld && dnf clean all; \
+    fi && \
+    systemctl enable firewalld
+
+RUN /usr/libexec/awnix/awnix-zero-ports apply --profile airgap && \
+    /usr/libexec/awnix/awnix-zero-ports verify-static --profile airgap
+
+LABEL awnix.profile="airgap" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.description="awnix airgap profile: zero non-loopback listeners, no password login"

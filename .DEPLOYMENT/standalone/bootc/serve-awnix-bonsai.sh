@@ -165,8 +165,22 @@ LEGACY_SERVE_ARGS="--model $GGUF --host 127.0.0.1 --port $PORT --ctx-size 16384 
 # binary's own $ORIGIN-relative RPATH (libggml-*/libllama-*/libmtmd) is
 # still honoured through an explicit loader invocation, so --library-path
 # only needs to name the bundle.
-LOADER=/opt/bonsai/lib/ld-linux-x86-64.so.2
-[ -x "$LOADER" ] || die "bundled loader missing at /opt/bonsai/lib -- image build did not stage it"
+#
+# The loader is found by GLOB, not by name (G13): the bundle carries
+# ld-linux-x86-64.so.2 on x86_64 and ld-linux-aarch64.so.1 on aarch64, and this one
+# script ships in both images. Exactly one must match: zero means the image build did
+# not stage it, two means a bundle of mixed arches -- either way picking one would
+# start the wrong binary or none, so both refuse. check_awnix_multiarch.py AMA003
+# forbids the literal from coming back.
+LOADER=""
+_loaders=0
+for _l in /opt/bonsai/lib/ld-linux-*.so.*; do
+  [ -e "$_l" ] || continue
+  LOADER="$_l"
+  _loaders=$((_loaders + 1))
+done
+[ "$_loaders" -eq 1 ] || die "expected exactly ONE bundled loader /opt/bonsai/lib/ld-linux-*.so.*, found $_loaders -- 0: the image build did not stage it; >1: the bundle mixes arches"
+[ -x "$LOADER" ] || die "bundled loader $LOADER is not executable -- image build did not stage it correctly"
 
 # 🚨 THE BACKENDS MUST BE VISIBLE FROM THE LOADER'S OWN DIRECTORY, and until
 # 2026-08-23 they were not -- so this script could not load a model AT ALL.

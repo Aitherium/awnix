@@ -1,0 +1,134 @@
+# Containerfile.g6 -- the three images of the G6 upgrade / rollback / greenboot proof.
+#
+#   N    G6_ROLE=n    the installed image
+#   N+1  G6_ROLE=n1   the good update (differs from N only in the role layer)
+#   N+2  G6_ROLE=n2   N+1 plus a greenboot REQUIRED check that always fails
+#
+# Build context is the bootc directory, so the REAL awnix greenboot hunk is used:
+#   podman build -f g6/Containerfile.g6 --build-arg G6_ROLE=n1 .DEPLOYMENT/standalone/bootc
+#
+# BASE defaults to the public CentOS bootc image, so no credential is needed anywhere.
+# --build-arg BASE=<awnix or garg-appliance ref> runs the same cycle on the product
+# image; greenboot, 10-awnix-core.sh and GREENBOOT_MAX_BOOT_ATTEMPTS are then inherited
+# from it and only added here when absent (the same hunk as Containerfile.awnix:348).
+#
+# The fallback REBOOT comes from ../awnix-greenboot-fallback.{sh,service,conf}, installed
+# only when the base lacks it; /usr/lib/g6/fallback_reboot records shipped|added.
+# greenboot 0.16.4 does not reboot on its last failed attempt (hosted runs 36415942227,
+# 36417253922) and the G6 agent never reboots N+2, so without that unit N never returns.
+#
+# Nothing in these images listens on a port: sshd is disabled, the agent is a oneshot,
+# and qemu forwards no host port -- the AFRL zero-open-ports seam is not touched.
+ARG BASE=quay.io/centos-bootc/centos-bootc:stream9
+FROM ${BASE}
+
+ARG G6_PLAN=upgrade,rollback,fallback
+ARG G6_GRUB_COUNTING=auto
+
+COPY awnix-health-check.sh /usr/share/g6/awnix-health-check.sh
+COPY awnix-greenboot-fallback.sh awnix-greenboot-fallback.service awnix-greenboot-fallback.conf /usr/share/g6/
+COPY g6/n2-fail.sh g6/08_g6_fallback_counting.cfg /usr/share/g6/
+COPY g6/50-g6-registry.conf /etc/containers/registries.conf.d/50-g6-registry.conf
+COPY g6/g6-agent.sh /usr/libexec/g6/g6-agent.sh
+COPY g6/g6-agent.service g6/g6-mark.service /usr/lib/systemd/system/
+
+# Common layer: identical for N, N+1 and N+2, so an upgrade pulls one small layer.
+RUN set -eux; \
+    need=""; \
+    rpm -q greenboot >/dev/null 2>&1 || need="$need greenboot"; \
+    command -v python3 >/dev/null 2>&1 || need="$need python3"; \
+    if [ -n "$need" ]; then \
+        dnf install -y --setopt=install_weak_deps=False $need && dnf clean all; \
+    fi; \
+    for u in $(rpm -ql greenboot | grep -E '/systemd/system/[^/]+\.(service|target)$'); do \
+        grep -q '^\[Install\]' "$u" && systemctl enable "$(basename "$u")"; \
+    done; \
+    systemctl is-enabled greenboot-healthcheck.service; \
+    mkdir -p /etc/greenboot/check/required.d; \
+    [ -e /etc/greenboot/check/required.d/10-awnix-core.sh ] \
+        || install -m 0755 /usr/share/g6/awnix-health-check.sh /etc/greenboot/check/required.d/10-awnix-core.sh; \
+    fr=shipped; \
+    if [ ! -e /usr/libexec/awnix/awnix-greenboot-fallback.sh ]; then \
+        fr=added; \
+        install -D -m 0755 /usr/share/g6/awnix-greenboot-fallback.sh /usr/libexec/awnix/awnix-greenboot-fallback.sh; \
+        install -D -m 0644 /usr/share/g6/awnix-greenboot-fallback.service /usr/lib/systemd/system/awnix-greenboot-fallback.service; \
+        install -D -m 0644 /usr/share/g6/awnix-greenboot-fallback.conf /usr/lib/systemd/system/greenboot-healthcheck.service.d/50-awnix-greenboot-fallback.conf; \
+    fi; \
+    grep -qs '^OnFailure=awnix-greenboot-fallback.service' /usr/lib/systemd/system/greenboot-healthcheck.service.d/*.conf \
+        || { echo 'greenboot-healthcheck has no OnFailure=awnix-greenboot-fallback.service' >&2; exit 1; }; \
+    grep -qs '^GREENBOOT_MAX_BOOT_ATTEMPTS=' /etc/greenboot/greenboot.conf \
+        || printf 'GREENBOOT_MAX_BOOT_ATTEMPTS=3\n' >> /etc/greenboot/greenboot.conf; \
+    systemctl disable sshd.service sshd.socket 2>/dev/null || true; \
+    systemctl disable bootc-fetch-apply-updates.timer 2>/dev/null || true; \
+    chmod 0755 /usr/libexec/g6/g6-agent.sh /usr/share/g6/n2-fail.sh; \
+    systemctl enable g6-agent.service g6-mark.service; \
+    mkdir -p /usr/lib/bootc/kargs.d /usr/lib/bootc/install /usr/lib/g6; \
+    printf 'kargs = ["console=ttyS0,115200n8"]\n' > /usr/lib/bootc/kargs.d/90-g6-serial.toml; \
+    ls /usr/lib/bootc/install/*.toml >/dev/null 2>&1 \
+        || printf '[install.filesystem.root]\ntype = "xfs"\n' > /usr/lib/bootc/install/00-g6.toml; \
+    gc=n/a; d=/usr/lib/bootupd/grub2-static; \
+    if [ -d "$d" ]; then \
+        if grep -rqs boot_counter "$d"; then gc=present; \
+        elif [ "$G6_GRUB_COUNTING" = auto ]; then \
+            mkdir -p "$d/configs.d" && install -m 0644 /usr/share/g6/08_g6_fallback_counting.cfg "$d/configs.d/"; gc=added; \
+        else gc=absent; fi; \
+    fi; \
+    echo "$gc" > /usr/lib/g6/grub_counting; \
+    echo "$fr" > /usr/lib/g6/fallback_reboot; \
+    echo "$G6_PLAN" > /usr/lib/g6/plan
+
+# Role layer: the only difference between N and N+1; N+2 adds the failing check.
+#
+# inject=no-greenboot is the NEGATIVE CONTROL, applied to EVERY role: N+2 keeps its
+# failing check, but greenboot's health gate is taken out of the boot --
+#   * greenboot-healthcheck.service, the runner that fails the boot and (greenboot-rs)
+#     reboots and rolls back on its own, and
+#   * the rollback trigger that arms grub's boot_counter when an update is STAGED, on
+#     the image running then (N): greenboot-set-rollback-trigger.service on
+#     greenboot-rs (0.16, el9 today), greenboot-grub2-set-counter.service on <=0.15.
+# The runner is MASKED: `systemctl disable` left it starting on every boot (hosted run
+# 36414661590 -- something static still pulls it in). The trigger is DISABLED, never
+# masked: ostree-finalize-staged Requires= it, and a masked requirement would fail
+# every staging, upgrade included. The same faulty N+2 must then stay booted, and the
+# run must end NO-AUTO-FALLBACK (exit 1): the proof that the fallback in the real run
+# CAME FROM greenboot and that the harness can fail. The build FAILS unless the runner
+# and one trigger were found and neutralised, so a unit rename can never again turn
+# the control into a silent no-op. Measured on hosted runs, all of which still fell
+# back after 4 N+2 boots: 36411166098 masked only 0.15 names (no-op on 0.16.4),
+# 36413303281 disabled only the trigger, 36414661590 also only DISABLED the runner.
+ARG G6_ROLE=n
+ARG G6_INJECT=none
+RUN set -eux; \
+    case "$G6_ROLE" in n|n1|n2) ;; *) echo "G6_ROLE must be n, n1 or n2" >&2; exit 1 ;; esac; \
+    echo "$G6_ROLE" > /usr/lib/g6/role; \
+    echo "$G6_INJECT" > /usr/lib/g6/inject; \
+    if [ "$G6_ROLE" = n2 ]; then \
+        install -m 0755 /usr/share/g6/n2-fail.sh /etc/greenboot/check/required.d/99-g6-n2-fail.sh; \
+    fi; \
+    if [ "$G6_INJECT" = no-greenboot ]; then \
+        disarmed=""; \
+        for u in greenboot-healthcheck.service greenboot-set-rollback-trigger.service greenboot-grub2-set-counter.service; do \
+            if [ -e "/usr/lib/systemd/system/$u" ]; then \
+                systemctl disable "$u"; \
+                if ls /etc/systemd/system/*/"$u" >/dev/null 2>&1; then echo "$u still wired after disable" >&2; exit 1; fi; \
+                disarmed="$disarmed $u"; \
+            fi; \
+        done; \
+        systemctl mask greenboot-healthcheck.service; \
+        [ "$(systemctl is-enabled greenboot-healthcheck.service 2>/dev/null || true)" = masked ] \
+            || { echo "greenboot-healthcheck.service is not masked" >&2; exit 1; }; \
+        { grep -rls 'greenboot-healthcheck' /usr/lib/systemd/system /etc/systemd/system || true; } | tee /usr/lib/g6/inject-pullers.txt; \
+        case "$disarmed" in *greenboot-healthcheck.service*) ;; \
+            *) echo "greenboot-healthcheck.service not found: the negative control would be a no-op" >&2; exit 1 ;; esac; \
+        case "$disarmed" in *-set-rollback-trigger.service*|*-grub2-set-counter.service*) ;; \
+            *) echo "no greenboot rollback-trigger unit found: the negative control would be a no-op" >&2; exit 1 ;; esac; \
+        echo "$disarmed" > /usr/lib/g6/inject-disarmed; \
+        for u in greenboot-rpm-ostree-grub2-check-fallback.service redboot-auto-reboot.service awnix-greenboot-fallback.service; do \
+            if [ -e "/usr/lib/systemd/system/$u" ]; then systemctl mask "$u"; fi; \
+        done; \
+        systemctl list-unit-files 'greenboot*' 'redboot*' --no-pager > /usr/lib/g6/inject-units.txt 2>&1 || true; \
+    fi
+
+LABEL g6.role="${G6_ROLE}" \
+      g6.inject="${G6_INJECT}" \
+      com.aitheros.description="awnix G6 proof image (upgrade / rollback / greenboot fallback) -- test-only, never shipped"

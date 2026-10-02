@@ -1,0 +1,30 @@
+[Unit]
+Description=awnix web console (setup and administration, https :9443)
+Documentation=man:awnix(8)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Root on purpose: this is the privileged broker for update/license/component verbs.
+# The boundary is awnix_console/actions.py's literal argv allowlist, not the sandbox --
+# a ProtectSystem sandbox here would be inherited by `bootc switch` and the license
+# refresh and break them. Reboot-scheduling verbs run outside it via systemd-run.
+Type=simple
+ExecStartPre=/usr/libexec/awnix/awnix-console prepare
+ExecStart=/usr/libexec/awnix/awnix-console serve
+ExecStartPost=-/usr/libexec/awnix/awnix-console-issue.sh
+Restart=on-failure
+RestartSec=5
+# /run/awnix-console/token (console code, the awkit-backend proxy's bearer) and
+# /run/awnix/setup-code survive a restart, which is how setup -> console switches mode.
+RuntimeDirectory=awnix-console awnix
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+StateDirectory=awnix-console
+StateDirectoryMode=0700
+UMask=0077
+PrivateTmp=yes
+NoNewPrivileges=no
+
+[Install]
+WantedBy=multi-user.target

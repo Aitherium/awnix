@@ -38,10 +38,19 @@ FROM localhost/awnix-runner-ai:latest
 # gobbonet pack stores campaign notes in -- without it `adk gobbonet` runs and
 # every scoped-memory tool degrades to nothing, which reads as the feature being
 # switched off rather than absent.
+#
+# The install and the import MUST be able to fail this RUN. This line used to end
+# `... && python3.11 -m adk.cli --help >/dev/null 2>&1 || true`, which the shell
+# reads as `(install && import && help) || true`: a failed install built green.
+# Only the --help probe is advisory now, and it is grouped so its `||` covers it
+# alone (check_awnix_ships_claim.py ANS006).
+# `awsync` is NOT on this line on purpose: the PyPI project of that name belongs to a
+# third party (dependency confusion, D-2700). Ours ships only once it has a name we own.
 RUN python3.11 -m pip install --no-cache-dir \
-        "awdk[memory]" awnode awprism awreason awrecurse awrepl awsync \
+        "awdk[memory]" awnode awprism awreason awrecurse awrepl \
     && python3.11 -c "import adk, awm" \
-    && python3.11 -m adk.cli --help >/dev/null 2>&1 || true
+    && { python3.11 -m adk.cli --help >/dev/null 2>&1 \
+         || echo "WARN: adk.cli --help failed; adk imports" >&2; }
 
 # ── the models, BAKED ──────────────────────────────────────────────────────────
 # awnix-ai deliberately bakes nothing: "a 27B is larger than the whole ISO". That

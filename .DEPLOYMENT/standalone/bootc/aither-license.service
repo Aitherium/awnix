@@ -1,0 +1,27 @@
+[Unit]
+# Refresh the appliance's registry pull token from its AITHER1 license.
+#
+# The ONLY writer of registry credentials on the box: /etc/ostree/auth.json,
+# /run/ostree/auth.json and /etc/containers/auth.json (ghcr.io entry). The token lives
+# 60 min and aither-license.timer runs this every 45 min; aither-license.path runs it
+# when a license is dropped into the spool. Verification runs HERE, as root, never in a
+# web process. Result: /var/lib/aither/license/status.json (read by every surface).
+Description=AitherOS appliance license refresh (license -> registry pull token)
+Documentation=man:aitheros(1)
+# Either an installed license or a spooled one; with neither there is nothing to do and
+# the legacy garg token (if any) is left alone.
+ConditionPathExists=|/etc/aither/appliance.lic
+ConditionPathExists=|/var/lib/aither/license/incoming.lic
+Wants=network-online.target
+After=network-online.target time-sync.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/aitheros license refresh --quiet
+# 2 = offline / could not judge. The existing token is kept until it expires, so an
+# unplugged cable is not a failed unit.
+SuccessExitStatus=2
+TimeoutStartSec=90
+PrivateTmp=yes
+ProtectHome=yes
+NoNewPrivileges=yes

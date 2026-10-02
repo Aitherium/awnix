@@ -1,0 +1,10 @@
+# /etc/containers/registries.d/aitherium.yaml
+#
+# Tell containers/image (bootc, podman, skopeo) to look up sigstore signatures stored
+# as OCI attachments next to our images (where `cosign sign` puts them). Harmless
+# until policy.json requires a signature for ghcr.io/aitherium (Phase B, owner-gated:
+# enforcing before every in-field image is co-signed would brick updates). Until then
+# `awnix update check` is the enforcement: cosign verify on the exact digest it stages.
+docker:
+  ghcr.io/aitherium:
+    use-sigstore-attachments: true

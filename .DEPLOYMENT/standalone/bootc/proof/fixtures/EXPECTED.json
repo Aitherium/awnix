@@ -1,0 +1,12 @@
+{
+  "booted_digest": "sha256:4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f",
+  "rollback_digest": "sha256:3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e",
+  "exit": {
+    "step1-pass": 0,
+    "step1-fail-listener": 1,
+    "step1-fail-route": 1,
+    "step1-fail-sshd": 1,
+    "step1-fail-unlocked": 1,
+    "step1-no-bootc": 2
+  }
+}

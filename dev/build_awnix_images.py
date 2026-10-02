@@ -5,13 +5,13 @@ each layer actually works, not just that `podman build` exited 0.
 This replaces a hand-typed sequence run BY HAND in two distinct sessions
 while building the awrun/awnix plan (`.DEPLOYMENT/standalone/bootc/`):
 
-    cd .DEPLOYMENT/standalone/bootc
-    wsl -d awnix -u root podman build --no-cache -t awnix-base:latest \\
-        -f Containerfile.awnix .
-    wsl -d awnix -u root podman build --no-cache -t awnix-runner:latest \\
-        -f Containerfile.awnix-runner .
-    wsl -d awnix -u root podman build --no-cache -t awnix-runner-ai:latest \\
-        -f Containerfile.awnix-runner-ai .
+    cd .DEPLOYMENT/standalone/bootc          # as root, where podman lives
+    podman build --no-cache -t awnix-base:latest -f Containerfile.awnix .
+    podman build --no-cache -t awnix-runner:latest -f Containerfile.awnix-runner .
+    podman build --no-cache -t awnix-runner-ai:latest -f Containerfile.awnix-runner-ai .
+
+Hosted CI (build-awnix-iso.yml on the awnix runner) is the supported lane; on the
+Windows workstation `_host_prefix` reaches podman inside the fleet distro itself.
 
 Recorded in AitherOS/config/automation_backlog.yaml as `status: automated`,
 target: this file (.claude/skills/automate-the-manual/SKILL.md, AT003).
@@ -19,6 +19,9 @@ target: this file (.claude/skills/automate-the-manual/SKILL.md, AT003).
     python AitherOS/dev/tools/build_awnix_images.py                 # all 3, idempotent
     python AitherOS/dev/tools/build_awnix_images.py --layer runner-ai
     python AitherOS/dev/tools/build_awnix_images.py --force         # rebuild even if the tag exists
+    python AitherOS/dev/tools/build_awnix_images.py --layer appliance-cloud --customer --force-top
+    python AitherOS/dev/tools/build_awnix_images.py --iso --iso-layer base \
+        --iso-config iso/awnix-installer.toml
     python AitherOS/dev/tools/build_awnix_images.py --self-test
 
 Idempotent: a layer whose target tag already exists is SKIPPED (not
@@ -126,6 +129,26 @@ class Layer:
     #: unbaked image whose loader unit fails LOUDLY at first boot (the
     #: Containerfile's own design), so the builder must not refuse it.
     optional_contexts: tuple[str, ...] = ()
+    #: `--build-arg NAME=VALUE` pairs this layer always builds with. The cloud appliance
+    #: is Containerfile.aitheros rebased on the HEADLESS base (AITHEROS_BASE) with
+    #: multi-user.target -- same file, different arguments, a different image.
+    build_args: tuple[tuple[str, str], ...] = ()
+
+
+#: The inherited-plane assertions every aitheros appliance image must pass (the
+#: aitheros-layer gap's verify contract): the setup CLI self-tests and its unit is on.
+_AITHEROS_SETUP_VERIFY = ("aither-setup --self-test >/dev/null "
+                          "&& systemctl is-enabled aither-setup.service >/dev/null ")
+
+#: The appliance CLI plane every awnix image inherits from Containerfile.awnix (license,
+#: console, update, component, endpoints). Pulled images never ran the build's RUN, so
+#: the layer verify re-asserts it.
+_AWNIX_PLANE_VERIFY = ("aitheros --self-test >/dev/null "
+                       "&& awnix --list-verbs | grep -qx update "
+                       "&& awnix --list-verbs | grep -qx component "
+                       "&& systemctl is-enabled awnix-console.service awnix-update.timer "
+                       "aither-license.timer >/dev/null "
+                       "&& test -s /usr/share/awnix-console/index.html ")
 
 
 LAYERS: tuple[Layer, ...] = (
@@ -161,6 +184,7 @@ LAYERS: tuple[Layer, ...] = (
                      "&& grep -q '^NAME=.awnix.$' /usr/lib/os-release "
                      "&& test -x /usr/bin/awnix-setup "
                      "&& test -L /etc/systemd/system/multi-user.target.wants/awnix-setup.service "
+                     "&& " + _AWNIX_PLANE_VERIFY +
                      "&& echo AWNIX_BASE_IMPORTS_OK"),
         verify_label="all seven aw* tools import and the first-boot setup is enabled",
     ),
@@ -277,6 +301,35 @@ LAYERS: tuple[Layer, ...] = (
         ),
         verify_label="sway, waybar, the greeter, awsh and adk are present; the agent key is "
                      "bound; greetd and greenboot are enabled and the machine boots graphical",
+    ),
+    Layer(
+        name="desktop-hypr",
+        tag="localhost/awnix-hypr:latest",
+        containerfile="Containerfile.awnix-hypr",
+        # FROM desktop-open (fedora-bootc:42): EPEL 9 has no Hyprland and Fedora retired
+        # it after F42 (measured 2026-09-28). Re-asserts what the Containerfile's RUN
+        # proved, because a pulled image never ran it: the compositor, the theme engine
+        # and the bindings tool self-test, the binds were GENERATED from the one
+        # bindings file, greetd starts the awnix session, the console is loopback-only.
+        verify_cmd=(
+            "command -v Hyprland && command -v waybar && command -v fuzzel "
+            "&& command -v swaylock && command -v foot && command -v firefox "
+            "&& command -v nvim && command -v distrobox && command -v awsh "
+            "&& awnix-theme --self-test >/dev/null && awnix-keys --self-test >/dev/null "
+            "&& test \"$(ls /usr/share/awnix/themes/*.toml | wc -l)\" -ge 4 "
+            "&& grep -q '^bind = SUPER, slash, exec, awnix-keys menu' "
+            "/usr/share/awnix/desktop/bindings.conf "
+            "&& grep -q 'awnix-session' /etc/greetd/config.toml "
+            "&& grep -qx 'AWNIX_CONSOLE_BIND=127.0.0.1' /usr/lib/awnix/console.d/desktop.conf "
+            "&& /usr/libexec/awnix/awnix-component --self-test >/dev/null "
+            "&& systemctl is-enabled greetd.service awnix-console.service >/dev/null "
+            "&& test \"$(systemctl get-default)\" = graphical.target "
+            "&& echo AWNIX_HYPR_OK"
+        ),
+        verify_label="Hyprland, waybar, fuzzel, swaylock, foot, Firefox, neovim, distrobox and "
+                     "awsh are present; awnix-theme and awnix-keys self-test; >=4 themes; the "
+                     "binds were generated; greetd starts awnix-session; the console is "
+                     "loopback-only; the machine boots graphical",
     ),
     # ── awnix-full ─ the batteries-included variant ──────────────────────
     # This layer was declared in awnix-variants.yaml with `iso: true` and existed in
@@ -406,8 +459,30 @@ LAYERS: tuple[Layer, ...] = (
         optional_contexts=("svcimg",),
         verify_cmd=("command -v aitheros-ctl >/dev/null "
                     "&& systemctl is-enabled aitheros-autostart.service >/dev/null "
+                    "&& " + _AITHEROS_SETUP_VERIFY +
                     "&& echo AITHEROS_APPLIANCE_OK"),
-        verify_label="the control plane and its autostart unit are installed",
+        verify_label="the control plane and its autostart unit are installed, and "
+                     "aither-setup self-tests and is enabled",
+    ),
+    # The HEADLESS cloud appliance (awnix-variants.yaml aitheros-cloud, layer
+    # appliance-cloud): the same Containerfile.aitheros on aitheros-bootc-base, booting
+    # multi-user.target. The variant and publish-aitheros-appliance.yml named this layer
+    # while no LAYERS entry built it, so `--layer appliance-cloud` was an argparse error.
+    Layer(
+        name="appliance-cloud",
+        tag="localhost/aitheros-bootc-cloud:latest",
+        containerfile="Containerfile.aitheros",
+        contexts=(("context", "../../.."), ("deploy", ".."),
+                  ("svcimg", "../rocky-linux/fleet-images")),
+        optional_contexts=("svcimg",),
+        build_args=(("AITHEROS_BASE", "localhost/aitheros-bootc-base:latest"),
+                    ("AITHEROS_DEFAULT_TARGET", "multi-user.target")),
+        verify_cmd=("command -v aitheros-ctl >/dev/null "
+                    "&& test \"$(systemctl get-default)\" = multi-user.target "
+                    "&& " + _AITHEROS_SETUP_VERIFY +
+                    "&& echo AITHEROS_CLOUD_APPLIANCE_OK"),
+        verify_label="the headless appliance boots multi-user.target, and aither-setup "
+                     "self-tests and is enabled",
     ),
     # ── the AitherOS fleet HOST (the awnix cutover target, 2026-09-27) ────────────
     # Private: both names are in check_awnix_public_lane.py's FORBIDDEN floor, and
@@ -580,7 +655,7 @@ def parent_of(layer: Layer) -> "Layer | None":
         if ln.startswith("FROM ") and len(ln.split()) > 1:
             token = ln.split()[1]
             if token.startswith("${") and token.endswith("}"):
-                resolved = _resolve_arg(token, text)
+                resolved = dict(layer.build_args).get(token[2:-1]) or _resolve_arg(token, text)
                 if resolved != token and resolved.startswith("localhost/"):
                     refs.append(resolved)
     for ref in refs:
@@ -605,7 +680,36 @@ def chain_for(layer: Layer) -> list[Layer]:
 
 
 
-def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
+#: --customer: the build arguments of a CUSTOMER aitheros image (contract: no vendor key,
+#: service images pulled on the box by digest). AITHEROS_EDGE_PUB is never passed.
+CUSTOMER_BUILD_ARGS = (("AITHEROS_CUSTOMER_BUILD", "1"), ("AITHER_IMAGE_MODE", "pull"))
+
+
+def customer_svcimg_error(path: Path) -> "str | None":
+    """Why a --customer build must refuse this svcimg context, or None when it is valid.
+
+    A customer image pins its service images by digest and pulls them on the box, so the
+    svcimg context must hold EXACTLY images.lock.json -- an oci-archive beside it would
+    bake the fleet into an image that was promised to carry none."""
+    if not path.is_dir():
+        return f"svcimg context {path} is absent (resolve the image lock first)"
+    names = sorted(x.name for x in path.iterdir())
+    if names != ["images.lock.json"]:
+        return (f"svcimg context {path} must hold only images.lock.json for a customer "
+                f"build, found {names}")
+    return None
+
+
+def layer_build_args(layer: Layer, customer: bool = False) -> list[tuple[str, str]]:
+    """The --build-arg pairs for one layer (customer args only reach Containerfile.aitheros)."""
+    out = list(layer.build_args)
+    if customer and layer.containerfile == "Containerfile.aitheros":
+        out += list(CUSTOMER_BUILD_ARGS)
+    return out
+
+
+def build_layer(layer: Layer, *, force: bool, verbose: bool = True,
+                customer: bool = False) -> bool:
     """Build (if needed) and verify one layer. Returns True on a verified
     pass. Never raises DeadError itself -- callers decide how to aggregate
     failures across layers, since one broken layer should not stop the
@@ -613,7 +717,8 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
     if verbose:
         print(f"[{layer.name}] tag={layer.tag}")
 
-    if force or not _image_exists(layer.tag):
+    built_now = force or not _image_exists(layer.tag)
+    if built_now:
         if verbose:
             print(f"[{layer.name}] building (--no-cache) ...")
         # A declared build context whose directory is absent fails at COPY time,
@@ -653,7 +758,13 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
                 ctx_parts.append(f' --build-context {name}=.empty-context-{name}')
                 continue
             ctx_parts.append(f' --build-context {name}={rel}')
-        ctx_args = ''.join(ctx_parts)
+        if customer and layer.containerfile == "Containerfile.aitheros":
+            why = customer_svcimg_error(_bootc_dir() / dict(layer.contexts)["svcimg"])
+            if why:
+                print(f"[{layer.name}] BUILD REFUSED - {why}")
+                return False
+        ctx_args = ''.join(ctx_parts) + ''.join(
+            f' --build-arg {k}={v}' for k, v in layer_build_args(layer, customer))
         # --network=host so the BUILD can resolve DNS.
         #
         # Measured 2026-08-21 on the AWS awnix runner: STEP 2/11's `dnf install` died
@@ -713,6 +824,14 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
         code, out = _wsl(build_script, timeout=1800)
         if code != 0:
             print(f"[{layer.name}] BUILD FAILED (exit {code}):")
+            # The tail alone hid the cause on 2026-09-28: a verify stage printed its FAIL
+            # rows, then ~4 KB of podman capability warnings pushed them out of the tail.
+            key = [ln for ln in out.splitlines()
+                   if ("FAIL" in ln or "ERROR" in ln or "FATAL" in ln)
+                   and "raise ambient capability" not in ln]
+            if key:
+                print(f"[{layer.name}] failure lines ({len(key)}):")
+                print("\n".join(key[:60]))
             print(out[-4000:])
             return False
         if verbose:
@@ -740,7 +859,46 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True) -> bool:
     print(f"[{layer.name}] verify: {marker} — {layer.verify_label}")
     if not passed:
         print(out[-2000:])
+        if not built_now:
+            # A CACHED tag that fails its own verify is stale, not broken: on
+            # 2026-09-28 the self-hosted runner kept an awnix-base from before the
+            # `aitheros` CLI existed, `--force-top` skipped it, verify failed, and
+            # the fleet layer was then built on top of it anyway. Rebuild it once.
+            print(f"[{layer.name}] cached image fails verify -- rebuilding it once")
+            return build_layer(layer, force=True, verbose=verbose, customer=customer)
     return passed
+
+
+_CARRY_CONTEXTS = {"deploy": ".DEPLOYMENT/", "devtools": "AitherOS/dev/tools/"}
+
+
+def fleet_carry_gaps() -> "list[str] | None":
+    """Manifest sources NOT reachable through Containerfile.aitheros-fleet's COPYs into
+    /tmp/aither-hu. [] when all are carried; None when either file is unreadable."""
+    deploy = _bootc_dir().parent.parent  # .DEPLOYMENT
+    manifest = deploy / "systemd" / "host-units.manifest"
+    containerfile = _bootc_dir() / "Containerfile.aitheros-fleet"
+    try:
+        man = manifest.read_text(encoding="utf-8")
+        cf = containerfile.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    sources = set()
+    for ln in man.splitlines():
+        parts = ln.split()
+        if len(parts) >= 3 and not ln.lstrip().startswith("#"):
+            sources.add(parts[2])
+    carried = []
+    for stmt in cf.replace("\\\n", " ").splitlines():
+        toks = stmt.split()
+        if len(toks) < 4 or toks[0] != "COPY" or not toks[1].startswith("--from="):
+            continue
+        ctx = _CARRY_CONTEXTS.get(toks[1][len("--from="):])
+        if ctx is None or not toks[-1].startswith("/tmp/aither-hu"):
+            continue
+        carried += [ctx + t.rstrip("/") for t in toks[2:-1]]
+    return sorted(src for src in sources
+                  if not any(src == c or src.startswith(c + "/") for c in carried))
 
 
 ISO_SCRIPT = "build-awnix-iso.sh"
@@ -802,8 +960,13 @@ def resolve_iso_image(iso_layer: str | None, iso_image: str) -> str:
     raise ValueError(f"no such layer: {iso_layer}")
 
 
-def resolve_published_ref(iso_layer: str | None, manifest: str | None = None) -> str:
-    """The PUBLISHED registry ref for a layer: registry/repo:latest from awnix-variants.yaml.
+def resolve_published_ref(iso_layer: str | None, manifest: str | None = None,
+                          tag: str = "beta") -> str:
+    """The PUBLISHED registry ref for a layer: registry/repo:<tag> from awnix-variants.yaml.
+
+    `:beta` by default: a default publish-awnix-images.sh run pushes beta + date + sha and
+    never :latest/:stable (those move only through awnix-promote.yml after the proof, AUC008),
+    so :latest would be whatever an OLDER run left there.
 
     Why this exists: the media step passes --iso-published, and the workflow's own
     comment records the reason -- "publish-awnix-iso.sh refuses an ISO recording
@@ -859,7 +1022,7 @@ def resolve_published_ref(iso_layer: str | None, manifest: str | None = None) ->
         reg = d.get("registry") or reg_top
         repo = d.get("repo", "")
         if reg and repo:
-            return f"{reg.rstrip('/')}/{repo}:latest"
+            return f"{reg.rstrip('/')}/{repo}:{tag}"
     raise ValueError(f"--iso-published: no variant with layer {iso_layer!r} names a "
                      f"publishable destination (registry+repo) in {path.name}")
 
@@ -877,8 +1040,21 @@ def _iso_out_is_distro_path(out: str) -> bool:
             and ":/" not in out[:4])
 
 
+def iso_config_args(iso_config: "str | None", iso_tag: "str | None" = None) -> str:
+    """build-awnix-iso.sh flags for --iso-config (a path, or 'none' for --no-config)."""
+    out = ""
+    if iso_config == "none":
+        out += " --no-config"
+    elif iso_config:
+        out += f" --config {iso_config}"
+    if iso_tag:
+        out += f" --iso-tag {iso_tag}"
+    return out
+
+
 def build_iso(image: str, iso_type: str, out: str, *,
-              min_free_gb: float | None = None, verbose: bool = True) -> bool:
+              min_free_gb: float | None = None, verbose: bool = True,
+              iso_config: "str | None" = None, iso_tag: "str | None" = None) -> bool:
     # REFUSE a path Git-Bash already mangled. --iso-out names a directory INSIDE
     # the distro, and MSYS rewrites a leading-slash argument before python sees
     # it: `/var/tmp/x` arrives as `C:/Program Files/Git/var/tmp/x`. The space
@@ -920,6 +1096,7 @@ def build_iso(image: str, iso_type: str, out: str, *,
         f"bash {_shell_bootc_dir()}/{ISO_SCRIPT} "
         f"--image {image} --type {iso_type} --out {out}"
         + (f" --min-free-gb {min_free_gb}" if min_free_gb is not None else "")
+        + iso_config_args(iso_config, iso_tag)
     )
     # An ISO build downloads the Anaconda payload and runs osbuild; 30 minutes is a
     # working build, not a hang. The image builds above use 1800s for the same reason.
@@ -983,6 +1160,17 @@ def main() -> int:
                          "localhost/ (publish-awnix-iso.sh refuses those). Requires "
                          "--iso-layer.")
     ap.add_argument("--iso-type", default="iso", choices=["iso", "qcow2", "raw", "vmdk"])
+    ap.add_argument("--iso-config", default=None,
+                    help="installer config for the media step, relative to the bootc dir "
+                         "(build-awnix-iso.sh --config; default: the script's own "
+                         "iso/awnix-installer.toml for --type iso). 'none' = --no-config.")
+    ap.add_argument("--iso-tag", default=None,
+                    help="release tag rendered into the installer config (build-awnix-iso.sh "
+                         "--iso-tag)")
+    ap.add_argument("--customer", action="store_true",
+                    help="a CUSTOMER aitheros build: AITHEROS_CUSTOMER_BUILD=1 and "
+                         "AITHER_IMAGE_MODE=pull, never AITHEROS_EDGE_PUB, and the svcimg "
+                         "context must hold only images.lock.json")
     ap.add_argument("--iso-out", default="/var/tmp/awnix-iso",
                     help="output directory INSIDE the distro")
     args = ap.parse_args()
@@ -1052,7 +1240,8 @@ def main() -> int:
 
     if args.iso:
         return 0 if build_iso(args.iso_image, args.iso_type, args.iso_out,
-                              min_free_gb=args.iso_min_free_gb) else 1
+                              min_free_gb=args.iso_min_free_gb,
+                              iso_config=args.iso_config, iso_tag=args.iso_tag) else 1
 
     if args.layer is None:
         wanted = list(LAYERS)
@@ -1071,11 +1260,16 @@ def main() -> int:
         print(f"no such layer: {args.layer}", file=sys.stderr)
         return 2
 
-    all_ok = True
-    for layer in wanted:
-        if not build_layer(layer, force=force_for(layer, wanted, args.force, args.force_top)):
-            all_ok = False
-    return 0 if all_ok else 1
+    for i, layer in enumerate(wanted):
+        if not build_layer(layer, force=force_for(layer, wanted, args.force, args.force_top),
+                           customer=args.customer):
+            # Every later layer in `wanted` is built FROM this one; building them on a
+            # failed/unverified parent only produces a second, misleading failure.
+            rest = [w.name for w in wanted[i + 1:]]
+            if rest:
+                print(f"[{layer.name}] failed -- not building dependents: {', '.join(rest)}")
+            return 1
+    return 0
 
 
 def force_for(layer: Layer, wanted: list, force: bool, force_top: bool) -> bool:
@@ -1236,7 +1430,6 @@ def _self_test() -> int:
         # arm did exactly that and FAILED on itself (workflow 1 vs tool 40),
         # which is the arm working: a floor comparison that names FREE_GB is
         # the preflight, and it is unambiguous.
-        import re
         for ln in _wf.read_text(encoding="utf-8").splitlines():
             _m = re.search(r"FREE_GB\"\s+-ge\s+(\d+)", ln)
             if _m:
@@ -1280,9 +1473,47 @@ def _self_test() -> int:
             "    publish: false" + nl)
         check("--iso-published resolves a private variant to its registry ref",
               resolve_published_ref("garg", _mp)
-              == "ghcr.io/aitherium/garg-appliance:latest")
+              == "ghcr.io/aitherium/garg-appliance:beta")
+        check("--iso-published can name another channel tag",
+              resolve_published_ref("garg", _mp, tag="stable")
+              == "ghcr.io/aitherium/garg-appliance:stable")
         check("--iso-published refuses a layer with no publishable variant",
               _raises_value_error(lambda: resolve_published_ref("base", _mp)))
+
+    # w1 integration: the cloud appliance layer, the customer build, the ISO config.
+    _cloud = next((x for x in LAYERS if x.name == "appliance-cloud"), None)
+    check("appliance-cloud is a LAYERS entry (the variant's layer is buildable)",
+          _cloud is not None)
+    if _cloud is not None:
+        check("appliance-cloud builds on the HEADLESS base, multi-user.target",
+              dict(_cloud.build_args) == {
+                  "AITHEROS_BASE": "localhost/aitheros-bootc-base:latest",
+                  "AITHEROS_DEFAULT_TARGET": "multi-user.target"})
+        _par = parent_of(_cloud)
+        check("appliance-cloud's parent resolves through its build arg (appliance-base)",
+              _par is not None and _par.name == "appliance-base")
+        check("--customer adds the customer args to Containerfile.aitheros layers only",
+              ("AITHER_IMAGE_MODE", "pull") in layer_build_args(_cloud, True)
+              and ("AITHER_IMAGE_MODE", "pull") not in layer_build_args(LAYERS[0], True))
+        check("--customer never passes AITHEROS_EDGE_PUB",
+              all(k != "AITHEROS_EDGE_PUB" for k, _v in layer_build_args(_cloud, True)))
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as _sd:
+        _svc = Path(_sd)
+        check("a customer svcimg with no lock is refused", customer_svcimg_error(_svc) is not None)
+        (_svc / "images.lock.json").write_text("{}", encoding="utf-8")
+        check("a customer svcimg holding only images.lock.json is accepted",
+              customer_svcimg_error(_svc) is None)
+        (_svc / "x.oci.tar").write_text("", encoding="utf-8")
+        check("an oci-archive beside the lock is refused (it would bake the fleet)",
+              customer_svcimg_error(_svc) is not None)
+    check("--iso-config passes --config, 'none' passes --no-config, --iso-tag passes through",
+          iso_config_args("iso/awnix-installer.toml") == " --config iso/awnix-installer.toml"
+          and iso_config_args("none") == " --no-config"
+          and iso_config_args(None, "awnix-iso-2026.09.28") == " --iso-tag awnix-iso-2026.09.28"
+          and iso_config_args(None) == "")
+    check("the docstring names no WSL distro invocation (portability PRT003 class)",
+          "wsl -d" not in (__doc__ or ""))
 
     # The min-free-gb floor is forwarded to the shell script as an INTEGER.
     # Bash's `[ "$a" -lt "$b" ]` rejects a float operand with "integer
@@ -1377,6 +1608,9 @@ def _self_test() -> int:
           _parent_of("Containerfile.base") == "localhost/awnix-base:latest")
     check("every layer FROMs either the upstream bootc base or the previous tag",
           _chain_is_unbroken())
+    check("desktop-hypr stacks on desktop-open (EPEL 9 has no Hyprland; fedora-bootc:42 does)",
+          [x.name for x in chain_for(next(x for x in LAYERS if x.name == "desktop-hypr"))]
+          == ["desktop-open", "desktop-hypr"])
     # A parameterised base resolves through its ARG default, and one WITHOUT a
     # default does not -- the second half is what keeps this from turning the
     # chain arm into a rubber stamp for any variable someone introduces.
@@ -1463,6 +1697,37 @@ def _self_test() -> int:
               False)
     finally:
         globals()["_wsl"] = orig_wsl
+
+    # A CACHED tag that fails verify is rebuilt once (2026-09-28: a stale runner
+    # awnix-base without the `aitheros` CLI was skipped by --force-top and the fleet
+    # layer built on it). Calls: verify(fail) -> build(ok) -> verify(ok).
+    calls: list[str] = []
+
+    def _stale_then_ok(script: str, timeout: int = 900) -> tuple[int, str]:
+        calls.append("build" if "podman build" in script else "verify")
+        if calls == ["verify"]:
+            return 1, "bash: line 1: aitheros: command not found"
+        return 0, "FAKE_OK"
+
+    orig_exists = globals()["_image_exists"]
+    globals()["_wsl"] = _stale_then_ok
+    globals()["_image_exists"] = lambda tag: True
+    try:
+        result = build_layer(fake_layer, force=False, verbose=False)
+        check("a cached tag failing verify is rebuilt once and re-verified",
+              result is True and calls == ["verify", "build", "verify"])
+    finally:
+        globals()["_wsl"] = orig_wsl
+        globals()["_image_exists"] = orig_exists
+
+    # Every source the host-units manifest carries must reach the fleet image through a
+    # COPY into /tmp/aither-hu, or awnix-carry-host-units.sh --image dies mid-build
+    # (2026-09-28: runner_work_prune.py, then runner-job-completed-hook.sh -- each found
+    # only by a 20-minute CI build). Pure text: the manifest's 3rd column vs the COPY lines.
+    _missing = fleet_carry_gaps()
+    check("every host-units.manifest source is COPY'd into the fleet image"
+          + (f" (missing: {', '.join(_missing)})" if _missing else ""),
+          _missing == [])
 
     # ── _image_exists: a probe timeout is a clean DEAD, never a traceback ──
     # Measured 2026-08-27: on the loaded box a 30s probe timed out and

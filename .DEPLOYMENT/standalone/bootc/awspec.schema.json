@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aitherspec/v1",
+  "title": "AitherSpec layer (first slice)",
+  "description": "One layer of the spec: base, product, pack or site (postures come from config/model-postures.yaml scheduler_lanes). Validated by lib/core/aither_spec.py with a stdlib subset of JSON Schema (type, properties, additionalProperties, required, enum, const, items, pattern, minimum). Design: docs/architecture/SOVEREIGN-CONFIG-PLANE.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["layer"],
+  "properties": {
+    "schema": {"const": "aitherspec/v1"},
+    "layer": {"enum": ["base", "product", "pack", "site"]},
+    "description": {"type": "string"},
+    "domain": {"type": "string", "pattern": "^[a-z0-9.-]+$"},
+    "tls": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"enabled": {"type": "boolean"}}
+    },
+    "air_gap": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"enabled": {"type": "boolean"}, "cloud_fallback": {"type": "boolean"}}
+    },
+    "secrets": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "master_key_source": {"enum": ["required", "tpm", "sealed-file", "idp-exchange", "operator"]}
+      }
+    },
+    "nodes": {
+      "description": "Named hosts an endpoint may sit on. An IP-valued host belongs in a SITE layer only (SPEC002).",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false, "required": ["host"],
+        "properties": {
+          "host": {"type": "string", "pattern": "^[A-Za-z0-9.:_-]+$"},
+          "ssh_user": {"type": "string"},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "endpoints": {
+      "description": "Roles (orchestrator, bonsai, embeddings, code_embed, identity, registry, ...). Exactly one of at (node:port) or url per role (SPEC003).",
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "object"],
+        "additionalProperties": false,
+        "properties": {
+          "at": {"type": "string", "pattern": "^[A-Za-z0-9._-]+:[0-9]+$"},
+          "url": {"type": "string", "pattern": "^[a-z]+://"},
+          "scheme": {"enum": ["http", "https"]},
+          "model": {"type": "string"},
+          "kind": {"type": "string"},
+          "$replace": {"type": "boolean"}
+        }
+      }
+    },
+    "env_aliases": {
+      "description": "role -> field (url|model|kind) -> consumer -> legacy env names. Only allowed to shrink.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false,
+        "properties": {
+          "url": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"}}},
+          "model": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"}}},
+          "kind": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]*$"}}}
+        }
+      }
+    },
+    "product": {
+      "type": "object", "additionalProperties": false, "required": ["name"],
+      "properties": {
+        "name": {"type": "string"},
+        "mode": {"enum": ["hosted", "appliance"]},
+        "packs": {"type": "array", "items": {"type": "string"}},
+        "locked": {"type": "array", "items": {"enum": ["tls", "air_gap", "secrets", "posture", "product"]}}
+      }
+    },
+    "posture": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"name": {"type": "string"}, "locked": {"type": "boolean"}}
+    },
+    "site": {
+      "description": "The ONLY home for host facts.",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "kind": {"enum": ["awnix-wsl", "awnix-bootc", "appliance", "cloud", "awdk-only"]},
+        "transport": {"enum": ["local", "wsl", "ssh"]},
+        "wsl": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"distro": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"}}
+        },
+        "resources": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"mem_gb": {"type": "number", "minimum": 1}, "cpus": {"type": "integer", "minimum": 1}}
+        },
+        "data_attach": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"dirs": {"type": "array", "items": {"type": "string", "pattern": "^/[A-Za-z0-9._/-]+$"}}}
+        },
+        "boot": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "strategy": {"enum": ["default", "after-data"]},
+            "start_unit": {"type": "string", "pattern": "^[A-Za-z0-9@._-]+\\.(service|target)$"}
+          }
+        },
+        "units": {
+          "type": "object", "additionalProperties": false,
+          "properties": {"masked": {"type": "array", "items": {"type": "string", "pattern": "^[A-Za-z0-9@._-]+$"}}}
+        }
+      }
+    },
+    "units": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "dropins": {
+          "description": "Raw drop-ins for settings no role models yet. Setting a role's env name here is SPEC003.",
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["name", "unit"],
+            "properties": {
+              "name": {"type": "string"},
+              "unit": {"type": "string"},
+              "file": {"type": "string"},
+              "section": {"type": "string"},
+              "install": {"type": "string", "pattern": "^/"},
+              "environment": {"type": "object", "additionalProperties": {"type": ["string", "integer", "boolean"]}}
+            }
+          }
+        }
+      }
+    },
+    "outputs": {
+      "description": "What the renderer writes. The renderer holds no literal host, port or distro; every value comes from here or a role.",
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["name", "kind"],
+        "properties": {
+          "name": {"type": "string"},
+          "kind": {"enum": ["dropin", "env", "list"]},
+          "consumer": {"type": "string"},
+          "unit": {"type": "string"},
+          "section": {"type": "string"},
+          "file": {"type": "string"},
+          "install": {"type": "string", "pattern": "^/"},
+          "roles": {"type": "array", "items": {"type": "string"}},
+          "values": {"type": "object", "additionalProperties": {"type": ["string", "integer", "boolean"]}},
+          "environment": {"type": "object", "additionalProperties": {"type": ["string", "integer", "boolean"]}},
+          "from": {"type": "string"}
+        }
+      }
+    }
+  }
+}

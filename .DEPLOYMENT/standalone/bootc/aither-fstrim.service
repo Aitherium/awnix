@@ -1,0 +1,23 @@
+# aither-fstrim.service -- discard unused blocks on every mounted filesystem so an
+# OFFLINE compaction of the host vhdx files (the distro disk and the bare-mounted fleet
+# data disk; .DEPLOYMENT/host-tasks/compact-fleet-vhdx.ps1, WSL stopped) can hand the
+# space back to Windows.
+#
+# WHY NOT THE STOCK fstrim.timer: it carries ConditionVirtualization=!container, and
+# systemd-detect-virt -c answers "wsl" inside WSL, so the stock timer is skipped on
+# every start (measured 2026-09-29 in awnix: "start condition failed"). This unit has
+# no such condition.
+#
+# The host vhdx files are NEVER set sparse: Microsoft disabled sparse VHD for WSL due to
+# data corruption (check_wsl_vhdx_sparse.py SPV001-003 fails if one is).
+[Unit]
+Description=AitherOS: discard unused blocks so offline compaction can shrink the fleet vhdx
+Documentation=man:fstrim(8)
+After=aither-attach-fleet-data.service local-fs.target
+
+[Service]
+Type=oneshot
+Nice=19
+CPUSchedulingPolicy=idle
+IOSchedulingClass=idle
+ExecStart=/usr/sbin/fstrim --all --verbose --quiet-unsupported

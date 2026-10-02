@@ -1,0 +1,22 @@
+[Unit]
+# Judge the license phase (renew-soon / grace / lapsed ...) and refresh the reminders:
+# /var/lib/aither/license/lifecycle.json, /run/motd.d/50-aither-license and one journal
+# line tagged AITHER-LICENSE. Contract: aither-license-lifecycle(7).
+#
+# This unit only WRITES REMINDERS. It is ordered after the license refresh and is never
+# Before=, RequiredBy= or BindsTo= any serving unit: an expired license never stops the
+# appliance serving (ALR002/ALR005, check_license_lifecycle.py).
+Description=AitherOS license lifecycle (expiry phase and renewal reminders)
+Documentation=man:aither-license-lifecycle(7) man:awnix-renewal(8)
+After=aither-license.service time-sync.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/awnix/awnix-renewal evaluate
+# 2 = could not judge (no status.json yet): not a failed unit.
+SuccessExitStatus=2
+SyslogIdentifier=aither-license
+TimeoutStartSec=30
+PrivateTmp=yes
+ProtectHome=yes
+NoNewPrivileges=yes

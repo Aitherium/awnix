@@ -1,32 +1,38 @@
 [Unit]
-# awnix first-boot setup — the questions any Linux asks after install.
+# awnix first-boot setup on tty1 -- the questions any Linux asks after install.
 #
-# ConditionPathExists=! is the "run once" mechanism, and it is deliberately DECLARATIVE
-# rather than a flag file the script manages: the state file the setup writes IS the
-# marker, so there is exactly one fact on disk and no way for "setup finished" and
-# "marker written" to disagree. Delete /etc/awnix/setup.json and the box asks again,
-# which is also the documented way to re-run it.
-Description=awnix first-boot setup
-Documentation=https://github.com/Aitherium/awnix
+# ConditionPathExists=! is the "run once" mechanism, and it is deliberately DECLARATIVE:
+# the state file the setup writes IS the marker, so "setup finished" and "marker written"
+# cannot disagree. awnix-console keys its setup/console mode off the SAME file (AIN008).
+# `awnix setup --reset --yes` (or deleting the file) makes the box ask again.
+Description=awnix first-boot setup (tty1)
+Documentation=man:awnix-setup(8) https://github.com/Aitherium/awnix
 ConditionPathExists=!/etc/awnix/setup.json
 
-# network-online is WANTED, not REQUIRED. The component menu and the link step both need
-# the network, but a box with no network yet must still finish setup -- awnix-setup
-# reports "could not check" for each package rather than pretending they are absent, and
-# the link step is optional anyway. Requiring the network here would leave a first boot
-# hanging on a machine whose only problem is an unplugged cable.
+# NEVER HOLD multi-user.target (AIN011). This used to be Type=oneshot WantedBy=multi-user
+# with no RemainAfterExit, so the target -- and on the headless garg appliance everything
+# ordered after it -- waited on a human typing at tty1. Type=simple is "started" the moment
+# it forks, so the boot finishes, the product answers, and this prompt simply waits.
+#
+# It owns tty1 while it runs: Conflicts= stops the getty there, and ExecStopPost hands
+# tty1 back to a login prompt whether setup finished, was cancelled or crashed.
 Wants=network-online.target
-After=network-online.target systemd-user-sessions.service
+After=network-online.target systemd-user-sessions.service awnix-console.service
+Conflicts=getty@tty1.service
 Before=getty@tty1.service
 
 [Service]
-Type=oneshot
-ExecStart=/usr/bin/awnix-setup
-RemainAfterExit=no
+Type=simple
+# A seed (installer %post copies it to /etc/awnix/seed.json) is applied by `--tty` itself,
+# in the MAIN process. Never as ExecStartPre=: a pre-step is part of the start job that
+# multi-user.target waits for, a seeded model download runs up to an hour, the default
+# 90 s start timeout would kill it (a '-' prefix does not cover a timeout), fail the unit
+# and re-apply the seed every boot (AIN011). A bad seed never stops the prompt.
+ExecStart=/usr/bin/awnix-setup --tty
+ExecStopPost=-/usr/bin/systemctl --no-block start getty@tty1.service
 
-# It is an interactive prompt, so it needs a real terminal. Without these it runs with no
-# stdin, every input() returns EOF, and setup "completes" having asked nothing -- which
-# looks like a working first boot and silently declines every choice for the user.
+# It is an interactive prompt, so it needs a real terminal. Without these every input()
+# returns EOF and setup "completes" having asked nothing.
 StandardInput=tty
 StandardOutput=tty
 StandardError=tty
@@ -34,10 +40,9 @@ TTYPath=/dev/tty1
 TTYReset=yes
 TTYVHangup=yes
 
-# A failed or cancelled setup must not brick the boot. The box is fully usable without
-# ever answering these questions -- that is awnix's whole posture -- so a non-zero exit
-# is logged and the machine carries on to a login prompt.
+# A cancelled setup (130) is not a failure; nothing restarts it this boot.
 SuccessExitStatus=0 130
+Restart=no
 
 [Install]
 WantedBy=multi-user.target

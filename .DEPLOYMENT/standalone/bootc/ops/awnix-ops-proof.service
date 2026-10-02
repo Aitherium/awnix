@@ -1,0 +1,32 @@
+[Unit]
+# Prints ONE machine-readable line per boot for the hosted-CI serial boot proof:
+#   AWNIX-OPS-PROOF {"schema":1,"verdict":...,"checks":[...]}
+# It is ordered AFTER multi-user.target, so the line appearing at all proves the boot
+# was not held by the tty1 setup prompt; BOOT001 inside the JSON says the same from
+# systemd's own view. boot-proof-garg.sh greps for it with NO stdin input.
+#
+# DefaultDependencies=no: a target adds After= on every unit it Wants unless the unit
+# opts out, and that would contradict After=multi-user.target (an ordering cycle that
+# systemd breaks by dropping a job -- possibly this one). The basic ordering is restated
+# by hand, which is the same shape as systemd-update-utmp-runlevel.service.
+Description=awnix ops proof marker (clock, logs, non-blocking boot)
+DefaultDependencies=no
+Requires=sysinit.target
+After=sysinit.target basic.target multi-user.target chronyd.service
+Conflicts=shutdown.target
+Before=shutdown.target
+ConditionPathExists=/usr/libexec/awnix/awnix-ops-doctor
+
+[Service]
+Type=oneshot
+# The doctor prints the marker line itself. That keeps shell and $-expansion out of
+# ExecStart. Exit 1/2 are findings, not unit failures: the marker is evidence and must
+# never turn a report into a failed boot.
+ExecStart=/usr/libexec/awnix/awnix-ops-doctor --proof-marker
+SuccessExitStatus=1 2
+StandardOutput=journal+console
+StandardError=journal
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

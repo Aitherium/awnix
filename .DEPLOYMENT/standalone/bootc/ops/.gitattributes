@@ -1,0 +1,5 @@
+# Everything here is COPYd into bootc images: systemd, chrony, logrotate and the
+# shebang line all misread a trailing CR. Pin LF on every checkout, Windows included
+# (core.autocrlf=true would otherwise hand a Windows build context CRLF files).
+# check_awnix_ops_hardening.py OPH006 asserts it.
+* text eol=lf

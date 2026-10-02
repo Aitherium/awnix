@@ -1,0 +1,10 @@
+[Unit]
+Description=Every 10 minutes: trim the guest page cache if it is over the threshold
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=10min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

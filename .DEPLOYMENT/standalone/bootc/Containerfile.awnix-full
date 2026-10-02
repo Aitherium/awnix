@@ -22,8 +22,10 @@ FROM localhost/awnix-base:latest
 # outage and a GitHub outage should not invalidate each other's cache.
 #
 # awgit awgraph awrelay awm awshare are already in the base; the rest are added here.
+# `awsync` is NOT on this line on purpose: the PyPI project of that name belongs to a
+# third party (dependency confusion, D-2700). Ours ships only once it has a name we own.
 RUN python3.11 -m pip install --no-cache-dir \
-        awdk awnode awprism awreason awrecurse awrepl awsync \
+        awdk awnode awprism awreason awrecurse awrepl \
     && python3.11 -m pip list 2>/dev/null | grep -qi '^awprism' \
     || (echo "awprism did not install" >&2; exit 1)
 
@@ -159,11 +161,11 @@ RUN python3.11 -m pip install --no-cache-dir \
 # pip-installed. Names that differ from their distribution are listed by
 # IMPORT name -- awdk imports as `adk`; awnode was confirmed by installing
 # it and listing the top-level modules, not assumed.
-RUN python3.11 -c "import importlib.util, sys; mods='awgit awgraph awrelay awm awshare awrecover awseal adk awnode awprism awreason awrecurse awrepl awsync awbac awbrowse awdit awfind awiam awkno awmail awnboard awnest awnet awpredict awresearch awrun awtunnel'.split(); missing=[m for m in mods if importlib.util.find_spec(m) is None]; sys.exit('awnix-full: these installed but do not import: ' + ', '.join(missing)) if missing else print('awnix-full: all %d aw* packages import' % len(mods))"
+RUN python3.11 -c "import importlib.util, sys; mods='awgit awgraph awrelay awm awshare awrecover awseal adk awnode awprism awreason awrecurse awrepl awbac awbrowse awdit awfind awiam awkno awmail awnboard awnest awnet awpredict awresearch awrun awtunnel'.split(); missing=[m for m in mods if importlib.util.find_spec(m) is None]; sys.exit('awnix-full: these installed but do not import: ' + ', '.join(missing)) if missing else print('awnix-full: all %d aw* packages import' % len(mods))"
 
 LABEL com.aitheros.layer="awnix-full" \
       com.aitheros.base="awnix" \
-      com.aitheros.description="awnix + every aw* package (28)" \
+      com.aitheros.description="awnix + every aw* package (27)" \
       org.opencontainers.image.licenses="Apache-2.0"
 
 # PowerShell 7 comes from the BASE (Containerfile.awnix) -- owner decision:

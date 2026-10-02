@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "_comment": "One document per proprietary variant. sha256 is of the exact bytes of file (LF). reaccept: major = a new major version needs re-acceptance, never = any accepted version keeps the product running. gated_units get the 10-eula-gate.conf ExecCondition drop-in and are started by aither-eula release. Regenerate a sha with: aither-eula hash <file>. grandfather_if: absolute paths that only an ALREADY-RUN product writes (garg-firstboot.sh touches /etc/gargbot/firstboot.done); a box that has one and no recorded decision is grandfathered (the product keeps running, setup still offers the terms). Never list a path an ungated unit writes on a new box.",
+  "documents": [
+    {
+      "id": "garg-eula",
+      "title": "GargBot Appliance End User Licence Agreement",
+      "version": "0.1.0-draft",
+      "variants": [
+        "garg-appliance"
+      ],
+      "file": "garg/EULA.txt",
+      "sha256": "b4a81029d3d8c5e91274be89c08047228b50e5ce9913449e173b1eadd05ebf13",
+      "reaccept": "major",
+      "gated_units": [
+        "garg-firstboot.service"
+      ],
+      "grandfather_if": [
+        "/etc/gargbot/firstboot.done"
+      ]
+    },
+    {
+      "id": "aitheros-busl",
+      "title": "AitherOS Business Source License 1.1",
+      "version": "1.1",
+      "variants": [
+        "aitheros",
+        "aitheros-cloud"
+      ],
+      "file": "aitheros/LICENSE.txt",
+      "sha256": "84bed299e11bddb824ec4d7a6c6ca8e75cd19a76f64d59b378e11ee5e4b35a9c",
+      "reaccept": "major",
+      "gated_units": [
+        "aitheros-boot-stagger.service",
+        "aitheros-autostart.service"
+      ]
+    }
+  ]
+}

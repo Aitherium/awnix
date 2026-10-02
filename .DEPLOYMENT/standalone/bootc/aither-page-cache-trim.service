@@ -1,0 +1,12 @@
+[Unit]
+Description=Drop the guest page cache when it holds more than the threshold (returns RAM to Windows)
+Documentation=file:///usr/libexec/aither/aither-page-cache-trim.sh
+# The fleet host is a WSL2 guest: page cache it keeps is RAM vmmemWSL keeps from the
+# desktop. Measured 2026-09-29: 46 GB buff/cache vs 15 GB used; one drop = -8.6 GB vmmemWSL.
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/aither/page-cache-trim.env
+ExecStart=/bin/sh /usr/libexec/aither/aither-page-cache-trim.sh
+Nice=10
+IOSchedulingClass=idle

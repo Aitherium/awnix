@@ -1,0 +1,3 @@
+# Everything here ships into the awnix/garg images (units, profile.d, vendor config,
+# a Containerfile). A CR byte breaks systemd and sh; check_awnix_awsh.py AWH006 asserts it.
+* text eol=lf

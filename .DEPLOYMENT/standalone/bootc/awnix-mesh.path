@@ -1,0 +1,16 @@
+# awnix-mesh.path -- an `awnix mesh join` made while offline leaves pending.json; this
+# runs awnix-mesh.service when it appears or advances a stage. PathChanged= only (not
+# PathExists=): PathExists re-fires for as long as the file exists, which on an offline
+# box is a tight loop. awnix-mesh never rewrites pending.json on a retry that made no
+# progress, so this fires once per join/stage; awnix-mesh.timer and the NetworkManager
+# dispatcher hook (90-awnix-mesh) cover "the network came back".
+[Unit]
+Description=Finish a pending AitherMesh join (awnix mesh)
+Documentation=man:awnix-mesh(8)
+
+[Path]
+PathChanged=/var/lib/awnix/mesh/pending.json
+Unit=awnix-mesh.service
+
+[Install]
+WantedBy=multi-user.target

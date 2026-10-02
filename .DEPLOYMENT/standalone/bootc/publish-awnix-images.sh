@@ -15,7 +15,16 @@
 #   ./publish-awnix-images.sh --layer garg    # every variant whose layer is `garg`
 #   ./publish-awnix-images.sh --include-private   # also the private appliance
 #   ./publish-awnix-images.sh --dry-run
+#   ./publish-awnix-images.sh --digests-out FILE  # "<ref> <digest>" per push, for signing
+#   ./publish-awnix-images.sh --promote       # ALSO move :stable and :latest (see below)
 #   ./publish-awnix-images.sh --self-test
+#
+# Tags (update-channels contract, 2026-09-27): every publish pushes `beta`, the date tag
+# and the immutable `sha-<git12>`. `stable` and `latest` (an alias of stable that
+# pre-channel installs still track) are what installed machines follow, so a default
+# run NEVER moves them: that happens in awnix-promote.yml, by digest, only after the
+# hosted upgrade/rollback proof passed. --promote exists for that workflow's fallback
+# and for a hand-run on the owner's say-so; nothing else passes it.
 #
 # Exit: 0 pushed, 1 a push failed, 2 could not judge.
 set -uo pipefail
@@ -23,7 +32,8 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 MANIFEST="$HERE/awnix-variants.yaml"
 DATE_TAG="$(date +%Y.%m.%d)"
-ONLY=""; ONLY_LAYER=""; DRY=0; PRIVATE=0
+ONLY=""; ONLY_LAYER=""; DRY=0; PRIVATE=0; PROMOTE=0; DIGESTS_OUT=""
+GIT_SHA="${GIT_SHA:-$(git -C "$HERE" rev-parse HEAD 2>/dev/null || true)}"
 
 die() { echo "publish-awnix-images: $*" >&2; exit 1; }
 
@@ -34,6 +44,9 @@ while [ $# -gt 0 ]; do
     --manifest) MANIFEST="${2:-}"; shift 2 ;;
     --tag) DATE_TAG="${2:-}"; shift 2 ;;
     --include-private) PRIVATE=1; shift ;;
+    --promote) PROMOTE=1; shift ;;
+    --digests-out) DIGESTS_OUT="${2:-}"; shift 2 ;;
+    --git-sha) GIT_SHA="${2:-}"; shift 2 ;;
     --dry-run) DRY=1; shift ;;
     --self-test) SELFTEST=1; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
@@ -89,6 +102,15 @@ for name, d in data.items():
 PY
 }
 
+# The tag list is ONE function so the self-test proves what a real run pushes.
+tags_for_run() {
+  local t="beta $DATE_TAG"
+  case "$GIT_SHA" in [0-9a-f]??????????*) t="$t sha-$(printf '%s' "$GIT_SHA" | cut -c1-12)" ;; esac
+  [ "$PROMOTE" = "1" ] && t="$t stable latest"
+  printf '%s
+' "$t"
+}
+
 if [ "${SELFTEST:-0}" = "1" ]; then
   fail=0
   chk() { if [ "$1" = "$2" ]; then echo "  ok   $3"; else echo "  FAIL $3 (got '$1' want '$2')"; fail=1; fi; }
@@ -114,6 +136,16 @@ if [ "${SELFTEST:-0}" = "1" ]; then
   chk "$(read_variants public | awk -F'\t' '$4 == "base" {print $1}' | grep -c '^awnix$')" "1" \
       "--layer base resolves to the awnix variant"
 
+  # Channels: a default run never moves what installed machines follow.
+  tags=$(PROMOTE=0; GIT_SHA=0123456789abcdef; tags_for_run)
+  chk "$(echo " $tags " | grep -c ' latest \| stable ')" "0" "a default run pushes no latest and no stable"
+  chk "$(echo " $tags " | grep -c ' beta ')" "1" "a default run pushes beta"
+  chk "$(echo " $tags " | grep -c ' sha-0123456789ab ')" "1" "a default run pushes the immutable sha-<git12> tag"
+  tags=$(PROMOTE=1; GIT_SHA=0123456789abcdef; tags_for_run)
+  chk "$(echo " $tags " | grep -c ' stable latest ')" "1" "--promote is what moves stable and latest"
+  tags=$(PROMOTE=0; GIT_SHA=; tags_for_run)
+  chk "$(echo " $tags " | grep -c 'sha-')" "0" "no git sha means no sha- tag, never sha-<empty>"
+
   [ "$fail" = "0" ] && { echo "SELF-TEST PASS"; exit 0; } || { echo "SELF-TEST FAILED"; exit 1; }
 fi
 
@@ -135,7 +167,7 @@ for set_name in $SETS; do
       continue
     fi
 
-    for tag in latest "$DATE_TAG"; do
+    for tag in $(tags_for_run); do
       TOTAL=$((TOTAL + 1))
       target="$dest:$tag"
       # Tag AND push together. Splitting them is how the first hand-run failed:
@@ -146,8 +178,13 @@ for set_name in $SETS; do
         continue
       fi
       podman tag "$img" "$target" || { echo "  FAIL  tag $target"; FAILED=$((FAILED+1)); continue; }
-      if podman push "$target" >/tmp/awnix-push.log 2>&1; then
+      if podman push --digestfile /tmp/awnix-push.digest "$target" >/tmp/awnix-push.log 2>&1; then
         echo "  ok    $target"
+        # The signer signs the DIGEST, never the tag (a tag can move after it is signed).
+        if [ -n "$DIGESTS_OUT" ] && [ -s /tmp/awnix-push.digest ]; then
+          printf '%s %s
+' "$target" "$(cat /tmp/awnix-push.digest)" >> "$DIGESTS_OUT"
+        fi
       else
         echo "  FAIL  $target"
         tail -3 /tmp/awnix-push.log | sed 's/^/        /'

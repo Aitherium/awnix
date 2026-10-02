@@ -1,0 +1,10 @@
+[Unit]
+# Triggered by aither-eula.path. `aither-eula release` does nothing unless the acceptance
+# is valid for the installed licence text. Otherwise it runs `systemctl start --no-block`
+# on each gated_units entry in /usr/share/aither/eula/eula.json.
+Description=Start licence-gated units after the licence terms are accepted
+ConditionPathExists=/usr/share/aither/eula/eula.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/aither-eula release

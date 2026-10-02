@@ -7,7 +7,7 @@
 # managed over Cockpit, and it updates atomically via bootc. It ships no
 # services of its own — what you run on top is yours.
 # ═══════════════════════════════════════════════════════════════════════════
-FROM quay.io/centos-bootc/centos-bootc:stream9
+FROM quay.io/centos-bootc/centos-bootc:stream9@sha256:216b78988500e61795076315ff095e952ed00507bf445bb625ae9e0df182fadb
 
 # ── EPEL ───────────────────────────────────────────────────────────────────
 # podman-compose lives in EPEL, not in the stream9 bootc base repos. A build
@@ -241,8 +241,16 @@ RUN systemctl is-enabled awdk-daemon >/dev/null 2>&1 || { echo "FATAL: awdk-daem
 # only). Stealth — the fixed Chrome TLS fingerprint and the bundled tracker
 # blocklist that make a headless fetch look like a browser — lives ONLY in the
 # `-stealth` release archive. So we pull the archive and install the binary, not
-# the image. The `-stealth` (not `-no-render-stealth`) asset is render+stealth,
-# so `browser_screenshot` works too.
+# the image.
+#
+# THE NO-RENDER BUILD, BECAUSE OF GLIBC. The render+stealth `-stealth` asset links
+# against GLIBC_2.35 and this base is CentOS Stream 9 (glibc 2.34): it downloaded,
+# verified and then died on `obscura --version` with "GLIBC_2.35 not found",
+# failing every sync-awnix and ISO build from 2026-09-30 to 2026-10-02. The
+# `-no-render-stealth` asset needs only GLIBC_2.34 (measured on 0.2.1 and 0.2.3,
+# both binaries) and keeps stealth; it drops CPU paint, so `browser_screenshot`
+# is not available on the base. Return to `-stealth` when the base reaches a
+# glibc >= 2.35 (Stream 10) -- the --version step below is what proves it runs.
 #
 # Pinned by version AND sha256, verified BEFORE extraction: this is an immutable
 # image built once and rolled forward, so an unpinned or unverified download is a
@@ -250,10 +258,10 @@ RUN systemctl is-enabled awdk-daemon >/dev/null 2>&1 || { echo "FATAL: awdk-daem
 # the upstream release watch (ingest_upstream_release.py, kind: binary) — a pin
 # nobody bumps is the stale-fork class.
 ARG OBSCURA_VERSION=0.2.1
-ARG OBSCURA_SHA256=49856870420960ce489d2d1ff40fffac5b8c016604b9af0ded8ed6373abd9302
+ARG OBSCURA_SHA256=d3f6b73be9081e5f85f3d1069ffd66dd62f1265caddd54cb5431e9b4cceb1e4d
 RUN cd /tmp && \
     curl -fsSL -o obscura.tar.gz \
-      "https://github.com/h4ckf0r0day/obscura/releases/download/v${OBSCURA_VERSION}/obscura-x86_64-linux-stealth.tar.gz" \
+      "https://github.com/h4ckf0r0day/obscura/releases/download/v${OBSCURA_VERSION}/obscura-x86_64-linux-no-render-stealth.tar.gz" \
       || { echo "FATAL: could not download obscura ${OBSCURA_VERSION}"; exit 1; } && \
     echo "${OBSCURA_SHA256}  obscura.tar.gz" | sha256sum -c - \
       || { echo "FATAL: obscura sha256 mismatch — refusing to extract"; exit 1; } && \
@@ -290,8 +298,24 @@ RUN useradd -m -G wheel -s /bin/bash -c "awnix service account" awnix && \
 
 # With no password anywhere, password authentication is dead weight and an
 # attack surface. Image scanners flag it, and they are right to.
+#
+# The sed alone is not enough: sshd keeps the FIRST value it reads, and the
+# Include of sshd_config.d/*.conf sits at the top of the stock sshd_config, so a
+# cloud-init 50-cloud-init.conf saying "PasswordAuthentication yes" would win.
+# 01-awnix.conf sorts first. The build then ASKS sshd what it will do (sshd -T
+# refuses to run without a host key, so a throwaway one is made and removed).
 RUN sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' \
         /etc/ssh/sshd_config || true
+RUN printf '%s\n' \
+        '# awnix: key-only login. Sorts first so it beats cloud-init and 50-redhat.' \
+        'PasswordAuthentication no' \
+        'KbdInteractiveAuthentication no' \
+        'PermitEmptyPasswords no' \
+        > /etc/ssh/sshd_config.d/01-awnix.conf && \
+    chmod 0600 /etc/ssh/sshd_config.d/01-awnix.conf && \
+    ssh-keygen -q -t ed25519 -N '' -f /tmp/awnix-hk && \
+    sshd -T -h /tmp/awnix-hk | grep -qx 'passwordauthentication no' && \
+    rm -f /tmp/awnix-hk /tmp/awnix-hk.pub
 
 # ── Filesystem layout ──────────────────────────────────────────────────────
 # Deliberately generic. bootc gives you an immutable /usr, so anything with
@@ -301,15 +325,31 @@ RUN mkdir -p /var/lib/awnix /var/log/awnix /opt/awnix && \
     chown -R awnix:awnix /var/lib/awnix /var/log/awnix /opt/awnix
 
 # ── Base services ──────────────────────────────────────────────────────────
+#
+# Cockpit is enabled but LOOPBACK ONLY: the socket listens on 127.0.0.1:9090,
+# not on every address. Reach it through an SSH tunnel:
+#     ssh -L 9090:127.0.0.1:9090 awnix@<host>   then open https://127.0.0.1:9090
+# The empty ListenStream= clears the packaged [::]:9090 before adding ours.
 RUN systemctl enable cockpit.socket && \
-    systemctl enable firewalld
+    systemctl enable firewalld && \
+    mkdir -p /etc/systemd/system/cockpit.socket.d && \
+    printf '%s\n' '[Socket]' 'ListenStream=' 'ListenStream=127.0.0.1:9090' \
+        > /etc/systemd/system/cockpit.socket.d/10-awnix-loopback.conf
 
-# A zone, with NO ports opened. Opening ports is a decision about what you are
-# running, and a base image that guesses will either block you or expose you.
-# See units/service.container.j2 for the shape of a service, and open its port
-# yourself:
+# The awnix zone is the DEFAULT zone, with nothing open but key-only SSH (and
+# the DHCPv6 client, so cloud IPv6 works). The stock "public" zone also opens
+# cockpit to the network; awnix does not. Opening ports is a decision about
+# what you are running, and a base image that guesses will either block you or
+# expose you. See units/service.container.j2 for the shape of a service, and
+# open its port yourself:
 #     firewall-cmd --zone=awnix --add-port=8080/tcp --permanent
-RUN firewall-offline-cmd --new-zone=awnix 2>/dev/null || true
+# For zero open ports (no SSH either), apply the airgap profile on top
+# (awnix-zero-ports apply --profile airgap).
+RUN (firewall-offline-cmd --new-zone=awnix 2>/dev/null || true) && \
+    firewall-offline-cmd --zone=awnix --add-service=ssh && \
+    firewall-offline-cmd --zone=awnix --add-service=dhcpv6-client && \
+    firewall-offline-cmd --set-default-zone=awnix && \
+    test "$(firewall-offline-cmd --get-default-zone)" = awnix
 
 LABEL org.opencontainers.image.title="awnix" \
       org.opencontainers.image.description="Bootable immutable Linux base for containerised services" \

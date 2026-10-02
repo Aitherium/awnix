@@ -1,0 +1,16 @@
+[Unit]
+# Anything that drops an AITHER1 envelope at the spool (the seed USB at first boot, the
+# setup step, the :9443 console's license-import action) triggers a root refresh, which
+# verifies it, moves it to /etc/aither/appliance.lic and deletes the spool file.
+Description=Watch the appliance license spool
+Documentation=man:aitheros(1)
+
+[Path]
+PathChanged=/var/lib/aither/license/incoming.lic
+PathExists=/var/lib/aither/license/incoming.lic
+Unit=aither-license.service
+MakeDirectory=yes
+DirectoryMode=0700
+
+[Install]
+WantedBy=paths.target

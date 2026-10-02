@@ -1,0 +1,14 @@
+# awnix-mesh.timer -- retry a pending join and heartbeat a joined node. On an unjoined
+# box the service exits 0 immediately.
+[Unit]
+Description=AitherMesh retry and heartbeat timer (awnix mesh)
+Documentation=man:awnix-mesh(8)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+RandomizedDelaySec=60
+Unit=awnix-mesh.service
+
+[Install]
+WantedBy=timers.target

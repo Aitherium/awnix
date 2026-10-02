@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "n_registry": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "n1": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "n2": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "base_image": "quay.io/centos-bootc/centos-bootc:stream9",
+  "kvm": true,
+  "mode": "vm",
+  "inject": "none",
+  "greenboot_max": 3,
+  "runner": "fixture",
+  "gh_run_id": null,
+  "started_at": "2026-09-28T00:00:00Z",
+  "ended_at": "2026-09-28T00:40:00Z"
+}

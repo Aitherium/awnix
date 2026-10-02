@@ -6,7 +6,7 @@
 # base (Ollama, Cockpit, a 272-port firewall, an `aither` service account) —
 # awnix is the opposite by design: "No services. No agent. No account."
 # (AitherOS/config/ecosystem.yaml, awnix entry). Capabilities go in the base
-# (the 18 aw* tools below); the AGENT layers on top separately (three
+# (the 19 aw* tools below); the AGENT layers on top separately (three
 # lines in a Dockerfile — see the agent-runner layer this base is built for).
 # Putting the agent in the base instead would mean swapping agents loses
 # every guarantee the base provides.
@@ -15,7 +15,7 @@
 # Licence: Apache-2.0 (same as all nineteen aw* packages this image bakes in —
 # see AitherOS/config/awnix_boundary.yaml for the precedent reasoning).
 # ═══════════════════════════════════════════════════════════════════════════════
-FROM quay.io/centos-bootc/centos-bootc:stream9
+FROM quay.io/centos-bootc/centos-bootc:stream9@sha256:216b78988500e61795076315ff095e952ed00507bf445bb625ae9e0df182fadb
 
 # IMPORT THE SIGNING KEY BEFORE ANY dnf, and do not disable the check.
 #
@@ -88,7 +88,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     && dnf clean all
 
 # CentOS Stream 9's DEFAULT `python3` is 3.9.25 (kept old on purpose — it's
-# the system python dnf/yum depend on, never touch it). All 18 aw* tools
+# the system python dnf/yum depend on, never touch it). All 19 aw* tools
 # declare `requires-python >= 3.10` (measured live 2026-08-20: pip on 3.9
 # reports "Could not find a version that satisfies the requirement awgit
 # (from versions: none)" even though the PyPI index answers fine — every
@@ -138,7 +138,7 @@ ARG PWSH_VERSION=7.4.6
 # only build that currently works in order to tidy the one that does not.
 ARG TARGETARCH
 RUN set -eux; \
-    case "${TARGETARCH:-amd64}" in \
+    case "${TARGETARCH:-$(uname -m)}" in \
       amd64|x86_64) \
         dnf install -y --setopt=install_weak_deps=False \
           "https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/powershell-${PWSH_VERSION}-1.rh.x86_64.rpm" \
@@ -209,7 +209,7 @@ COPY storage.conf /etc/containers/storage.conf
 # Installing only what's actually published — per this codebase's own
 # "absent is a status, not an omission" doctrine (aw-family.md) — rather
 # than silently dropping the gap or blocking the whole build on it.
-RUN python3.11 -m pip install --no-cache-dir \
+RUN python3.11 -m pip install --no-cache-dir awdit \
         awgit awgraph awrelay awm awshare
 
 # ...and the two that are NOT on PyPI, from source. That TODO is now closed.
@@ -298,7 +298,14 @@ RUN python3.11 -m pip install --no-cache-dir \
 # `awsh` is npm, and it is the ONLY npm channel in the family -- so this layer adds
 # the node runtime with it. A "functional OS" whose shell cannot install is the
 # shape this file already records about itself.
-RUN dnf install -y --setopt=install_weak_deps=False nodejs npm \
+# Stream 9's DEFAULT nodejs stream is 16; @aitherium/awsh is ESM-only and needs >= 18
+# (engines). The old image installed it and never ran it, so nothing noticed; the
+# build-time `awnix-awsh --self-test` / `awsh --version` then died on an ESM loader
+# stack (run 36495471093). Pin the module stream and assert the major.
+RUN dnf module -y reset nodejs \
+    && dnf module -y enable nodejs:20 \
+    && dnf install -y --setopt=install_weak_deps=False nodejs npm \
+    && node -e 'if (+process.versions.node.split(".")[0] < 18) { console.error("node " + process.version + " < 18"); process.exit(1) }' \
     && dnf clean all
 
 RUN python3.11 -m pip install --no-cache-dir \
@@ -332,6 +339,25 @@ COPY awnix-catalogue.yaml /usr/local/sbin/awnix-catalogue.yaml
 COPY awnix-setup.service /usr/lib/systemd/system/awnix-setup.service
 RUN chmod 0755 /usr/bin/awnix-setup     && systemctl enable awnix-setup.service
 
+# ── OS roles: `awnix role list|status|add|remove|configure` + the licence gate ──────
+# Every role unit generate_os_roles.py emits carries
+#   ExecStartPre=/usr/libexec/aither/role-entitlement-check <Service> <class>
+# and until 2026-09-28 that script existed NOWHERE, so any unit that used it could not
+# start. core/internal roles fail OPEN (the free floor an unlicensed box serves);
+# addon:<pack> roles fail CLOSED without /etc/aither/appliance.lic granting the pack --
+# awnix_role.decide() carries the reasoning. The catalog is GENERATED from
+# AitherOS/config/os_roles.yaml by check_os_role_catalog.py --write-catalog (ROLE014
+# fails when it drifts), staged here for the same reason as awnix-catalogue.yaml.
+COPY awnix_role.py /usr/lib/awnix/awnix_role.py
+COPY role-entitlement-check /usr/libexec/aither/role-entitlement-check
+# The role CLI is the `awnix role` VERB: /usr/bin/awnix is the dispatcher (appliance plane
+# below), which execs /usr/libexec/awnix/awnix-role; the script answers to either name.
+COPY awnix /usr/libexec/awnix/awnix-role
+COPY awnix-role-catalog.json /usr/share/aither/roles/catalog.json
+RUN chmod 0644 /usr/lib/awnix/awnix_role.py /usr/share/aither/roles/catalog.json \
+    && chmod 0755 /usr/libexec/aither/role-entitlement-check /usr/libexec/awnix/awnix-role \
+    && mkdir -p /etc/awnix /etc/aither/roles
+
 # ── self-healing updates ─────────────────────────────────────────────────────────────
 # `bootc upgrade` stages a whole new image and keeps the old one, so an update can
 # always be undone by `bootc rollback`. greenboot makes that AUTOMATIC: every boot runs
@@ -355,6 +381,244 @@ COPY awnix-health-check.sh /etc/greenboot/check/required.d/10-awnix-core.sh
 RUN chmod 0755 /etc/greenboot/check/required.d/10-awnix-core.sh \
     && mkdir -p /etc/greenboot \
     && printf 'GREENBOOT_MAX_BOOT_ATTEMPTS=3\n' > /etc/greenboot/greenboot.conf
+
+# ── the appliance plane ─────────────────────────────────────────────────────────────
+# What makes an awnix box administrable by someone who is not us: activation (the
+# `aitheros` CLI, the license units), the web console on :9443 and its `awnix`
+# dispatcher, signed channel updates, add-on components from a pinned lock, the
+# repointable outbound endpoints, the first-boot setup steps, and the admin docs.
+# Installed HERE, in the base, because every variant (garg and aitheros included)
+# derives from this file -- a plane added one layer up is a plane half the images lack.
+#
+# man-db + groff-base so `man awnix` works on an offline box. BEFORE the identity block
+# below: a later dnf transaction can revert /usr/lib/os-release (Containerfile.aitheros
+# records that it happened once).
+RUN dnf install -y --setopt=install_weak_deps=False man-db groff-base \
+    && dnf clean all
+
+# cosign verifies every digest `awnix update check` stages. Installed from the pinned,
+# sha256-checked release by sign-awnix-image.sh -- the same trust the signing lane uses.
+# A box without cosign REFUSES to update; it never stages an unverified image.
+COPY sign-awnix-image.sh /usr/libexec/awnix/sign-awnix-image.sh
+RUN sed -i 's/\r$//' /usr/libexec/awnix/sign-awnix-image.sh \
+    && bash /usr/libexec/awnix/sign-awnix-image.sh install /usr/bin \
+    && cosign version >/dev/null
+
+# The CLIs. Verbs live at /usr/libexec/awnix/awnix-<verb> and `awnix <verb>` execs them
+# (contract awnix-dispatcher-and-cli-conventions); the console's issue helper keeps its
+# own name so the dispatcher never offers it as a verb.
+COPY aitheros-cli.py /usr/bin/aitheros
+COPY awnix-dispatch.sh /usr/bin/awnix
+COPY awnix-license.sh /usr/libexec/awnix/awnix-license
+COPY awnix-console.py /usr/libexec/awnix/awnix-console
+COPY awnix-doctor.sh /usr/libexec/awnix/awnix-doctor
+COPY awnix-console-issue.sh /usr/libexec/awnix/awnix-console-issue.sh
+COPY awnix-update.sh /usr/libexec/awnix/awnix-update
+COPY awnix-component.py /usr/libexec/awnix/awnix-component
+COPY awnix-endpoints.py /usr/libexec/awnix/awnix-endpoints
+COPY awnix_console /usr/lib/awnix-console/awnix_console
+COPY awnix_setup /usr/lib/awnix-setup/awnix_setup
+
+# Activation: the verifier key (public half only), the refresh units and their dirs.
+COPY license-pubkey.pem /usr/share/aither/license-pubkey.pem
+COPY aither-license.service aither-license.timer aither-license.path /usr/lib/systemd/system/
+COPY aither-license.tmpfiles.conf /usr/lib/tmpfiles.d/aither-license.conf
+
+# The console: unit, vendor defaults, the built web bundle, the surfaces matrix.
+COPY awnix-console.service /usr/lib/systemd/system/awnix-console.service
+COPY awnix-console.conf /usr/lib/awnix/console.conf
+COPY awnix-web/dist /usr/share/awnix-console
+COPY awnix-surfaces.yaml /usr/share/awnix/surfaces.yaml
+
+# First-boot steps every variant asks (license, update channel, auto-apply).
+COPY setup-steps/common/ /usr/share/awnix-setup/steps.d/
+
+# Outbound endpoints: the vendor floor an admin overrides in /etc/awnix/endpoints.env.
+COPY awnix-endpoints.env /usr/lib/awnix/endpoints.env
+
+# Signed updates: channel config, the six-hourly unit, the signer identities, and the
+# containers/image trust + sigstore-attachment config.
+COPY awnix-update.conf /etc/awnix/update.conf
+COPY awnix-update.service awnix-update.timer /usr/lib/systemd/system/
+COPY awnix-signers.conf /usr/share/awnix/signers.conf
+COPY containers-policy.json /etc/containers/policy.json
+COPY registries.d-aitherium.yaml /etc/containers/registries.d/aitherium.yaml
+
+# Components: the lock baked into THIS image, its state dirs, and the boot-time sync.
+COPY awnix-components.lock.yaml /usr/share/awnix/components.lock.yaml
+COPY awnix-components.lock.json /usr/share/awnix/components.lock.json
+COPY awnix-components.tmpfiles.conf /usr/lib/tmpfiles.d/awnix-components.conf
+COPY awnix-component-sync.service /usr/lib/systemd/system/awnix-component-sync.service
+
+# The admin docs source; rendered below into man, HTML and the console's guide.json.
+COPY docs /usr/share/awnix-docs-src
+
+# ── the AFRL / air-gap plane (wave 2, integrated at awnix-complete 2026-09-28) ─────
+# What an air-gapped, self-serviced box needs beyond the appliance plane: the license
+# lifecycle (expiry never stops serving; after 30 days of grace only vendor pulls stop),
+# offline signed updates from removable media, mesh join, backup/restore/reset, the AFRL
+# proof harness, Secure Boot state, greenboot's automatic fallback, awsh wired offline,
+# and the ops floor (no-egress chrony, bounded journald/logrotate, a clock floor).
+# The COPYs land BEFORE the plane's RUN below, so its CR strip, chmod and the steps
+# validator (setup-steps/common/45-secureboot.json names awnix-secureboot) cover them.
+# Every verb lands in /usr/libexec/awnix, so `awnix <verb>` reaches it with no dispatcher
+# edit. The zero-open-ports profile is NOT here: it is the Containerfile.awnix-airgap
+# layer on top of any base (console, garg and sshd pinned to loopback, default-deny zone).
+RUN dnf install -y --setopt=install_weak_deps=False chrony logrotate mokutil tcpdump iproute \
+    && dnf clean all
+COPY ops/awnix-chrony.conf /etc/chrony.d/50-awnix.conf
+COPY ops/awnix-journald.conf /usr/lib/systemd/journald.conf.d/50-awnix.conf
+COPY ops/awnix-logrotate.conf /etc/logrotate.d/awnix
+COPY ops/logrotate-hourly.conf /usr/lib/systemd/system/logrotate.timer.d/50-awnix-hourly.conf
+COPY ops/awnix-ops-doctor.py /usr/libexec/awnix/awnix-ops-doctor
+COPY ops/greenboot-50-awnix-ops.sh /etc/greenboot/check/wanted.d/50-awnix-ops.sh
+COPY awnix-renewal.py /usr/libexec/awnix/awnix-renewal
+COPY license-lifecycle.json /usr/share/aither/license-lifecycle.json
+COPY aither-license-lifecycle.service aither-license-lifecycle.timer /usr/lib/systemd/system/
+COPY aither-license-lifecycle.tmpfiles.conf /usr/lib/tmpfiles.d/aither-license-lifecycle.conf
+COPY awnix-offline-update.py /usr/libexec/awnix/awnix-offline-update
+COPY awnix-offline-update.tmpfiles.conf /usr/lib/tmpfiles.d/awnix-offline-update.conf
+COPY offline-trust.d/ /usr/share/awnix/offline-trust.d/
+COPY awnix-mesh.py /usr/libexec/awnix/awnix-mesh
+COPY awnix-mesh.service /usr/lib/systemd/system/
+COPY awnix-mesh.path /usr/lib/systemd/system/
+COPY awnix-mesh.timer /usr/lib/systemd/system/
+COPY awnix-mesh.tmpfiles.conf /usr/lib/tmpfiles.d/awnix-mesh.conf
+COPY awnix-mesh.nm-dispatcher /usr/lib/NetworkManager/dispatcher.d/90-awnix-mesh
+COPY awnix-mesh-zone.xml /usr/lib/firewalld/zones/awnix-mesh.xml
+COPY awnix-backup.py /usr/libexec/awnix/awnix-backup
+COPY awnix-restore.sh /usr/libexec/awnix/awnix-restore
+COPY awnix-reset.sh /usr/libexec/awnix/awnix-reset
+COPY backup.d/00-awnix.json /usr/lib/awnix/backup.d/00-awnix.json
+COPY awnix-backup.tmpfiles.conf /usr/lib/tmpfiles.d/awnix-backup.conf
+COPY proof/awnix-proof.py /usr/libexec/awnix/awnix-proof
+COPY proof/awnix_proof /usr/lib/awnix/proof/awnix_proof
+COPY proof/awnix_proof_verify.py /usr/lib/awnix/proof/awnix_proof_verify.py
+COPY awnix-secureboot.py /usr/libexec/awnix/awnix-secureboot
+COPY awnix-secureboot.service /usr/lib/systemd/system/awnix-secureboot.service
+COPY awnix-greenboot-fallback.sh /usr/libexec/awnix/awnix-greenboot-fallback.sh
+COPY awnix-greenboot-fallback.service /usr/lib/systemd/system/awnix-greenboot-fallback.service
+COPY awnix-greenboot-fallback.conf /usr/lib/systemd/system/greenboot-healthcheck.service.d/50-awnix-greenboot-fallback.conf
+COPY awsh/shell.yaml /usr/lib/awsh/shell.yaml
+COPY awsh/awsh-harness.service awsh/awsh-agent.service /usr/lib/systemd/user/
+COPY awsh/awsh-offline.sh /etc/profile.d/awsh-offline.sh
+COPY awsh/awnix-awsh.py /usr/libexec/awnix/awnix-awsh
+
+# ONE RUN proves the plane, and every step of it is an assertion (the garg CRLF lesson:
+# a source fix that never reached the image reads as fixed). It CR-strips every installed
+# script and data file, asserts the python3.11 shebangs, writes release.env (a variant
+# layer overrides it), runs every CLI's self-test and the steps validator, checks the
+# dispatcher offers each verb, enables the plane's units and MASKS the stock bootc
+# updater (it pulls a tag unverified and reboots on its own), renders the public docs and
+# asserts `man` finds them. Prose lives HERE, above the RUN (AWV007).
+ARG AWNIX_VARIANT=awnix
+ARG AWNIX_IMAGE_REPO=ghcr.io/aitherium/awnix
+RUN set -eu; \
+    chmod 0755 /usr/bin/aitheros /usr/bin/awnix /usr/libexec/awnix/*; \
+    for f in /usr/bin/aitheros /usr/bin/awnix /usr/bin/awnix-setup /usr/libexec/awnix/*; do \
+        sed -i 's/\r$//' "$f"; \
+    done; \
+    find /usr/lib/awnix-console /usr/lib/awnix-setup /usr/share/awnix-setup /usr/share/awnix-docs-src \
+        /usr/share/awnix /usr/lib/awnix /etc/awnix -type f -exec sed -i 's/\r$//' {} +; \
+    sed -i 's/\r$//' /usr/lib/systemd/system/aither-license.service \
+        /usr/lib/systemd/system/aither-license.timer /usr/lib/systemd/system/aither-license.path \
+        /usr/lib/systemd/system/awnix-console.service /usr/lib/systemd/system/awnix-update.service \
+        /usr/lib/systemd/system/awnix-update.timer /usr/lib/systemd/system/awnix-component-sync.service \
+        /usr/lib/tmpfiles.d/aither-license.conf /usr/lib/tmpfiles.d/awnix-components.conf \
+        /etc/containers/policy.json /etc/containers/registries.d/aitherium.yaml; \
+    for f in /usr/bin/aitheros /usr/libexec/awnix/awnix-console /usr/libexec/awnix/awnix-component \
+             /usr/libexec/awnix/awnix-endpoints /usr/bin/awnix-setup; do \
+        head -1 "$f" | grep -qx '#!/usr/bin/python3.11' \
+            || { echo "FATAL: $f does not start with #!/usr/bin/python3.11" >&2; exit 1; }; \
+    done; \
+    mkdir -p /usr/lib/awnix; \
+    epoch="${SOURCE_DATE_EPOCH:-$(date -u +%s)}"; \
+    printf '%s\n' "$epoch" > /usr/lib/awnix/build-epoch; \
+    printf 'AWNIX_VARIANT=%s\nAWNIX_IMAGE_REPO=%s\nAWNIX_BUILD_EPOCH=%s\n' \
+        "$AWNIX_VARIANT" "$AWNIX_IMAGE_REPO" "$epoch" > /usr/lib/awnix/release.env; \
+    aitheros --self-test >/dev/null; \
+    awnix --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-console --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-console-issue.sh --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-doctor --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-update --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-component --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-endpoints --self-test >/dev/null; \
+    /usr/bin/awnix-setup --self-test >/dev/null; \
+    /usr/bin/awnix-setup --validate-steps /usr/share/awnix-setup/steps.d; \
+    verbs=$(awnix --list-verbs); \
+    for v in update component license setup console endpoints doctor role renewal \
+             offline-update mesh backup restore reset proof secureboot awsh ops-doctor; do \
+        printf '%s\n' "$verbs" | grep -qx "$v" \
+            || { echo "FATAL: awnix verb $v is not offered by the dispatcher" >&2; exit 1; }; \
+    done; \
+    systemctl enable aither-license.timer aither-license.path awnix-console.service awnix-update.timer awnix-component-sync.service; \
+    systemctl mask bootc-fetch-apply-updates.timer; \
+    podman image trust show >/dev/null; \
+    test -s /usr/share/awnix-console/index.html; \
+    python3.11 /usr/share/awnix-docs-src/awman.py render --src /usr/share/awnix-docs-src \
+        --roff /usr/share/man --html /usr/share/doc/awnix/html \
+        --json /usr/share/doc/awnix/guide.json --public; \
+    man -w 7 awnix >/dev/null && man -w 8 awnix >/dev/null && man -w 8 awnix-setup >/dev/null \
+        && man -w 8 awnix-update >/dev/null && man -w 8 awnix-console >/dev/null
+
+# The wave-2 plane, proven the same way: every script CR-stripped BY NAME (a CRLF shebang
+# does not execute), python3.11 shebangs asserted (awnix-proof ships `env python3`, which
+# is 3.9 on this base), every self-test run, units enabled. chrony keeps NO time source
+# (the stock `pool` line is commented out: DNS + UDP 123 egress on an air-gapped box; a
+# LAN server goes in /etc/chrony.d/10-awnix-lan.conf) and reads /etc/chrony.d. awsh's
+# user units are enabled globally; they bind loopback only (awsh-offline.sh keeps the
+# shell offline). The build epoch above is the clock floor (awnix-renewal, ops doctor).
+RUN set -eu; \
+    sed -i 's/\r$//' /usr/libexec/awnix/awnix-ops-doctor /etc/greenboot/check/wanted.d/50-awnix-ops.sh \
+        /usr/libexec/awnix/awnix-renewal /usr/libexec/awnix/awnix-offline-update \
+        /usr/libexec/awnix/awnix-mesh /usr/lib/NetworkManager/dispatcher.d/90-awnix-mesh \
+        /usr/libexec/awnix/awnix-backup /usr/libexec/awnix/awnix-restore /usr/libexec/awnix/awnix-reset \
+        /usr/libexec/awnix/awnix-proof /usr/libexec/awnix/awnix-secureboot \
+        /usr/libexec/awnix/awnix-greenboot-fallback.sh /usr/libexec/awnix/awnix-awsh \
+        /etc/profile.d/awsh-offline.sh /usr/lib/awsh/shell.yaml \
+        /usr/lib/systemd/user/awsh-harness.service /usr/lib/systemd/user/awsh-agent.service \
+        /etc/chrony.d/50-awnix.conf /etc/logrotate.d/awnix \
+        /usr/lib/systemd/journald.conf.d/50-awnix.conf \
+        /usr/lib/systemd/system/logrotate.timer.d/50-awnix-hourly.conf \
+        /usr/lib/systemd/system/aither-license-lifecycle.service \
+        /usr/lib/systemd/system/aither-license-lifecycle.timer \
+        /usr/lib/systemd/system/awnix-mesh.service /usr/lib/systemd/system/awnix-mesh.path \
+        /usr/lib/systemd/system/awnix-mesh.timer /usr/lib/systemd/system/awnix-secureboot.service \
+        /usr/lib/systemd/system/awnix-greenboot-fallback.service \
+        /usr/lib/systemd/system/greenboot-healthcheck.service.d/50-awnix-greenboot-fallback.conf \
+        /usr/lib/firewalld/zones/awnix-mesh.xml \
+        /usr/lib/tmpfiles.d/aither-license-lifecycle.conf /usr/lib/tmpfiles.d/awnix-offline-update.conf \
+        /usr/lib/tmpfiles.d/awnix-mesh.conf /usr/lib/tmpfiles.d/awnix-backup.conf; \
+    find /usr/lib/awnix/proof -type f -exec sed -i 's/\r$//' {} +; \
+    sed -i '1s|^#!.*python3.*$|#!/usr/bin/python3.11|' /usr/libexec/awnix/awnix-proof; \
+    chmod 0755 /usr/libexec/awnix/awnix-ops-doctor /etc/greenboot/check/wanted.d/50-awnix-ops.sh \
+        /usr/lib/NetworkManager/dispatcher.d/90-awnix-mesh /usr/libexec/awnix/awnix-proof \
+        /usr/libexec/awnix/awnix-greenboot-fallback.sh; \
+    for f in /usr/libexec/awnix/awnix-ops-doctor /usr/libexec/awnix/awnix-renewal \
+             /usr/libexec/awnix/awnix-offline-update /usr/libexec/awnix/awnix-mesh \
+             /usr/libexec/awnix/awnix-backup /usr/libexec/awnix/awnix-proof \
+             /usr/libexec/awnix/awnix-secureboot /usr/libexec/awnix/awnix-awsh; do \
+        head -1 "$f" | grep -qx '#!/usr/bin/python3.11' \
+            || { echo "FATAL: $f does not start with #!/usr/bin/python3.11" >&2; exit 1; }; \
+    done; \
+    /usr/libexec/awnix/awnix-ops-doctor --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-renewal --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-offline-update --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-mesh --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-backup --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-proof --self-test >/dev/null; \
+    python3.11 /usr/lib/awnix/proof/awnix_proof_verify.py --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-secureboot --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-awsh --self-test >/dev/null; \
+    printf 'd /var/lib/proof 0700 root root -\n' > /usr/lib/tmpfiles.d/awnix-proof.conf; \
+    grep -q '^confdir /etc/chrony.d' /etc/chrony.conf || echo 'confdir /etc/chrony.d' >> /etc/chrony.conf; \
+    sed -ri 's/^(pool|server|peer)[[:space:]]/# awnix-airgap: &/' /etc/chrony.conf; \
+    systemctl enable aither-license-lifecycle.timer; \
+    systemctl enable awnix-mesh.path awnix-mesh.timer; \
+    systemctl enable chronyd.service logrotate.timer awnix-secureboot.service; \
+    systemctl --global enable awsh-harness.service awsh-agent.service; \
+    awsh --version >/dev/null
 
 # ── identity ────────────────────────────────────────────────────────────────────────
 # Booted in WSL2 on 2026-08-21 and it said `PRETTY_NAME="CentOS Stream 9"`. True about
@@ -395,6 +659,40 @@ RUN . /usr/lib/os-release \
     && mv /usr/lib/os-release.new /usr/lib/os-release \
     && grep -q '^NAME="awnix"$' /usr/lib/os-release
 
+# ─── awspec: the spec resolver + renderer every awnix image carries ─────────────
+# One engine for every descendant (runner, runner-ai, the appliances, the fleet host):
+# a leaf adds only LAYER files under /usr/share/awspec/layers.d, and awspec-render
+# turns base + leaf layers + the machine's /etc site overlay into drop-ins and env
+# files at boot. A renderer or guard fix is therefore ONE change here, reaching every
+# image built FROM this one. Brand-neutral: the engine names no product, host or port.
+# Source of truth: AitherOS/lib/core/aither_spec.py (+ schema, base layer), mirrored
+# into this build context byte-for-byte (check_aither_spec.py SPEC010).
+# Design: docs/architecture/SOVEREIGN-CONFIG-PLANE.md.
+#
+# The unit keeps default dependencies (never Before=sysinit) and requests a reload
+# only with --no-block (ALP005, check_boot_deadlock.py). No layers.d = skipped.
+COPY awspec.py /usr/lib/awspec/awspec.py
+COPY awspec.schema.json /usr/lib/awspec/awspec.schema.json
+COPY awspec-base.yaml /usr/share/awspec/base.yaml
+COPY awspec-render.sh /usr/libexec/awspec-render
+COPY awspec-render.service /usr/lib/systemd/system/awspec-render.service
+RUN python3.11 -m pip install --no-cache-dir pyyaml \
+    && printf '#!/bin/sh\nexec /usr/bin/python3.11 /usr/lib/awspec/awspec.py "$@"\n' > /usr/bin/awspec \
+    && sed -i 's/\r$//' /usr/libexec/awspec-render /usr/lib/awspec/awspec.py \
+    && chmod 0755 /usr/bin/awspec /usr/libexec/awspec-render \
+    && /usr/bin/awspec --self-test \
+    && /usr/bin/awspec validate --layer /usr/share/awspec/base.yaml \
+    && systemctl enable awspec-render.service
+
+# Third-party notices, generated from what THIS image actually installed (rpm + pip), in the
+# last layer so nothing installed after it is missed (SSC004). A leaf that installs more
+# regenerates them in its own last layer.
+COPY licenses/THIRD-PARTY-NOTICES.md gen-image-notices.sh /tmp/notices/
+RUN sed -i 's/\r$//' /tmp/notices/gen-image-notices.sh \
+    && sh /tmp/notices/gen-image-notices.sh --notices /tmp/notices/THIRD-PARTY-NOTICES.md \
+    && test -s /usr/share/licenses/awnix/THIRD-PARTY-INVENTORY.tsv \
+    && rm -rf /tmp/notices
+
 LABEL com.aitheros.layer="awnix-base" \
-      com.aitheros.description="awnix — immutable Linux + the 18 aw* tools, no services/agent/account" \
+      com.aitheros.description="awnix — immutable Linux + the 19 aw* tools, no services/agent/account" \
       org.opencontainers.image.licenses="Apache-2.0"

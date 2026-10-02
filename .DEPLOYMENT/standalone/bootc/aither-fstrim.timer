@@ -1,0 +1,18 @@
+# aither-fstrim.timer -- trim once shortly after boot, then weekly. Persistent= runs a
+# missed weekly trim at the next boot. Trim is harmless; it does NOT shrink the host vhdx
+# by itself. Host space comes back only through OFFLINE compaction with WSL stopped
+# (.DEPLOYMENT/host-tasks/compact-fleet-vhdx.ps1: Optimize-VHD / diskpart compact vdisk),
+# which is effective because the blocks were trimmed here first. The fleet vhdx files
+# are never set sparse (Microsoft disabled it for data corruption; SPV001-003).
+[Unit]
+Description=AitherOS: weekly + at-boot fstrim of the fleet disks (idle priority)
+
+[Timer]
+OnBootSec=15min
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=1h
+AccuracySec=1h
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,59 @@
+{
+  "agent_reboots_on_n2": 0,
+  "base_image": "quay.io/centos-bootc/centos-bootc:stream9",
+  "boots": 10,
+  "digests": {
+    "derived_from_log": false,
+    "n": "sha256:7c1383cc01a3a1cd56a4f11bd47b6197335e33dad670e280376df0aeff2fd58a",
+    "n1": "sha256:c9f40d514a9bff3b6fe83f930f83cded7bbd9b8f72e079df12735505d8397606",
+    "n2": "sha256:b0a8bea737517fda0ef0ec4ba886fdf201a0063abf3a4e5c8fe4ba1a5c740321",
+    "n_registry": "sha256:2a47f96faf9d7af60670afc725ad2664fbabd54a9629235e9e935541112c10f7"
+  },
+  "ended_at": "2026-09-28T12:24:09Z",
+  "exit_code": 0,
+  "fallback_reboot": "added",
+  "gh_run_id": "36420682028",
+  "greenboot_attempts": 4,
+  "greenboot_max": 3,
+  "grub_counting": "present",
+  "inject": "none",
+  "kvm": true,
+  "mode": "vm",
+  "plan": [
+    "upgrade",
+    "rollback",
+    "fallback"
+  ],
+  "reason": "every planned step booted the expected digest; /var sentinel intact",
+  "runner": "GitHub Actions 1000164836 (github-hosted)",
+  "schema": 1,
+  "started_at": "2026-09-28T12:16:43Z",
+  "state_sentinel_intact": true,
+  "steps": [
+    {
+      "booted_digest": "sha256:c9f40d514a9bff3b6fe83f930f83cded7bbd9b8f72e079df12735505d8397606",
+      "expect_digest": "sha256:c9f40d514a9bff3b6fe83f930f83cded7bbd9b8f72e079df12735505d8397606",
+      "ok": true,
+      "rc": 0,
+      "step": "upgrade"
+    },
+    {
+      "booted_digest": "sha256:7c1383cc01a3a1cd56a4f11bd47b6197335e33dad670e280376df0aeff2fd58a",
+      "expect_digest": "sha256:7c1383cc01a3a1cd56a4f11bd47b6197335e33dad670e280376df0aeff2fd58a",
+      "ok": true,
+      "rc": 0,
+      "step": "rollback",
+      "via": "bootc"
+    },
+    {
+      "agent_reboots_on_n2": 0,
+      "booted_digest": "sha256:7c1383cc01a3a1cd56a4f11bd47b6197335e33dad670e280376df0aeff2fd58a",
+      "expect_digest": "!= n2 (n1 or n)",
+      "n2_boots": 4,
+      "ok": true,
+      "rc": 0,
+      "step": "fallback"
+    }
+  ],
+  "verdict": "PASS"
+}

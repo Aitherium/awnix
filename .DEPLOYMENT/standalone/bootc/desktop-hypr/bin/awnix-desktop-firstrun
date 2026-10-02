@@ -1,0 +1,106 @@
+#!/bin/sh
+# awnix-desktop-firstrun -- the first login on the desktop offers the local model.
+#
+#   --if-new   open the welcome window once per user (autostart calls this)
+#   --force    run the chooser now (Super+/ -> "Choose the local model")
+#
+# The choice comes from awnix-model-select.py -- the same chooser and catalogue
+# (awnix-models.yaml) the AI images use. It sizes the model to this machine's VRAM or
+# RAM and prints a plan; this script fetches it with curl (resumable) into
+# ~/.local/share/awnix/models, links it as current.gguf and records the pick in
+# ~/.config/awnix/model. Nothing is downloaded unless you say so.
+#
+# current.gguf is what awnix-model.service serves (awnix-model-serve: llama-server on
+# 127.0.0.1:8199), and that URL is the one awsh's vendor config dials. So after the
+# download this script (re)starts the service and WAITS for it to answer: "Done" is
+# printed only when awsh has a model to talk to, and a server that did not come up is
+# said plainly with where to look.
+set -u
+sel=/usr/local/sbin/awnix-model-select.py
+state="${XDG_STATE_HOME:-$HOME/.local/state}/awnix"
+done_flag="$state/desktop-firstrun.done"
+case "${1:-}" in
+    --if-new)
+        [ -e "$done_flag" ] && exit 0
+        exec foot --app-id=awnix-float --title="Welcome to awnix" -e "$0" --force ;;
+    --force) ;;
+    *) echo "usage: awnix-desktop-firstrun --if-new|--force" >&2; exit 2 ;;
+esac
+mkdir -p "$state"
+echo "Welcome to awnix."
+echo
+echo "  Super+/   every key and action, searchable"
+echo "  Super+A   ask the agent (awsh); it answers from a model on THIS machine"
+echo "  Super+T   change the theme          Super+,   Settings"
+echo
+echo "First, pick the local model. It is sized to this machine; nothing leaves it."
+echo
+rec=$("$sel" 2>/dev/null) || rec=""
+"$sel" --list 2>/dev/null || echo "(the model catalogue is not readable)"
+echo
+echo "Recommended here: ${rec:-none fits this machine}"
+printf 'Model to download [%s], or "skip": ' "${rec:-skip}"
+read -r pick
+[ -n "$pick" ] || pick="${rec:-skip}"
+if [ "$pick" = skip ]; then
+    touch "$done_flag"
+    echo "Skipped. awsh (Super+A) has no local model to answer from until you choose one:"
+    echo "Super+/ then 'Choose the local model' brings this back."
+    sleep 3
+    exit 0
+fi
+plan=$("$sel" --model "$pick" --plan) || { echo "unknown model: $pick"; sleep 5; exit 1; }
+# The same fixed path awnix-model.service and awnix-model-serve read.
+dest="$HOME/.local/share/awnix/models"
+mkdir -p "$dest"
+file=$(printf '%s' "$plan" | python3.11 -c 'import json,sys; print(json.load(sys.stdin)["file"])')
+urls=$(printf '%s' "$plan" | python3.11 -c 'import json,sys; print(" ".join(json.load(sys.stdin)["urls"]))')
+n=0
+parts=""
+for u in $urls; do
+    out="$dest/$file.part$n"
+    echo "fetching $u"
+    if ! curl -fL --retry 3 -C - -o "$out" "$u"; then
+        echo "download failed; run this again to resume"
+        sleep 8
+        exit 1
+    fi
+    parts="$parts $out"
+    n=$((n + 1))
+done
+if [ "$n" -eq 1 ]; then
+    mv "$dest/$file.part0" "$dest/$file"
+else
+    # shellcheck disable=SC2086  # $parts is our own space-separated list of paths
+    cat $parts > "$dest/$file" && rm -f $parts
+fi
+ln -sfn "$dest/$file" "$dest/current.gguf"
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/awnix"
+printf '%s\n' "$pick" > "${XDG_CONFIG_HOME:-$HOME/.config}/awnix/model"
+touch "$done_flag"
+echo "Downloaded: $dest/$file (linked as current.gguf)."
+port="${AWNIX_MODEL_PORT:-8199}"
+echo "Starting the local model server (awnix-model.service, 127.0.0.1:$port) ..."
+systemctl --user daemon-reload >/dev/null 2>&1 || true
+up=0
+if systemctl --user restart awnix-model.service; then
+    i=0
+    while [ "$i" -lt 60 ]; do
+        if curl -sf -o /dev/null "http://127.0.0.1:$port/health"; then up=1; break; fi
+        systemctl --user is-active --quiet awnix-model.service || break
+        sleep 2
+        i=$((i + 1))
+    done
+fi
+if [ "$up" -eq 1 ]; then
+    echo "Done: the model is loaded. Super+A (awsh) now answers from it."
+elif systemctl --user is-active --quiet awnix-model.service; then
+    echo "The model is still loading (a large one takes a few minutes). awsh answers"
+    echo "from it once this reports active and healthy:"
+    echo "  systemctl --user status awnix-model.service"
+else
+    echo "The model is downloaded but its server did not come up, so awsh has no model yet."
+    echo "See why:  journalctl --user -u awnix-model.service -n 30"
+fi
+printf 'Press Enter to close '
+read -r _

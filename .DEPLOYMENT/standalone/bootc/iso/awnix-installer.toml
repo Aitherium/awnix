@@ -1,0 +1,170 @@
+# bootc-image-builder config for every awnix ISO (--type iso only), garg included.
+#
+# build-awnix-iso.sh mounts this as /config.toml and passes --config for TYPE=iso; disk
+# images (qcow2/raw/ami/...) get no config because bootc-image-builder applies installer
+# kickstarts only to the ISO. The builder APPENDS its own `ostreecontainer` line; this
+# file never names the image.
+#
+# THE CONTRACT (check_awnix_installer.py AIN001-AIN004, AIN012):
+#   * WITH a seed volume (label AWNIX_SEED, legacy GARGBOT_SEED) the install is unattended:
+#     disk, admin user, SSH keys and hostname come from awnix-seed.json
+#     (make-awnix-seed.py is its only writer).
+#   * WITHOUT one, the %pre writes EMPTY include files and Anaconda asks for the disk and
+#     the admin user. No disk is ever wiped without an answer: there is no clearpart,
+#     zerombr or autopart anywhere below except inside the %pre-generated include.
+#   * No literal SSH key and no plaintext password, ever.
+#
+# @@AWNIX_IMAGE_REF@@ and @@AWNIX_ISO_TAG@@ are rendered by build-awnix-iso.sh into a temp
+# copy; left unrendered they are recorded as-is in /etc/awnix/install.json.
+
+[customizations.installer.modules]
+enable = ["org.fedoraproject.Anaconda.Modules.Users"]
+
+[customizations.installer.kickstart]
+contents = '''
+text
+lang en_US.UTF-8
+keyboard us
+timezone Etc/UTC --utc
+network --bootproto=dhcp --device=link --activate --onboot=on
+reboot
+
+%pre --interpreter=/usr/bin/python3 --log=/tmp/awnix-pre.log
+# Seed discovery. Writes /tmp/awnix-storage.ks and /tmp/awnix-user.ks -- EMPTY unless a
+# valid seed says otherwise, so a seedless boot is an interactive install.
+import json, os, re, shutil, subprocess, urllib.request
+
+STORAGE, USER, COPY = "/tmp/awnix-storage.ks", "/tmp/awnix-user.ks", "/tmp/awnix-seed-copy"
+open(STORAGE, "w").close()
+open(USER, "w").close()
+
+def sh(argv):
+    try:
+        return subprocess.run(argv, capture_output=True, text=True, timeout=30).stdout.strip()
+    except Exception:
+        return ""
+
+def seed_disk_of(dev, pkname):
+    # The WHOLE disk holding the seed, excluded from disk=auto. make-awnix-seed.py writes a
+    # superfloppy (mkfs.vfat, no partition table), so blkid returns the disk itself (a
+    # virtio /dev/vdb) and PKNAME is empty: then the seed device IS the disk (AIN012).
+    if not dev:
+        return ""
+    return (pkname or "").strip() or os.path.basename(os.path.realpath(dev))
+
+def auto_disk_candidates(rows, seed_disk):
+    # Fixed, writable, non-USB whole disks that do not hold the seed (AIN012 runs this).
+    return [r["name"] for r in rows
+            if r.get("type") == "disk" and not r.get("rm") and not r.get("ro")
+            and (r.get("tran") or "") != "usb" and r["name"] != seed_disk
+            and not r["name"].startswith(("loop", "sr", "zram", "ram"))]
+
+dev = ""
+for label in ("AWNIX_SEED", "GARGBOT_SEED"):
+    dev = sh(["blkid", "-L", label])
+    if dev:
+        break
+seed = None
+if dev:
+    os.makedirs("/run/awnix-seed", exist_ok=True)
+    subprocess.run(["mount", "-o", "ro", dev, "/run/awnix-seed"], timeout=30)
+    p = "/run/awnix-seed/awnix-seed.json"
+    if os.path.exists(p):
+        try:
+            seed = json.load(open(p))
+        except Exception as e:
+            print("awnix-seed: unreadable awnix-seed.json:", e)
+    os.makedirs(COPY, exist_ok=True)
+    for f in ("awnix-seed.json", "license.lic", "setup-answers.json"):
+        if os.path.exists("/run/awnix-seed/" + f):
+            shutil.copy("/run/awnix-seed/" + f, COPY + "/" + f)
+            os.chmod(COPY + "/" + f, 0o600)
+    open(COPY + "/device", "w").write(dev)
+
+USER_RE = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
+KEY_RE = re.compile(r"^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-[a-z0-9@.-]+) [A-Za-z0-9+/=]+( [^\n\"]*)?$")
+if isinstance(seed, dict) and seed.get("schema") == 1 and "PRIVATE KEY" not in json.dumps(seed):
+    adm = seed.get("admin") or {}
+    name = str(adm.get("name") or "")
+    if USER_RE.match(name) and name != "root":
+        keys = [k.strip() for k in adm.get("ssh_keys") or [] if KEY_RE.match(k.strip())]
+        gh = str(adm.get("github_user") or "")
+        if gh and re.match(r"^[A-Za-z0-9-]{1,39}$", gh):
+            try:
+                body = urllib.request.urlopen("https://github.com/%s.keys" % gh, timeout=10).read().decode()
+                keys += [k.strip() for k in body.splitlines() if KEY_RE.match(k.strip())]
+            except Exception as e:
+                print("awnix-seed: github keys not fetched now (first boot retries):", e)
+        ph = str(adm.get("password_hash") or "")
+        cred = ("--iscrypted --password=%s" % ph) if ph.startswith("$") else "--lock"
+        lines = ["user --name=%s --groups=wheel %s" % (name, cred)]
+        lines += ['sshkey --username=%s "%s"' % (name, k) for k in keys]
+        open(USER, "w").write("\n".join(lines) + "\n")
+        open(COPY + "/admin", "w").write(name)
+    disk = str(seed.get("disk") or "")
+    if seed.get("wipe") is True and disk:
+        target = ""
+        if disk == "auto":
+            seed_disk = seed_disk_of(dev, sh(["lsblk", "-no", "PKNAME", dev]) if dev else "")
+            rows = json.loads(sh(["lsblk", "-J", "-d", "-o", "NAME,TYPE,RM,TRAN,RO"]) or '{"blockdevices": []}')
+            cands = auto_disk_candidates(rows.get("blockdevices", []), seed_disk)
+            if len(cands) == 1:
+                target = cands[0]
+            else:
+                print("awnix-seed: disk=auto REFUSED -- candidates %s; answer the storage screen" % cands)
+        elif re.match(r"^/dev/[A-Za-z0-9/_-]+$", disk) and os.path.exists(disk):
+            target = os.path.basename(os.path.realpath(disk))
+        if target:
+            open(STORAGE, "w").write(
+                "ignoredisk --only-use=%s\n"
+                "clearpart --all --initlabel --disklabel=gpt --drives=%s\n"
+                "reqpart --add-boot\n"
+                "part / --grow --fstype=xfs --ondisk=%s\n" % (target, target, target))
+            open(COPY + "/disk", "w").write("/dev/" + target)
+if dev:
+    subprocess.run(["umount", "/run/awnix-seed"], timeout=30)
+%end
+
+%include /tmp/awnix-storage.ks
+%include /tmp/awnix-user.ks
+
+%post --nochroot --log=/tmp/awnix-post.log
+# A bootc/ostree install has TWO roots: the physical sysroot and the deployment. Writing
+# /mnt/sysroot/etc lands in the physical root, which the booted system never reads. So
+# resolve the DEPLOYMENT's /etc; fall back to the chroot target only when no ostree
+# deployment is found (the boot proof's awnix-seed marker proves which one ran).
+ETC=""
+for d in /mnt/sysroot/ostree/deploy/*/deploy/*.0/etc; do
+    [ -d "$d" ] && { ETC="$d"; break; }
+done
+[ -n "$ETC" ] || { [ -d /mnt/sysimage/etc ] && ETC=/mnt/sysimage/etc; }
+[ -n "$ETC" ] || ETC=/mnt/sysroot/etc
+C=/tmp/awnix-seed-copy
+ADMIN="$(cat $C/admin 2>/dev/null)"
+DISK="$(cat $C/disk 2>/dev/null)"
+mkdir -p "$ETC/awnix/seed.d"
+chmod 0700 "$ETC/awnix/seed.d"
+if [ -f "$C/awnix-seed.json" ]; then
+    install -m 0600 "$C/awnix-seed.json" "$ETC/awnix/seed.json"
+    [ -f "$C/license.lic" ] && install -m 0600 "$C/license.lic" "$ETC/awnix/seed.d/license.lic"
+    [ -f "$C/setup-answers.json" ] && install -m 0600 "$C/setup-answers.json" "$ETC/awnix/seed.d/setup-answers.json"
+fi
+if [ -n "$ADMIN" ]; then
+    # A key-only admin has no password, so sudo must not ask for one or the box is
+    # reachable and not administrable (the ec2-user convention).
+    printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$ADMIN" > "$ETC/sudoers.d/90-awnix-admin"
+    chmod 0440 "$ETC/sudoers.d/90-awnix-admin"
+fi
+REF="@@AWNIX_IMAGE_REF@@"
+SEED_USED=false; [ -f "$C/awnix-seed.json" ] && SEED_USED=true
+cat > "$ETC/awnix/install.json" <<INSTALLJSON
+{"schema": 1, "installed_at": "$(date -u +%FT%TZ)", "iso_tag": "@@AWNIX_ISO_TAG@@", "image_ref": "$REF", "seed_used": $SEED_USED, "admin_user": "${ADMIN:-}", "etc_target": "$ETC"}
+INSTALLJSON
+chmod 0644 "$ETC/awnix/install.json"
+MSG="awnix-seed: admin=${ADMIN:-none} disk=${DISK:-interactive}"
+echo "$MSG"
+for tty in /dev/ttyS0 /dev/console /dev/kmsg; do
+    [ -w "$tty" ] && echo "$MSG" > "$tty" 2>/dev/null
+done
+%end
+'''

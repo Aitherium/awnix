@@ -1,18 +1,95 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # AitherOS Bootc — GPU Layer (NVIDIA)
-# Adds NVIDIA drivers + Container Toolkit + CDI for GPU inference
+# Adds NVIDIA drivers + Container Toolkit + CDI for GPU inference, with kernel modules
+# built against the IMAGE kernel and signed for Secure Boot (MOK).
 #
-# Build: podman build -t aitheros-bootc-gpu:latest -f Containerfile.gpu-nvidia .
+# Build (unsigned, Secure Boot must be off on the target):
+#   podman build -t aitheros-bootc-gpu:latest -f Containerfile.gpu-nvidia .
+# Build (signed). NOT YET WIRED in any lane: build_awnix_images.py passes no --secret, so
+# every image it builds today ships UNSIGNED modules (they load only with Secure Boot
+# off). The release lane is meant to mount the vault key AWNIX_MOK_SIGNING_KEY like this:
+#   podman build --secret id=awnix-mok-key,src=KEY.pem \
+#                --secret id=awnix-mok-cert,src=awnix-mok.der \
+#                --build-arg AWNIX_REQUIRE_SIGNED=1 \
+#                -t aitheros-bootc-gpu:latest -f Containerfile.gpu-nvidia .
+# The private key exists only inside the signing RUN's secret mount; it is never COPY'd,
+# never in a layer and never on a box. The image ships the public DER only.
+# Guide: docs/guide/11-secure-boot-nvidia.md · man awnix-secureboot(8) · gate SBN.
 # ═══════════════════════════════════════════════════════════════════════════════
 FROM localhost/aitheros-bootc-desktop:latest
 
-# NVIDIA driver repo
-RUN dnf config-manager --add-repo \
-        https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo && \
+ARG AWNIX_REQUIRE_SIGNED=0
+
+# NVIDIA driver repo. kmod-nvidia-open-dkms is the DKMS source of NVIDIA's OPEN GPU kernel
+# modules. The open flavor is not a preference: Blackwell (RTX 50xx, GB10) and later are
+# supported ONLY by the open modules, and the closed kmod-nvidia-latest-dkms would build,
+# sign and then fail to drive them (gate SBN009). Turing and newer run on either.
+# DKMS does not run by itself in a container build (there is no booted kernel), so the
+# modules are built explicitly against the image kernel below. mokutil is what the box
+# uses to enroll the public certificate; kernel-devel provides scripts/sign-file.
+# The CUDA repo is per arch (G13, AMA001): rhel9/x86_64 on amd64, rhel9/sbsa on arm64
+# (GB10/Grace server-class arm). Jetson is out of scope; anything else fails loudly.
+ARG TARGETARCH
+RUN case "${TARGETARCH:-$(uname -m)}" in \
+      amd64|x86_64) CUDA_REPO_ARCH=x86_64 ;; \
+      arm64|aarch64) CUDA_REPO_ARCH=sbsa ;; \
+      *) echo "gpu-nvidia: unsupported arch ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
+    esac; \
+    dnf config-manager --add-repo \
+        "https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${CUDA_REPO_ARCH}/cuda-rhel9.repo" && \
+    KVER="$(ls /usr/lib/modules | head -n1)" && \
     dnf install -y --setopt=install_weak_deps=False \
-        nvidia-driver nvidia-driver-cuda \
+        "kernel-devel-${KVER}" dkms openssl mokutil xz zstd python3.11 \
+        nvidia-driver nvidia-driver-cuda kmod-nvidia-open-dkms \
         cuda-toolkit \
     && dnf clean all
+
+# Build the NVIDIA modules for the image kernel (never the build host's `uname -r`).
+RUN KVER="$(ls /usr/lib/modules | head -n1)" && \
+    dkms autoinstall -k "${KVER}" && \
+    find "/usr/lib/modules/${KVER}" -name 'nvidia*.ko*' | grep -q . \
+    || { echo "gpu-nvidia: dkms produced no nvidia modules for ${KVER}" >&2; exit 1; }
+
+# Sign them. The key is a build secret (id=awnix-mok-key, vault AWNIX_MOK_SIGNING_KEY);
+# without it the modules stay unsigned unless AWNIX_REQUIRE_SIGNED=1 fails the build.
+COPY sign-nvidia-kmods.sh /usr/libexec/awnix/sign-nvidia-kmods
+RUN --mount=type=secret,id=awnix-mok-key,target=/run/secrets/awnix-mok-key \
+    --mount=type=secret,id=awnix-mok-cert,target=/run/secrets/awnix-mok-cert \
+    sed -i 's/\r$//' /usr/libexec/awnix/sign-nvidia-kmods && \
+    chmod 0755 /usr/libexec/awnix/sign-nvidia-kmods && \
+    AWNIX_REQUIRE_SIGNED="${AWNIX_REQUIRE_SIGNED}" /usr/libexec/awnix/sign-nvidia-kmods && \
+    rm -f /usr/libexec/awnix/sign-nvidia-kmods && \
+    test -s /usr/share/awnix/secureboot/kmod-manifest.json
+
+# Assert what was shipped: a signed build must carry a signer on every module and the
+# public DER at /usr/share/awnix/secureboot/awnix-mok.der. The EXACT-key leak scan runs
+# inside sign-nvidia-kmods (it needs the key to fingerprint it, and only that RUN mounts
+# it). This RUN is the coarse backstop: no PEM private key of any wrapping (RSA, EC,
+# ENCRYPTED, OPENSSH, PKCS#8) under the trees this layer writes.
+RUN KVER="$(ls /usr/lib/modules | head -n1)" && \
+    if grep -q '"signed": true' /usr/share/awnix/secureboot/kmod-manifest.json; then \
+        test -s /usr/share/awnix/secureboot/awnix-mok.der && \
+        for m in $(find "/usr/lib/modules/${KVER}" -name 'nvidia*.ko*'); do \
+            s="$(modinfo -F signer "$m")"; \
+            [ -n "$s" ] || { echo "gpu-nvidia: $m unsigned" >&2; exit 1; }; \
+            echo "gpu-nvidia: $(basename "$m") signer=$s"; \
+        done; \
+    elif [ "${AWNIX_REQUIRE_SIGNED}" = "1" ]; then \
+        echo "gpu-nvidia: AWNIX_REQUIRE_SIGNED=1 and modules are unsigned" >&2; exit 1; \
+    fi && \
+    ! grep -rlsE 'BEGIN ([A-Z0-9]+ )*PRIVATE KEY' /usr/share/awnix /usr/libexec/awnix \
+        "/usr/lib/modules/${KVER}" /root /tmp /var/tmp 2>/dev/null | grep -q .
+
+# Secure Boot state CLI + boot unit (awnix-secureboot also ships in the base layer once
+# Containerfile.awnix installs it; installing here keeps the GPU layer self-sufficient).
+COPY awnix-secureboot.py /usr/libexec/awnix/awnix-secureboot
+COPY awnix-secureboot.service /usr/lib/systemd/system/awnix-secureboot.service
+# Setup step (steps contract v1): the console/tty wizard offers MOK enrollment on GPU boxes.
+COPY setup-steps/common/45-secureboot.json /usr/share/awnix-setup/steps.d/45-secureboot.json
+RUN sed -i 's/\r$//' /usr/libexec/awnix/awnix-secureboot /usr/lib/systemd/system/awnix-secureboot.service && \
+    chmod 0755 /usr/libexec/awnix/awnix-secureboot && \
+    /usr/libexec/awnix/awnix-secureboot --self-test && \
+    systemctl enable awnix-secureboot.service
 
 # NVIDIA Container Toolkit
 RUN curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo \
@@ -25,4 +102,4 @@ RUN mkdir -p /etc/cdi && \
     nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml 2>/dev/null || true
 
 LABEL com.aitheros.layer="gpu-nvidia" \
-      com.aitheros.description="AitherOS bootc GPU — NVIDIA drivers + CDI"
+      com.aitheros.description="AitherOS bootc GPU — NVIDIA drivers + CDI, MOK-signed kmods"

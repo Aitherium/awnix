@@ -1164,20 +1164,6 @@ services:
   reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
     is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
     packs instead of being taxed on the thing that makes the product good.'
-- id: Elysium
-  description: 'AitherNet Hub (elysium.aitherium.com) - the public hub for AitherMesh and AitherRelay
-    federation. NOT retired: owner decision 2026-08-12 repurposed this from the superseded Agent Marketplace
-    (that surface moved to api.aitherium.com) into the mesh/relay hub. Serving on 3100 (Next.js reports
-    Ready) while the container reports UNHEALTHY - the healthcheck still probes the old marketplace surface
-    and must be repointed at the hub before it can be trusted. NOT YET A HUB: the code is still the marketplace
-    catalog/publish app and elysium.aitherium.com routes to Veil (tunnel-routes.yaml), not here - no public
-    route reaches this container.'
-  group: ui
-  entitlement: addon:automation
-  reason: 'owner ruling (addon automation): Owner ruling 2026-08-18. The portal and the Living Desktop
-    are the product''s face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons.
-    Keeping the shipped surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts
-    23 apps that open broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
 - id: EvolutionCore
   description: Autonomous self-improvement orchestrator — closed-loop learning (harvest → train → eval
     → deploy → rollback), auto-remediation (11 known-fix patterns), model registry (version tracking,
@@ -1222,16 +1208,6 @@ services:
   group: core
   entitlement: core
   reason: 'Core: 6 services depend on it. The cross-service event bus agents coordinate over.'
-- id: ForgeIDE
-  description: AI-powered coding and graph workspace — forge.aitherium.com. Monaco editor, file explorer,
-    live terminal, ReactFlow code graph, and Genesis-backed scope/codegraph proxies for architecture exploration,
-    search, and Demiurge-assisted implementation.
-  group: ui
-  entitlement: addon:automation
-  reason: 'owner ruling (addon automation): Owner ruling 2026-08-18. The portal and the Living Desktop
-    are the product''s face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons.
-    Keeping the shipped surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts
-    23 apps that open broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
 - id: ForgeIDEBackend
   description: 'COMPOUND: Workspace + Terminal + LSP + Git + Forge. Full-stack dev IDE backend with code
     editing, terminals, and git.'
@@ -1334,17 +1310,13 @@ services:
   reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
     is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
     packs instead of being taxed on the thing that makes the product good.'
-- id: MCPPortal
-  description: 'MCP tools discovery portal. NOT on mcp.aitherium.com: that hostname routes straight to
-    MCPGateway (tunnel-routes.yaml, "no MCPPortal in the hot path"), and no public route targets this
-    container. Browse AI tools, connect Claude Code/Desktop to AitherOS via the Model Context Protocol,
-    manage API keys.'
-  group: ui
-  entitlement: addon:automation
-  reason: 'owner ruling (addon automation): Owner ruling 2026-08-18. The portal and the Living Desktop
-    are the product''s face and ship free. Admin and monitoring surfaces are ours. The rest are add-ons.
-    Keeping the shipped surface small is the practical half of "fix the UI/UX bugs" - DAW001 already counts
-    23 apps that open broken, and the fewer surfaces ship, the fewer can be broken on a stranger''s box.'
+- id: MailCore
+  description: 'COMPOUND (lean): AitherMail + AitherSMTP on their own event loop, carved out of CommunicationCore
+    (D-320). Shares the Postgres mail queue.'
+  group: network
+  entitlement: addon:business
+  reason: The business add-on lists mail by name (commerce, invoicing, CRM, calendar, mail); group network
+    has no pack of its own (appliance_entitlements.yaml).
 - id: MemoryCore
   description: 'COMPOUND: Persona + Conduit + SensoryBuffer + Chain. Identity/affect state, sensory buffering,
     and memory chaining.'
@@ -1367,6 +1339,13 @@ services:
   group: billing
   entitlement: addon:business
   reason: group 'billing' maps to add-on 'business' via source_groups
+- id: MicroScheduler
+  description: LLM request queue and VRAM coordinator (DEPRECATING — being split into AitherLLMGateway+AitherSlots+AitherFleet;
+    see .AITHEROS/30-FLEET-SCHEDULER-REARCHITECTURE.md)
+  group: core
+  entitlement: core
+  reason: 'Core: every LLM call routes through it, and appliance_entitlements.yaml core promises a router
+    to whatever model you point it at. The lite tier names it explicitly (resolver._TIER_ADD_SERVICES).'
 - id: Mind
   description: RAG and embeddings
   group: cognition
@@ -1433,6 +1412,13 @@ services:
   reason: 'owner ruling: Owner ruling 2026-08-18. Reasoning is what people are buying; giving it away
     is what makes the free core worth booting. Monetization moves to the GPU, creative, training and business
     packs instead of being taxed on the thing that makes the product good.'
+- id: Recover
+  description: Disaster recovery and backup restoration
+  group: core
+  entitlement: core
+  reason: 'Core: a sovereign box that cannot restore itself loses customer data, and the lite tier already
+    ships it. Runs inside SecurityCore; the backup role enables and health-gates it rather than starting
+    a second container.'
 - id: RemotionRenderer
   description: Programmatic video renderer (Remotion + headless Chromium). Motion graphics, data viz,
     presentations.
@@ -1470,6 +1456,13 @@ services:
   entitlement: core
   reason: 'Core: 13 services depend on it. Every credential on the appliance lives here; nothing else
     can be configured without it.'
+- id: SecurityCore
+  description: 'COMPOUND: Identity (auth/RBAC/OAuth/SSO/device-code) + Recover + Inspector. AitherIdentity
+    lives HERE — no separate identity container exists.'
+  group: core
+  entitlement: core
+  reason: 'Core: the container that hosts Identity, Recover and Inspector. Identity is core, so the process
+    that serves it must be installable at the same class.'
 - id: SecurityDefense
   description: 'COMPOUND: Sentry + Guard + RoundTable + Sentinel. Threat detection, WAF, security council,
     and perimeter monitoring.'
@@ -1516,6 +1509,20 @@ services:
     so the store itself cannot be the add-on - classifying it that way charged customers for something
     the base appliance already shipped, which generate_os_roles.py caught the moment both planes spoke
     one vocabulary.'
+- id: Strata
+  description: Storage tiering, ingestion, and query API
+  group: core
+  entitlement: core
+  reason: 'Core: the memory store appliance_entitlements.yaml core promises (the tool plane, memory),
+    boot_tier 0 in group core, shipped by the lite tier. A sub_service of StrataData and still independently
+    installable, like Identity.'
+- id: StrataMeshReplicationTrigger
+  description: Flux-driven mesh data replication — listens for strata.write events and replicates to joined
+    peers.
+  group: infrastructure
+  entitlement: addon:mesh
+  reason: Replicates to joined overlay peers, which is exactly the mesh add-on (join multiple appliances
+    into one overlay); a single box has no partner.
 - id: Stream
   description: Video hosting, HLS adaptive streaming, live-stream management
   group: creative
@@ -1650,7 +1657,7 @@ groups:
 - minimal
 - social
 - storage
-unroled_services: 66
+unroled_services: 58
 unroled_service_names:
 - AitherChronos
 - AitherCivics
@@ -1673,7 +1680,6 @@ unroled_service_names:
 - Conductor
 - Discord
 - DiscordRelayBridge
-- ElysiumBackend
 - EventLog
 - ExternalGateway
 - Failover
@@ -1683,11 +1689,8 @@ unroled_service_names:
 - Instagram
 - KnowledgeRAGIngestWorker
 - MCPGateway
-- Mail
-- MailCore
 - MeshBalancer
 - MeshCore
-- MicroScheduler
 - MinIO
 - Mint
 - Moltroad
@@ -1696,14 +1699,12 @@ unroled_service_names:
 - Nexus
 - Node
 - NodeDeployer
-- Recover
 - Redis
 - Registry
 - Relay
 - Repowise
 - SMS
 - SMTP
-- SecurityCore
 - Slack
 - SocialEngine
 - SocialHub
@@ -1711,9 +1712,7 @@ unroled_service_names:
 - SocialIntelligence
 - SocialPlatforms
 - SocialUnified
-- Strata
 - StrataData
-- StrataMeshReplicationTrigger
 - Telegram
 - TenantDataPlane
 - WhatsApp

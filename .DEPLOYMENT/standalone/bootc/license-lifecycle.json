@@ -1,0 +1,29 @@
+{
+ "schema": 1,
+ "doc": "aither-license-lifecycle(7). Vendor policy installed at /usr/share/aither/license-lifecycle.json and read by awnix-renewal. Expiry NEVER stops serving; only the stops_after_grace rows stop, and only after grace_days.",
+ "grace_days": 30,
+ "renew_soon_days": 30,
+ "reminder_days": [60, 30, 14, 7, 3, 1],
+ "perpetual_fallback": true,
+ "keeps_serving": [
+  {"id": "serving", "what": "Every service already running keeps running: no unit is stopped, masked or made read-only."},
+  {"id": "inference", "what": "Local models keep answering on the box."},
+  {"id": "components", "what": "Baked and already-installed components keep running and are never removed."},
+  {"id": "console", "what": "The on-box console and its sign-in keep working."},
+  {"id": "local-api", "what": "The local API and data export keep working; your data is never locked."},
+  {"id": "rollback", "what": "bootc rollback to any deployment already on the disk keeps working."},
+  {"id": "license-renew", "what": "License import and renewal keep working, online and offline."}
+ ],
+ "stops_after_grace": [
+  {"id": "updates", "what": "Online image updates (awnix update check/apply) are refused."},
+  {"id": "private-pulls", "what": "Private registry pulls stop: no new pull credential is issued."},
+  {"id": "component-install", "what": "Installing a licensed component that is not already on the box is refused."},
+  {"id": "packs", "what": "New licensed packs cannot be added."},
+  {"id": "support", "what": "Vendor support and new offline bundles built after the grace end are not provided."}
+ ],
+ "revoke_immediate": ["updates", "private-pulls", "component-install", "packs", "support"],
+ "clock": {
+  "rollback_tol_s": 300,
+  "unsynced_window_h": 24
+ }
+}

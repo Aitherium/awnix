@@ -1,0 +1,23 @@
+[Unit]
+Description=awnix airgap: turn DHCP profiles link-local before NetworkManager starts
+# The installer kickstart writes a DHCP profile for the install NIC
+# (network --bootproto=dhcp). On the airgap profile that profile would send
+# DHCPDISCOVER on the Step 2 capture segment, so this rewrites every DHCP/auto
+# profile under /etc/NetworkManager/system-connections to link-local before NM
+# reads it. Static (manual) profiles are left alone.
+DefaultDependencies=no
+After=local-fs.target
+Before=NetworkManager.service network-pre.target shutdown.target
+Wants=network-pre.target
+Conflicts=shutdown.target
+ConditionPathExists=/usr/libexec/awnix/awnix-zero-ports
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/awnix/awnix-zero-ports net-linklocal
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

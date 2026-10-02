@@ -23,6 +23,11 @@
 #   ./assemble-awnix-iso.sh --keep-parts          # do not delete the parts afterwards
 #   ./assemble-awnix-iso.sh --self-test
 #
+# PER-PART CHECK FIRST. When the release's awnix-iso.json sits next to the parts, every
+# part is checked against its own sha256 BEFORE the join, so a bad download names the one
+# part to re-fetch (1.9 GB) instead of failing the whole ~3 GB image. SHA256SUMS (the
+# assembled digest) stays the final check, and the only one when no manifest is present.
+#
 # Exit: 0 assembled and verified, 1 a real failure, 2 could not judge (missing checksum
 # tool, unreadable directory) -- never 0 on "I could not check".
 set -uo pipefail
@@ -51,6 +56,26 @@ done
 list_parts() {
   find "$1" -maxdepth 1 -type f -name '*.iso.*.part' 2>/dev/null \
     | sort -t. -k3,3n
+}
+
+# "name size sha256" per part, from awnix-iso.json. Our own writer emits one object per
+# part on one line; parsed with grep/sed because assembling must not need python or jq.
+manifest_parts() {
+  grep -o '{"name": "[^"]*", "size": [0-9]*, "sha256": "[0-9a-f]*"}' "$1" 2>/dev/null \
+    | sed -e 's/{"name": "\([^"]*\)", "size": \([0-9]*\), "sha256": "\([0-9a-f]*\)"}/\1 \2 \3/'
+}
+
+# Echo the name of every part that is missing or wrong; nothing when all agree.
+bad_parts() {  # bad_parts DIR MANIFEST SHATOOL
+  local name size sha got gsz
+  while read -r name size sha; do
+    [ -n "$name" ] || continue
+    if [ ! -f "$1/$name" ]; then echo "$name (missing)"; continue; fi
+    gsz=$(wc -c < "$1/$name" | tr -d ' ')
+    if [ "$gsz" != "$size" ]; then echo "$name (size $gsz, want $size)"; continue; fi
+    got=$($3 "$1/$name" | cut -d' ' -f1)
+    [ "$got" = "$sha" ] || echo "$name (sha256 mismatch)"
+  done < <(manifest_parts "$2")
 }
 
 sha_tool() {
@@ -85,6 +110,20 @@ if [ "$SELFTEST" = "1" ]; then
   chk "$([ "$real" = "0000000000000000000000000000000000000000000000000000000000000000" ] && echo yes || echo no)" \
       "no" "a real digest is not the all-zero sentinel"
 
+  # awnix-iso.json names the corrupt PART, not just "the image is wrong".
+  printf 'HELLO' > "$T/m.iso.00.part"; printf 'WORLD' > "$T/m.iso.01.part"
+  h0=$($ST "$T/m.iso.00.part" | cut -d' ' -f1); h1=$($ST "$T/m.iso.01.part" | cut -d' ' -f1)
+  printf '{"schema": 1, "parts": [{"name": "m.iso.00.part", "size": 5, "sha256": "%s"}, {"name": "m.iso.01.part", "size": 5, "sha256": "%s"}]}\n' "$h0" "$h1" > "$T/awnix-iso.json"
+  chk "$(manifest_parts "$T/awnix-iso.json" | wc -l | tr -d ' ')" "2" "the manifest's parts are read without python or jq"
+  chk "$(bad_parts "$T" "$T/awnix-iso.json" "$ST")" "" "matching parts report nothing"
+  printf 'WORLX' > "$T/m.iso.01.part"
+  chk "$(bad_parts "$T" "$T/awnix-iso.json" "$ST")" "m.iso.01.part (sha256 mismatch)" "a corrupt part is NAMED"
+  printf 'WOR' > "$T/m.iso.01.part"
+  chk "$(bad_parts "$T" "$T/awnix-iso.json" "$ST")" "m.iso.01.part (size 3, want 5)" "a truncated part is named by size"
+  rm -f "$T/m.iso.00.part"
+  chk "$(bad_parts "$T" "$T/awnix-iso.json" "$ST" | head -1)" "m.iso.00.part (missing)" "a missing part is named"
+  rm -f "$T"/m.iso.*.part "$T/awnix-iso.json"
+
   # No parts at all must not read as success.
   E="$(mktemp -d)"
   chk "$(list_parts "$E" | wc -l | tr -d ' ')" "0" "an empty directory yields no parts"
@@ -110,6 +149,17 @@ echo "assemble-awnix-iso"
 echo "  parts : ${#PARTS[@]}"
 for p in "${PARTS[@]}"; do echo "          $(basename "$p")"; done
 echo "  out   : $OUT"
+
+ST="$(sha_tool)"
+MANIFEST="$DIR/awnix-iso.json"
+if [ -f "$MANIFEST" ] && [ -n "$ST" ] && [ -n "$(manifest_parts "$MANIFEST")" ]; then
+  BAD="$(bad_parts "$DIR" "$MANIFEST" "$ST")"
+  if [ -n "$BAD" ]; then
+    die "these parts do not match awnix-iso.json -- re-download ONLY these, the rest are fine:
+$(printf '%s\n' "$BAD" | sed 's/^/       /')"
+  fi
+  echo "  parts : each verified against awnix-iso.json"
+fi
 
 # A partial assembly that looks like an ISO is worse than none, so build to a temp name
 # and only move it into place once the checksum agrees.

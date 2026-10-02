@@ -1,0 +1,6 @@
+#!/bin/sh
+# awnix-lock -- the lock screen (swaylock), in the current theme.
+c="${XDG_CONFIG_HOME:-$HOME/.config}/awnix/theme/swaylock.conf"
+pgrep -x swaylock >/dev/null 2>&1 && exit 0
+[ -f "$c" ] && exec swaylock -f -C "$c"
+exec swaylock -f -c 0b1020

@@ -1,0 +1,18 @@
+# G6 proof agent: one step of the upgrade / rollback / greenboot plan per boot.
+# After greenboot so a boot greenboot is going to reject never takes a step; the
+# early trace of such a boot comes from g6-mark.service instead. Output goes to
+# /var/lib/awnix-g6/agent.log and ttyS0 line by line (getty-safe: measured
+# 2026-09-13, getty re-took ttyS0 mid-run and a serial-only log lost the tail).
+[Unit]
+Description=awnix G6 proof agent (upgrade, rollback, greenboot fallback)
+After=greenboot-healthcheck.service multi-user.target
+Wants=greenboot-healthcheck.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/g6/g6-agent.sh run
+TimeoutStartSec=1800
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target

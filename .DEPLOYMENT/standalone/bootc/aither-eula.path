@@ -1,0 +1,13 @@
+[Unit]
+# When the licence terms are accepted, start the units that were skipped while they were
+# pending. PathChanged, not PathExists: PathExists re-triggers after every run of the
+# oneshot, which would loop.
+Description=Start licence-gated units once the licence terms are accepted
+ConditionPathExists=/usr/share/aither/eula/eula.json
+
+[Path]
+PathChanged=/var/lib/aither/eula/acceptance.json
+Unit=aither-eula-release.service
+
+[Install]
+WantedBy=multi-user.target

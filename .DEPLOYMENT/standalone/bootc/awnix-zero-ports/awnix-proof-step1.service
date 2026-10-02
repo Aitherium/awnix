@@ -1,0 +1,28 @@
+[Unit]
+Description=awnix airgap proof, demo Step 1 (no non-loopback listeners, no password)
+# After the services that open sockets late, so the count sees them. After= on a
+# unit that does not exist on this variant is a no-op. NEVER add multi-user.target
+# here: multi-user.target WANTS this unit (see [Install]), and a target is implicitly ordered
+# After= every unit it Wants (systemd.target(5)), so After=multi-user.target is an
+# ordering cycle that systemd breaks by deleting a start job -- possibly this one.
+# check_awnix_zero_ports.py ZP001 refuses it.
+After=garg-firstboot.service awnix-console.service sshd.service
+ConditionPathExists=/usr/libexec/awnix/awnix-zero-ports
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# The verdict goes to the journal AND the console (serial marker), and the
+# script writes /run/issue.d/50-awnix-zero-ports.issue so the witness reads it
+# at the login prompt without logging in. A FAIL (exit 1) does not fail the
+# boot and leaves the unit active; exit 2 (could not judge) deliberately marks the
+# unit FAILED so `systemctl --failed` shows a proof that never produced a verdict.
+# With no --account, proof judges the accounts the IMAGE shipped with (recorded by
+# apply in /usr/lib/awnix/zero-ports.accounts), not the operator awnix-setup creates.
+ExecStart=/usr/libexec/awnix/awnix-zero-ports proof --out /var/lib/proof/step1-zero-ports.log --issue
+SuccessExitStatus=1
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

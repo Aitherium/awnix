@@ -1,0 +1,24 @@
+# awnix-mesh.service -- finish a pending AitherMesh join, or heartbeat a joined node.
+#
+# Triggered by awnix-mesh.path (a pending join was recorded while offline) and by
+# awnix-mesh.timer (every 10 min). `retry` exits 0 at once when this box never joined,
+# so an unjoined appliance pays nothing. Exit 2 means "still offline / pending" and is
+# not a unit failure: the path/timer will try again.
+[Unit]
+Description=AitherMesh join retry and heartbeat (awnix mesh)
+Documentation=man:awnix-mesh(8)
+Wants=network-online.target
+After=network-online.target NetworkManager.service
+ConditionPathExists=/usr/libexec/awnix/awnix-mesh
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/awnix/awnix-mesh retry --quiet
+SuccessExitStatus=2
+TimeoutStartSec=180
+# Hardening: it only needs its own state, the NM keyfile dir and the network.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/awnix/mesh /etc/awnix/mesh /etc/NetworkManager/system-connections

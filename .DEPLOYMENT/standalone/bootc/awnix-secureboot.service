@@ -1,0 +1,34 @@
+[Unit]
+# awnix Secure Boot + NVIDIA state, recorded once per boot.
+#
+# Runs after the module loader so it can see whether the NVIDIA kernel module loaded or
+# was refused for its signature. It is informational: it writes
+# /var/lib/awnix/secureboot/status.json (read by the console and `awnix doctor`) and prints
+# one serial marker line
+#   awnix-secureboot: sb=<on|off|n/a> gpu=<nvidia|none> kmod=<...> key=<...> state=<...>
+# It never blocks multi-user.target and never enrolls anything by itself: enrolling a MOK
+# needs a human at the MokManager screen, so the box only says what to do.
+Description=awnix Secure Boot + NVIDIA module state
+Documentation=man:awnix-secureboot(8)
+# nvidia.ko is autoloaded by udev PCI coldplug (modalias), NOT by modules-load, so this
+# orders after the coldplug trigger and ExecStartPre drains the udev queue: without that
+# the once-per-boot record can race the module load and report a healthy, enrolled box as
+# driver-not-loaded (gate SBN005).
+After=systemd-modules-load.service systemd-udev-trigger.service local-fs.target
+Wants=systemd-modules-load.service
+ConditionPathExists=/usr/libexec/awnix/awnix-secureboot
+
+[Service]
+Type=oneshot
+# '-': a settle timeout is not a failure; the status is still written, just possibly early.
+ExecStartPre=-/usr/bin/udevadm settle --timeout=45
+ExecStart=/usr/libexec/awnix/awnix-secureboot status --write
+RemainAfterExit=yes
+# 1 = action needed, 2 = could not judge: both are reported, neither fails the boot.
+SuccessExitStatus=1 2
+StandardOutput=journal+console
+# Covers the 45 s settle plus the status run.
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

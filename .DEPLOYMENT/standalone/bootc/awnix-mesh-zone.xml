@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- firewalld zone for the AitherMesh overlay (aithernet0), installed as
+     /usr/lib/firewalld/zones/awnix-mesh.xml. It is its OWN zone on purpose: the host
+     zone `awnix` is the default zone under the zero-ports profile and an admin may open
+     LAN ports there, which must never open on the overlay. target=DROP with no services
+     and no ports: the overlay carries this node's OUTBOUND sessions and their replies
+     only. An admin who wants to serve something on the mesh adds it in
+     /etc/firewalld/zones/awnix-mesh.xml, deliberately. -->
+<zone target="DROP">
+  <short>awnix-mesh</short>
+  <description>AitherMesh overlay: client-only, nothing inbound is accepted.</description>
+</zone>

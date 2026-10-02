@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Ask the agent
+GenericName=awsh
+Comment=The agent shell, answering from a model on this machine (Super+A)
+Exec=foot --app-id=awnix-awsh --title=awsh -e awsh
+Icon=utilities-terminal
+Categories=Utility;
+Keywords=ai;agent;awsh;assistant;

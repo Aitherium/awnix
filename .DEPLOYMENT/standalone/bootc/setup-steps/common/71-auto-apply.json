@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "auto-apply",
+  "title": "Restart automatically for updates",
+  "why": "Off (recommended): a verified update is downloaded and staged, and takes effect the next time you restart or press Restart to update in the console. On: the machine restarts itself shortly after a verified update is staged, which can interrupt whatever it is doing. Either way a bad update can be rolled back with `awnix update rollback`.",
+  "kind": "toggle",
+  "current_cmd": ["awnix", "update", "auto-apply"],
+  "apply_cmd": ["awnix", "update", "auto-apply", "{value}"],
+  "required": false,
+  "timeout_s": 30,
+  "after": ["updates"]
+}

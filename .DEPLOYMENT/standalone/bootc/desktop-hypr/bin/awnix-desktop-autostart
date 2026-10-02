@@ -1,0 +1,17 @@
+#!/bin/sh
+# awnix-desktop-autostart -- Hyprland's one exec-once: wallpaper, bar, notifications,
+# tray applets, polkit agent, the idle lock, and the first-login welcome.
+set -u
+t="${XDG_CONFIG_HOME:-$HOME/.config}/awnix/theme"
+dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP \
+    HYPRLAND_INSTANCE_SIGNATURE >/dev/null 2>&1 || true
+swaybg -m fill -i "$t/wallpaper.png" >/dev/null 2>&1 &
+waybar -c /usr/share/awnix/desktop/waybar.jsonc -s "$t/waybar.css" >/dev/null 2>&1 &
+mako --config "$t/mako.conf" >/dev/null 2>&1 &
+nm-applet --indicator >/dev/null 2>&1 &
+blueman-applet >/dev/null 2>&1 &
+/usr/libexec/polkit-mate-authentication-agent-1 >/dev/null 2>&1 &
+swayidle -w timeout 300 'awnix-lock' \
+    timeout 600 'hyprctl dispatch dpms off' resume 'hyprctl dispatch dpms on' \
+    before-sleep 'awnix-lock' >/dev/null 2>&1 &
+awnix-desktop-firstrun --if-new &

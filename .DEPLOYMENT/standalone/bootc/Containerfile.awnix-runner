@@ -30,10 +30,29 @@ RUN useradd -m -s /bin/bash -c "GitHub Actions runner (unprivileged)" runner \
 # deferred-credential pattern as deploy_aws_runner.py's user-data --
 # NEVER bake a registration token into an image other instances will also
 # boot from.
+#
+# ARCH (G13): actions/runner publishes linux-x64 AND linux-arm64 tarballs for every
+# release (2.336.0 checked 2026-09-27). The asset is picked by a case over
+# TARGETARCH that falls back to `uname -m` -- never to amd64 -- so a buildah that
+# does not set TARGETARCH builds the host's own arch instead of silently fetching
+# x86. An arch with no published runner fails HERE, loudly, not as a 404 later.
+# The x86 URL is byte-identical to the one this layer always fetched.
+# INTEGRITY: each arm pins the SHA-256 actions/runner publishes for v2.336.0 (the
+# release notes and the API asset digest agree, checked 2026-09-28); sha256sum -c
+# fails the build on a mismatch. Bumping RUNNER_VERSION means bumping both hashes.
+# check_awnix_multiarch.py (AMA001/AMA002) holds the rule.
 ARG RUNNER_VERSION=2.336.0
-RUN mkdir -p /opt/actions-runner && cd /opt/actions-runner \
+ARG TARGETARCH
+RUN set -eu; \
+    case "${TARGETARCH:-$(uname -m)}" in \
+      amd64|x86_64) RUNNER_ARCH=x64; RUNNER_SHA256=04cf0be1aff4c3ec3554466c39124ca250e3effd8873bb7e8d68535aa9505d5d ;; \
+      arm64|aarch64) RUNNER_ARCH=arm64; RUNNER_SHA256=58b758e420b87093fbd4bfddd368074960053e2f1388f01848c82624b90f27d1 ;; \
+      *) echo "awnix-runner: no actions-runner build for arch '${TARGETARCH:-$(uname -m)}'" >&2; exit 1 ;; \
+    esac; \
+    mkdir -p /opt/actions-runner && cd /opt/actions-runner \
     && curl -fsSL -o runner.tar.gz \
-        "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" \
+        "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz" \
+    && echo "${RUNNER_SHA256}  runner.tar.gz" | sha256sum -c - \
     && tar xzf runner.tar.gz && rm runner.tar.gz \
     && chown -R runner:runner /opt/actions-runner
 
@@ -60,14 +79,25 @@ RUN mkdir -p /opt/actions-runner && cd /opt/actions-runner \
 # refused", an error that names a registry and hides the real cause two layers
 # up. The manifest carries the same download URLs and has no such limit; it is
 # fetched ONCE rather than once per series.
-RUN mkdir -p /opt/actions-runner/_work/_tool && \
+#
+# ARCH: actions/python-versions publishes linux-24.04-x64 and linux-24.04-arm64
+# builds of each series; the same TARGETARCH case picks the suffix, and setup.sh
+# files each under _tool/Python/<ver>/<x64|arm64>, where setup-python looks on
+# that arch.
+RUN set -eu; \
+    case "${TARGETARCH:-$(uname -m)}" in \
+      amd64|x86_64) PY_ARCH=x64 ;; \
+      arm64|aarch64) PY_ARCH=arm64 ;; \
+      *) echo "awnix-runner: no python toolcache build for arch '${TARGETARCH:-$(uname -m)}'" >&2; exit 1 ;; \
+    esac; \
+    mkdir -p /opt/actions-runner/_work/_tool && \
     manifest="$(mktemp)" && \
     curl -fsSL --retry 3 --retry-delay 5 -o "$manifest" \
       "https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json" && \
     for series in 3.10 3.11 3.12; do \
-      asset_url="$(grep -oE "https://[^\"]*python-${series}\.[0-9]+-linux-24\.04-x64\.tar\.gz" "$manifest" \
+      asset_url="$(grep -oE "https://[^\"]*python-${series}\.[0-9]+-linux-24\.04-${PY_ARCH}\.tar\.gz" "$manifest" \
         | sort -V | tail -1)"; \
-      [ -n "$asset_url" ] || { echo "awnix-runner: no linux python ${series} build published" >&2; exit 1; }; \
+      [ -n "$asset_url" ] || { echo "awnix-runner: no linux-24.04-${PY_ARCH} python ${series} build published" >&2; exit 1; }; \
       tmp="$(mktemp -d)"; \
       curl -fsSL --max-time 900 "$asset_url" | tar -xz -C "$tmp"; \
       ( cd "$tmp" && RUNNER_TOOL_CACHE=/opt/actions-runner/_work/_tool bash ./setup.sh >/dev/null ); \

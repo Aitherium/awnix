@@ -1,0 +1,27 @@
+# /usr/lib/systemd/user/awsh-harness.service -- the awsh harness daemon, loopback only.
+#
+# Bound to 127.0.0.1:8362 explicitly (--host), so the zero-open-ports claim does not
+# depend on any default. The bearer is ~/.aither/harness_token (0600), minted on first
+# start by the daemon itself or ahead of time by `awnix awsh first-run`.
+# AITHER_AUTOLINK is deliberately NOT set: it would open an outbound link to a portal.
+[Unit]
+Description=awsh harness daemon (loopback 127.0.0.1:8362)
+Documentation=man:awnix-awsh(8)
+# No After=default.target: WantedBy=default.target already orders the target
+# after this unit, so the pair would be an ordering cycle.
+
+[Service]
+Type=simple
+Environment=AITHER_OFFLINE=1
+Environment=AITHER_HARNESS_HOST=127.0.0.1
+Environment=AITHER_HARNESS_BIND_HOST=127.0.0.1
+Environment=AITHER_HARNESS_PORT=8362
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=-/usr/libexec/awnix/awnix-awsh first-run --quiet
+ExecStart=/usr/bin/python3.11 -m adk.cli harness serve --host 127.0.0.1 --port 8362
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

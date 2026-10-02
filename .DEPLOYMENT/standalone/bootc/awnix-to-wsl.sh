@@ -17,8 +17,10 @@
 # worse.
 #
 # THE CONTRACT, fixed by the caller — do not drift from it:
-#   stage dir      : $AITHER_WSL_STAGE_DIR (the caller passes it in /mnt form), else
-#                    /mnt/e/AitherOS-Data/wsl when /mnt/e exists, else /mnt/c/...
+#   stage dir      : --stage-dir DIR, else $AITHER_WSL_STAGE_DIR (the wrappers pass it
+#                    in /mnt form), else $AWNIX_WSL_STAGE, else the Windows user's
+#                    %LOCALAPPDATA%\awnix\wsl mapped through wslpath. No drive or
+#                    checkout of any one machine is assumed (PRT001).
 #   staged tarball : <stage dir>/<name>-rootfs.tar
 #   the wrapper then: wsl --import <name> <stage dir>/<name> <tar> --version 2
 # The wrappers (rehearse-awnix.ps1, bootstrap-awnix.ps1) resolve the same dir with
@@ -36,13 +38,22 @@
 #   sh awnix-to-wsl.sh --self-test
 set -eu
 
-default_stage_dir() {
-    if [ -n "${AITHER_WSL_STAGE_DIR:-}" ]; then printf '%s' "${AITHER_WSL_STAGE_DIR%/}"
-    elif [ -d /mnt/e ]; then printf '%s' /mnt/e/AitherOS-Data/wsl
-    else printf '%s' /mnt/c/AitherOS-Data/wsl
-    fi
+# %LOCALAPPDATA% of the Windows user, via interop. Empty when interop is off.
+win_localappdata() {
+    cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r'
 }
-STAGE_DIR="$(default_stage_dir)"
+
+# default_stage_dir -> prints the stage dir, or returns 1 when none can be derived.
+default_stage_dir() {
+    if [ -n "${AITHER_WSL_STAGE_DIR:-}" ]; then printf '%s' "${AITHER_WSL_STAGE_DIR%/}"; return 0; fi
+    if [ -n "${AWNIX_WSL_STAGE:-}" ]; then printf '%s' "${AWNIX_WSL_STAGE%/}"; return 0; fi
+    lad="$(win_localappdata || true)"
+    case "$lad" in ''|'%LOCALAPPDATA%') return 1 ;; esac
+    unix="$(wslpath -u "$lad" 2>/dev/null || true)"
+    [ -n "$unix" ] || return 1
+    printf '%s/awnix/wsl' "${unix%/}"
+}
+STAGE_DIR=""
 IMAGE=""
 NAME="awnix"
 SELFTEST=0
@@ -92,12 +103,18 @@ free_bytes() {
 self_test() {
     ok=0
     command -v podman >/dev/null 2>&1 || { echo "SELFTEST: podman absent"; ok=1; }
-    # The stage dir is a CONTRACT with the wrappers: env wins, then E:, then C:.
-    got="$(AITHER_WSL_STAGE_DIR=/mnt/x/stage/ default_stage_dir)"
-    [ "$got" = "/mnt/x/stage" ] || { echo "SELFTEST: AITHER_WSL_STAGE_DIR not honoured ($got)"; ok=1; }
-    got="$(AITHER_WSL_STAGE_DIR='' default_stage_dir)"
-    case "$got" in /mnt/e/AitherOS-Data/wsl|/mnt/c/AitherOS-Data/wsl) : ;;
-        *) echo "SELFTEST: default stage dir drifted from the wrappers' contract ($got)"; ok=1 ;; esac
+    # The stage dir is a CONTRACT with the wrappers: AITHER_WSL_STAGE_DIR, then
+    # AWNIX_WSL_STAGE, then %LOCALAPPDATA%\awnix\wsl -- never a fixed drive.
+    got="$(AITHER_WSL_STAGE_DIR=/stub/a/ default_stage_dir)"
+    [ "$got" = "/stub/a" ] || { echo "SELFTEST: AITHER_WSL_STAGE_DIR not honoured ($got)"; ok=1; }
+    got="$(AITHER_WSL_STAGE_DIR='' AWNIX_WSL_STAGE=/stub/b/ default_stage_dir)"
+    [ "$got" = "/stub/b" ] || { echo "SELFTEST: AWNIX_WSL_STAGE not honoured ($got)"; ok=1; }
+    got="$(win_localappdata() { printf 'Q:/stub'; }; wslpath() { printf '/stub/lad'; }
+           AITHER_WSL_STAGE_DIR='' AWNIX_WSL_STAGE='' default_stage_dir)"
+    [ "$got" = "/stub/lad/awnix/wsl" ] || { echo "SELFTEST: LOCALAPPDATA fallback drifted ($got)"; ok=1; }
+    if (win_localappdata() { :; }; AITHER_WSL_STAGE_DIR='' AWNIX_WSL_STAGE='' default_stage_dir >/dev/null); then
+        echo "SELFTEST: no interop and no override still produced a stage dir"; ok=1
+    fi
     # The space guard must refuse the 2026-09-27 C: (3.8 GB free, 3 GB rootfs).
     if space_ok 4080218931 3221225472; then echo "SELFTEST: 3.8 GB free admitted a 3 GB export"; ok=1; fi
     space_ok 236223201280 3221225472 || { echo "SELFTEST: 220 GB free refused a 3 GB export"; ok=1; }
@@ -116,9 +133,12 @@ self_test() {
 [ -n "$NAME" ]  || die "--name is required"
 command -v podman >/dev/null 2>&1 || dead "podman not found; run this inside the fleet distro"
 
+if [ -z "$STAGE_DIR" ]; then
+    STAGE_DIR="$(default_stage_dir)" || dead "no stage dir: pass --stage-dir DIR or set AWNIX_WSL_STAGE (Windows interop is off, so %LOCALAPPDATA% cannot be read)"
+fi
 TAR="$STAGE_DIR/$NAME-rootfs.tar"
 
-mkdir -p "$STAGE_DIR" 2>/dev/null || die "cannot create $STAGE_DIR (is that drive mounted here? set AITHER_WSL_STAGE_DIR)"
+mkdir -p "$STAGE_DIR" 2>/dev/null || die "cannot create $STAGE_DIR (is that drive mounted here? pass --stage-dir)"
 
 if ! podman image exists "$IMAGE" 2>/dev/null; then
     say "image not local; pulling $IMAGE"
@@ -132,7 +152,7 @@ case "$IMG_BYTES" in ''|*[!0-9]*) IMG_BYTES=0 ;; esac
 FREE="$(free_bytes "$STAGE_DIR")"
 [ "$FREE" -ge 0 ] || dead "could not read free space on $STAGE_DIR"
 space_ok "$FREE" "$IMG_BYTES" || die "$STAGE_DIR has $FREE bytes free; the export needs $IMG_BYTES + 2 GiB.
-  Set AITHER_WSL_STAGE_DIR to a roomier drive (e.g. /mnt/e/AitherOS-Data/wsl)."
+  Pass --stage-dir (or AWNIX_WSL_STAGE) on a roomier drive."
 
 # `podman export` needs a container, not an image. Create WITHOUT running: a rootfs
 # is what we want, and starting the image would run its entrypoint for no reason.

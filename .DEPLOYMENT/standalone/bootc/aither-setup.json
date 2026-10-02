@@ -1,0 +1,47 @@
+{
+  "_comment": "aither-setup capability profiles. Every pack id below MUST exist in AitherOS/config/packs_catalog.yaml -- test_aither_setup.py::test_catalogue_pack_ids_exist fails on drift. JSON, not YAML, so the first-boot tool stays stdlib-only.",
+  "version": 1,
+  "default_capability_profiles": ["customer-core"],
+  "capability_profiles": {
+    "customer-core": {
+      "title": "Customer core: Aither agent, core tools, core skills, local secrets vault",
+      "packs": ["aither-core", "core-tools", "core-skills", "secrets-pack"]
+    },
+    "orchestration": {
+      "title": "Orchestration: agent delegation, automation, workspace intelligence",
+      "packs": ["agent-tools", "automation-tools", "workspace-intelligence-tools"]
+    },
+    "chat": {
+      "title": "Chat and communication: email, calendar, notifications",
+      "packs": ["communication-tools", "mail-pack"]
+    },
+    "perception": {
+      "title": "Perception: vision and document understanding",
+      "packs": ["perception-tools"]
+    },
+    "reasoning": {
+      "title": "Reasoning and knowledge: embeddings, graph, RAG",
+      "packs": ["knowledge-tools", "knowledge-rag-pack", "qdrant-pack"]
+    },
+    "media": {
+      "title": "Media: image, audio, video generation",
+      "packs": ["creative-tools", "media-forge", "creative-skills"]
+    },
+    "coding": {
+      "title": "Coding: code graph, sandbox, git, dev skills",
+      "packs": ["code-tools", "dev-skills", "codegraph"]
+    },
+    "research": {
+      "title": "Deep research",
+      "packs": ["deep-research"]
+    },
+    "business-ops": {
+      "title": "Business and platform ops: commerce, business skills, ops skills",
+      "packs": ["commerce-tools", "business-skills", "ops-skills"]
+    },
+    "infra-ops": {
+      "title": "Infrastructure and security ops",
+      "packs": ["infrastructure-tools", "security-tools", "distributed-inference"]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# Harness files ship to a Linux node and are hashed by the proof seal: LF only.
+* text=auto eol=lf
+*.pcap binary
+*.pcapng binary
+*.tar binary

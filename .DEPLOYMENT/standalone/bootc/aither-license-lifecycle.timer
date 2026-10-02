@@ -1,0 +1,15 @@
+[Unit]
+# Re-judge the license phase daily so a disconnected box still counts down to renewal.
+# Persistent=true catches up after a power-off; the clock itself is judged by
+# awnix-renewal's trusted high-water mark, not by this timer.
+Description=Daily AitherOS license lifecycle evaluation
+Documentation=man:aither-license-lifecycle(7)
+
+[Timer]
+OnBootSec=3min
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30min
+
+[Install]
+WantedBy=timers.target

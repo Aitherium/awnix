@@ -1,0 +1,99 @@
+{
+  "which": [
+    "ip",
+    "ss",
+    "bootc",
+    "passwd",
+    "sshd",
+    "tcpdump"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "ip",
+        "-o",
+        "link"
+      ],
+      "rc": 0,
+      "stdout_file": "../common/ip-link.txt"
+    },
+    {
+      "argv": [
+        "ip",
+        "route",
+        "show"
+      ],
+      "rc": 0,
+      "stdout_file": "../common/ip-route.txt"
+    },
+    {
+      "argv": [
+        "ip",
+        "-6",
+        "route",
+        "show"
+      ],
+      "rc": 0,
+      "stdout_file": "../common/ip6-route.txt"
+    },
+    {
+      "argv": [
+        "ss",
+        "-H",
+        "-ltun"
+      ],
+      "rc": 0,
+      "stdout_file": "../common/ss-pass.txt"
+    },
+    {
+      "argv": [
+        "passwd",
+        "-S",
+        "root"
+      ],
+      "rc": 0,
+      "stdout_file": "../common/passwd-root-open.txt"
+    },
+    {
+      "argv": [
+        "passwd",
+        "-S",
+        "aither"
+      ],
+      "rc": 0,
+      "stdout_file": "../common/passwd-aither.txt"
+    },
+    {
+      "argv": [
+        "sshd",
+        "-T"
+      ],
+      "rc": 0,
+      "stdout_file": "../common/sshd-T.txt"
+    },
+    {
+      "argv": [
+        "bootc",
+        "rollback"
+      ],
+      "rc": 0,
+      "stdout": "Next boot: rollback deployment\n"
+    },
+    {
+      "argv_prefix": [
+        "stage-stub"
+      ],
+      "rc": 0,
+      "stdout": "staged\n"
+    },
+    {
+      "argv": [
+        "bootc",
+        "status",
+        "--json"
+      ],
+      "rc": 0,
+      "stdout_file": "../common/bootc-status.json"
+    }
+  ]
+}

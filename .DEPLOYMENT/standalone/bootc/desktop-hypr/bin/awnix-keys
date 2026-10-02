@@ -1,0 +1,8 @@
+#!/usr/bin/python3.11
+"""awnix-keys -- see /usr/lib/awnix-desktop/awnix_desktop/keys.py."""
+import sys
+
+sys.path.insert(0, "/usr/lib/awnix-desktop")
+from awnix_desktop.keys import main  # noqa: E402
+
+sys.exit(main())

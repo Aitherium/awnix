@@ -1,0 +1,8 @@
+#!/bin/sh
+# awnix-desktop-run '<command>' -- run one command in a terminal the menu opened, and
+# keep the window until you have read the result.
+sh -c "$1"
+rc=$?
+printf '\n[exit %s] press Enter to close ' "$rc"
+read -r _
+exit "$rc"

@@ -65,6 +65,23 @@ function Join-Parts {
   } finally { $outStream.Dispose() }
 }
 
+# Names of parts that are missing or do not match the release's awnix-iso.json -- so a bad
+# download names the ONE part to re-fetch instead of failing the whole ~3 GB join.
+function Get-BadParts {
+  param([string]$Path, [string]$Manifest)
+  $m = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
+  $bad = @()
+  foreach ($p in @($m.parts)) {
+    $f = Join-Path $Path $p.name
+    if (-not (Test-Path -LiteralPath $f)) { $bad += "$($p.name) (missing)"; continue }
+    $len = (Get-Item -LiteralPath $f).Length
+    if ($len -ne [int64]$p.size) { $bad += "$($p.name) (size $len, want $($p.size))"; continue }
+    $h = (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLower()
+    if ($h -ne ([string]$p.sha256).ToLower()) { $bad += "$($p.name) (sha256 mismatch)" }
+  }
+  return ,$bad
+}
+
 # ── self-test ────────────────────────────────────────────────────────────────────────
 if ($SelfTest) {
   $fail = $false
@@ -104,6 +121,22 @@ if ($SelfTest) {
 
     $h = (Get-FileHash -Path $dest -Algorithm SHA256).Hash
     Check $h.Length 64 'Get-FileHash returns a sha256'
+
+    # awnix-iso.json names the corrupt PART.
+    $md = Join-Path $t 'm'
+    New-Item -ItemType Directory -Path $md | Out-Null
+    [System.IO.File]::WriteAllBytes((Join-Path $md 'm.iso.00.part'), [byte[]](72,69,76,76,79))
+    [System.IO.File]::WriteAllBytes((Join-Path $md 'm.iso.01.part'), [byte[]](87,79,82,76,68))
+    $h0 = (Get-FileHash (Join-Path $md 'm.iso.00.part') -Algorithm SHA256).Hash.ToLower()
+    $h1 = (Get-FileHash (Join-Path $md 'm.iso.01.part') -Algorithm SHA256).Hash.ToLower()
+    $mf = Join-Path $md 'awnix-iso.json'
+    ('{"schema": 1, "parts": [{"name": "m.iso.00.part", "size": 5, "sha256": "' + $h0 + '"}, {"name": "m.iso.01.part", "size": 5, "sha256": "' + $h1 + '"}]}') |
+      Set-Content -LiteralPath $mf -Encoding ascii
+    Check ((Get-BadParts $md $mf).Count) 0 'matching parts report nothing'
+    [System.IO.File]::WriteAllBytes((Join-Path $md 'm.iso.01.part'), [byte[]](87,79,82,76,88))
+    Check ((Get-BadParts $md $mf) -join ';') 'm.iso.01.part (sha256 mismatch)' 'a corrupt part is NAMED'
+    Remove-Item (Join-Path $md 'm.iso.00.part')
+    Check (@(Get-BadParts $md $mf)[0]) 'm.iso.00.part (missing)' 'a missing part is named'
   } finally { Remove-Item -Recurse -Force $t -ErrorAction SilentlyContinue }
 
   if ($fail) { Write-Host 'SELF-TEST FAILED'; exit 1 }
@@ -136,6 +169,17 @@ if (-not (Test-Path -LiteralPath $sums)) {
   Write-Host "assemble-awnix-iso: SHA256SUMS not found next to the parts -- refusing to"
   Write-Host "  present an UNVERIFIED image as done. It is on the same release page."
   exit 2
+}
+
+$manifest = Join-Path $Dir 'awnix-iso.json'
+if (Test-Path -LiteralPath $manifest) {
+  $bad = Get-BadParts $Dir $manifest
+  if ($bad.Count -gt 0) {
+    Write-Host 'assemble-awnix-iso: these parts do not match awnix-iso.json -- re-download ONLY these:'
+    $bad | ForEach-Object { Write-Host "       $_" }
+    exit 1
+  }
+  Write-Host '  parts : each verified against awnix-iso.json'
 }
 
 # Build to a temp name; only move into place once the digest agrees. A half-written file

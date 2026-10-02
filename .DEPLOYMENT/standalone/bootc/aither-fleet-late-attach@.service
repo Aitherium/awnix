@@ -1,0 +1,13 @@
+# aither-fleet-late-attach@<fs-uuid>.service -- started by udev
+# (90-aither-fleet-late-attach.rules) when a block device with a filesystem UUID
+# appears. Acts only for the fleet's source disk when its data is not bound yet:
+# the distro booted before the Windows host attached the disk. See the script.
+[Unit]
+Description=Attach the AitherOS fleet data disk that appeared after boot (%i)
+ConditionPathExists=/etc/aither/awnix-migration.env
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'f=/usr/libexec/aither/aither-fleet-late-attach.sh; [ -x "$f" ] || f=/usr/local/libexec/aither/aither-fleet-late-attach.sh; exec "$f" "%i"'
+TimeoutStartSec=15min

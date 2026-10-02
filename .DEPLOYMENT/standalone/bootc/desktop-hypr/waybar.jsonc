@@ -1,0 +1,64 @@
+// awnix desktop -- waybar layout (/usr/share/awnix/desktop/waybar.jsonc).
+// Colours live in the theme (~/.config/awnix/theme/waybar.css, from awnix-theme).
+{
+    "layer": "top",
+    "position": "top",
+    "height": 30,
+    "spacing": 4,
+    "modules-left": ["custom/menu", "hyprland/workspaces"],
+    "modules-center": ["clock"],
+    "modules-right": ["custom/awsh", "custom/theme", "pulseaudio", "bluetooth", "network", "battery", "tray"],
+
+    "custom/menu": {
+        "format": "awnix",
+        "tooltip-format": "Every key and action (Super+/)",
+        "on-click": "awnix-keys menu"
+    },
+    "custom/awsh": {
+        "format": "\uf120 ask",
+        "tooltip-format": "Ask the agent -- local model (Super+A)",
+        "on-click": "awnix-keys run awsh"
+    },
+    "custom/theme": {
+        "format": "\uf53f",
+        "tooltip-format": "Theme: click to pick, right-click for the next (Super+T / Super+Shift+T)",
+        "on-click": "awnix-theme pick",
+        "on-click-right": "awnix-theme next"
+    },
+    "hyprland/workspaces": {
+        "format": "{id}",
+        "on-click": "activate"
+    },
+    "clock": {
+        "format": "{:%a %d %b  %H:%M}",
+        "tooltip-format": "<tt>{calendar}</tt>"
+    },
+    "pulseaudio": {
+        "format": "\uf028 {volume}%",
+        "format-muted": "\uf6a9 muted",
+        "on-click": "pavucontrol",
+        "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+    },
+    "bluetooth": {
+        "format": "\uf293",
+        "format-disabled": "",
+        "format-connected": "\uf293 {num_connections}",
+        "on-click": "blueman-manager"
+    },
+    "network": {
+        "format-wifi": "\uf1eb {essid}",
+        "format-ethernet": "\uf6ff wired",
+        "format-disconnected": "offline",
+        "tooltip-format": "{ifname} {ipaddr}",
+        "on-click": "nm-connection-editor"
+    },
+    "battery": {
+        "states": { "warning": 25, "critical": 10 },
+        "format": "{icon} {capacity}%",
+        "format-charging": "\uf0e7 {capacity}%",
+        "format-icons": ["\uf244", "\uf243", "\uf242", "\uf241", "\uf240"]
+    },
+    "tray": {
+        "spacing": 8
+    }
+}

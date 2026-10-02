@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+GenericName=awnix console
+Comment=Updates, components, licence and endpoints for this machine (loopback only)
+Exec=awnix-settings
+Icon=preferences-system
+Categories=Settings;System;
+Keywords=awnix;console;settings;update;

@@ -1,0 +1,3 @@
+# Licence documents are hashed byte-for-byte (eula.json sha256). A CRLF checkout
+# would change every hash, so these are LF on every platform.
+* text eol=lf

@@ -9,18 +9,28 @@
 # boot to the serial console and powers off with DRILL-RESULT: ROLLED-BACK, or with
 # DRILL-RESULT: NO-ROLLBACK after too many boots on N+1.
 #
-# Run as root inside the podman host (Debian WSL2):
+# Run as root on a podman host with /dev/kvm (the hosted awnix-update-proof lane runs it
+# with sudo on ubuntu-latest):
 #   bash rollback-drill.sh [base-image]      # default localhost/awnix-greenboot-proof:latest
+#   bash rollback-drill.sh ghcr.io/aitherium/awnix:beta   # a registry ref is pulled if absent
+# Env (defaults unchanged): AWNIX_DRILL_WORK, AWNIX_DRILL_STORAGE (the containers storage
+# BIB reads), AWNIX_DRILL_BIB (the bootc-image-builder image).
 # Exit: 0 rolled back · 1 did not roll back · 2 could not judge (build/boot failed).
 set -uo pipefail
 
 BASE="${1:-localhost/awnix-greenboot-proof:latest}"
-WORK=/var/tmp/awnix-rollback-drill
-BIB=quay.io/centos-bootc/bootc-image-builder:latest
+WORK="${AWNIX_DRILL_WORK:-/var/tmp/awnix-rollback-drill}"
+STORAGE="${AWNIX_DRILL_STORAGE:-/var/lib/containers/storage}"
+BIB="${AWNIX_DRILL_BIB:-quay.io/centos-bootc/bootc-image-builder:latest}"
 SERIAL="$WORK/serial.log"
 rm -rf "$WORK"; mkdir -p "$WORK/n1" "$WORK/n" "$WORK/out"
 
-podman image exists "$BASE" || { echo "DRILL-DEAD: base image $BASE not present"; exit 2; }
+if ! podman image exists "$BASE"; then
+  case "$BASE" in
+    localhost/*) echo "DRILL-DEAD: base image $BASE not present"; exit 2 ;;
+    *) podman pull "$BASE" >/dev/null || { echo "DRILL-DEAD: could not pull $BASE"; exit 2; } ;;
+  esac
+fi
 
 # ── N+1: a health check that always fails ──────────────────────────────────────────
 cat > "$WORK/n1/Containerfile" <<EOF
@@ -93,12 +103,15 @@ ExecStart=/usr/libexec/awnix-drill.sh
 [Install]
 WantedBy=multi-user.target
 EOF
+# awnix-setup.service is the INTERACTIVE first-boot prompt on tty1; headless it waits
+# forever and multi-user.target (which the drill unit orders after) is never reached.
 cat > "$WORK/n/Containerfile" <<EOF
 FROM $BASE
 COPY n1.tar /usr/share/awnix-drill/n1.tar
 COPY drill.sh /usr/libexec/awnix-drill.sh
 COPY awnix-drill.service /usr/lib/systemd/system/awnix-drill.service
 RUN chmod 0755 /usr/libexec/awnix-drill.sh && systemctl enable awnix-drill.service \
+    && (systemctl mask awnix-setup.service || true) \
     && mkdir -p /usr/lib/bootc/kargs.d \
     && printf 'kargs = ["console=ttyS0,115200n8"]\n' > /usr/lib/bootc/kargs.d/10-serial.toml \
     && mkdir -p /usr/lib/bootc/install \
@@ -110,7 +123,7 @@ podman build -q -t localhost/awnix-drill-n:latest "$WORK/n" >/dev/null \
 
 # ── disk ───────────────────────────────────────────────────────────────────────────
 podman run --rm --privileged --network=host --security-opt label=type:unconfined_t \
-  -v /var/lib/containers/storage:/var/lib/containers/storage -v "$WORK/out":/output \
+  -v "$STORAGE":/var/lib/containers/storage -v "$WORK/out":/output \
   "$BIB" --type qcow2 --local localhost/awnix-drill-n:latest > "$WORK/bib.log" 2>&1
 DISK=$(find "$WORK/out" -name '*.qcow2' | head -1)
 [ -n "$DISK" ] || { echo "DRILL-DEAD: no qcow2 (see $WORK/bib.log)"; tail -5 "$WORK/bib.log"; exit 2; }

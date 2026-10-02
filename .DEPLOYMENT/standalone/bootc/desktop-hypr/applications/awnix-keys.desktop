@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Keys and actions
+Comment=Every key binding and desktop action, searchable (Super+/)
+Exec=awnix-keys menu
+Icon=preferences-desktop-keyboard-shortcuts
+Categories=Settings;

@@ -1,0 +1,42 @@
+[Unit]
+# awdk local agent daemon -- loopback only, air-gapped (AFRL G2/G10).
+# Two independent layers keep it dark:
+#   1. the process: AITHER_AIR_GAP_CONFIG=strict installs adk's egress guard, which
+#      refuses and audits every non-loopback connect before a byte is sent;
+#   2. the kernel: IPAddressDeny=any + IPAddressAllow=localhost drops any packet this
+#      unit's cgroup sends or receives off loopback, guard or no guard.
+# It binds 127.0.0.1:9001 explicitly (never 0.0.0.0): the zero-open-ports claim.
+Description=awdk local agent daemon (loopback only)
+Documentation=file:///usr/lib/awdk/README.md
+After=local-fs.target network.target
+ConditionPathExists=/usr/lib/awdk/awdk.env
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=awdk
+CacheDirectory=awdk
+Environment=HOME=/var/lib/awdk
+Environment=AITHER_DATA_DIR=/var/lib/awdk
+Environment=AITHER_OFFLINE=1
+EnvironmentFile=/usr/lib/awdk/awdk.env
+EnvironmentFile=-/etc/awdk/awdk.env
+ExecStart=/usr/bin/python3.11 -m adk.server --host 127.0.0.1 --port 9001
+Restart=on-failure
+RestartSec=5
+
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

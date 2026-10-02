@@ -1,0 +1,58 @@
+# awnix theme: Catppuccin Mocha. Catppuccin, the Mocha flavour.
+# One file per theme; `awnix-theme set catppuccin-mocha` renders every surface from it.
+# Every key below is used by a template -- check_awnix_desktop.py fails if one is missing.
+name = "Catppuccin Mocha"
+
+[colors]
+bg = "#1e1e2e"
+bg_alt = "#181825"
+surface = "#313244"
+overlay = "#45475a"
+fg = "#cdd6f4"
+fg_dim = "#bac2de"
+muted = "#7f849c"
+accent = "#cba6f7"
+accent_alt = "#89b4fa"
+good = "#a6e3a1"
+warn = "#f9e2af"
+urgent = "#f38ba8"
+
+[ansi]
+black = "#45475a"
+red = "#f38ba8"
+green = "#a6e3a1"
+yellow = "#f9e2af"
+blue = "#89b4fa"
+magenta = "#f5c2e7"
+cyan = "#94e2d5"
+white = "#bac2de"
+bright_black = "#585b70"
+bright_red = "#f38ba8"
+bright_green = "#a6e3a1"
+bright_yellow = "#f9e2af"
+bright_blue = "#89b4fa"
+bright_magenta = "#f5c2e7"
+bright_cyan = "#94e2d5"
+bright_white = "#a6adc8"
+
+[font]
+mono = "JetBrains Mono"
+ui = "Noto Sans"
+size = 11
+
+[shape]
+rounding = 8
+gaps_in = 5
+gaps_out = 10
+border = 2
+inactive_opacity = 0.94
+
+[gtk]
+theme = "Adwaita-dark"
+icons = "Papirus-Dark"
+prefer_dark = true
+
+[wallpaper]
+top = "#11111b"
+bottom = "#1e1e2e"
+glow = "#cba6f7"

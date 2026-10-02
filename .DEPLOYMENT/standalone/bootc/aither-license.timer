@@ -1,0 +1,16 @@
+[Unit]
+# The exchange hands out a 1 h ghcr token; refreshing every 45 min keeps the box armed
+# with margin. A box offline for over an hour loses private pulls until the next refresh
+# succeeds -- that is how a revoked license stops pulling within the hour, not a bug.
+Description=Refresh the appliance registry pull token every 45 minutes
+Documentation=man:aitheros(1)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=45min
+RandomizedDelaySec=5min
+Persistent=true
+Unit=aither-license.service
+
+[Install]
+WantedBy=timers.target

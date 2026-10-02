@@ -1,0 +1,13 @@
+[Unit]
+Description=awnix: check for a signed update every six hours
+# Replaces garg-update.timer and the stock bootc-fetch-apply-updates.timer (masked in
+# Containerfile.awnix: it pulls a TAG unverified and reboots on its own).
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=6h
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

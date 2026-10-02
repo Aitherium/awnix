@@ -1,0 +1,4 @@
+# Staged wheels (stage-awnix-wheelhouse.sh --out wheelhouse/<layer>) live in the
+# build context only and are never committed. The locks in ../wheels/ are the source.
+*
+!.gitignore

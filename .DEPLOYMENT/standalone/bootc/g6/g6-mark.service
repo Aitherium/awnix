@@ -1,0 +1,16 @@
+# G6 boot marker: counts every boot and names the image, BEFORE greenboot runs.
+# A faulty N+2 is rebooted by greenboot before multi-user.target, so this line is
+# the only evidence it ever booted -- and the greenboot attempt count comes from it.
+[Unit]
+Description=awnix G6 proof boot marker
+DefaultDependencies=no
+After=local-fs.target systemd-journald.service
+Before=greenboot-healthcheck.service sysinit.target
+ConditionPathExists=/usr/libexec/g6/g6-agent.sh
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/g6/g6-agent.sh mark
+
+[Install]
+WantedBy=sysinit.target

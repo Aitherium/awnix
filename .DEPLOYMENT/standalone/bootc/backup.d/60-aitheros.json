@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "aitheros",
+  "variants": ["aitheros", "aitheros-cloud"],
+  "quiesce": {"units": ["aither-*.service", "aitheros-*.service"], "ports": []},
+  "resume": {"units": ["aither-*.service", "aitheros-*.service"]},
+  "health": [],
+  "items": [
+    {"id": "platform-env", "path": "/etc/aither/aitheros.env", "kind": "file",
+     "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "secrets", "path": "/etc/aither/secrets", "kind": "dir",
+     "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "tls", "path": "/etc/aither/tls", "kind": "dir",
+     "class": "credential", "backup": false, "reset": ["factory"]},
+    {"id": "hardware", "path": "/etc/aither/hardware.json", "kind": "file",
+     "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "setup-state", "path": "/etc/aither/setup.json", "kind": "file",
+     "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "setup-answers", "path": "/etc/aither/setup-answers.json", "kind": "file",
+     "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "first-boot-marker", "path": "/etc/aither/.first-boot-complete", "kind": "file",
+     "class": "config", "backup": false, "reset": ["factory"]},
+    {"id": "etc-aitheros", "path": "/etc/aitheros", "kind": "dir",
+     "class": "config", "backup": true, "reset": ["factory"]},
+    {"id": "var-lib-aitheros", "path": "/var/lib/aitheros", "kind": "dir",
+     "class": "customer", "backup": true, "reset": ["data", "factory"]},
+    {"id": "volumes", "path": "aither*", "kind": "podman-volume",
+     "class": "customer", "backup": true, "reset": ["data", "factory"]}
+  ]
+}

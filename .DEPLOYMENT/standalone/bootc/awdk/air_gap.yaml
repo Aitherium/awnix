@@ -1,0 +1,13 @@
+# awdk air-gap profile for awnix / garg appliances (AFRL demo profile).
+# Installed at /usr/lib/awdk/air_gap.yaml; selected by AITHER_AIR_GAP_CONFIG in
+# /usr/lib/awdk/awdk.env. An admin copy at /etc/awdk/air_gap.yaml plus an
+# AITHER_AIR_GAP_CONFIG override in /etc/awdk/awdk.env replaces it.
+#
+# strict = every non-loopback connection from an awdk process is refused before a
+# byte is sent, and audited (adk.compliance.egress_guard). The unit's
+# IPAddressDeny=any is the second, kernel-level layer.
+enabled: true
+enforcement: strict
+allowed_subnets:
+  - 127.0.0.0/8
+  - ::1/128

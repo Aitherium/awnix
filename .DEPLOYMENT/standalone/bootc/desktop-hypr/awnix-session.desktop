@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=awnix (Hyprland)
+Comment=The awnix desktop
+Exec=awnix-session
+Type=Application

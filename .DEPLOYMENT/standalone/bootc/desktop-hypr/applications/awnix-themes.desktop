@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Themes
+Comment=Pick the desktop theme (Super+T; Super+Shift+T cycles)
+Exec=awnix-theme pick
+Icon=preferences-desktop-theme
+Categories=Settings;

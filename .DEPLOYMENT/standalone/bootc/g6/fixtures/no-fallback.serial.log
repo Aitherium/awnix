@@ -1,0 +1,30 @@
+[    0.000000] Linux version 5.14.0 (fixture)
+G6-MARK: boot=1 role=n
+G6-PLAN: steps=upgrade,rollback,fallback greenboot_max=3 grub_counting=present
+G6: boot=1 booted=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa staged=none rollback=none phase=init sentinel=ok role=n
+G6-WANT: stable=n1
+[0;32m  OK  [0m] Reached target Power-Off.
+G6-MARK: boot=2 role=n
+G6: boot=2 booted=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa staged=none rollback=none phase=upgrade sentinel=ok role=n
+G6-STEP: upgrade rc=0
+G6-MARK: boot=3 role=n1
+G6: boot=3 booted=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb staged=none rollback=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa phase=verify-upgrade sentinel=ok role=n1
+G6-STEP: rollback rc=0 via=bootc
+G6-MARK: boot=4 role=n
+G6: boot=4 booted=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa staged=none rollback=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb phase=verify-rollback sentinel=ok role=n
+G6-WANT: stable=n2
+G6-MARK: boot=5 role=n
+G6: boot=5 booted=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa staged=none rollback=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb phase=stage-n2 sentinel=ok role=n
+G6-STAGE: n2 rc=0
+G6-MARK: boot=6 role=n2
+G6: boot=6 booted=sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc staged=none rollback=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa phase=awaiting-fallback sentinel=ok role=n2
+G6-MARK: boot=7 role=n2
+G6: boot=7 booted=sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc staged=none rollback=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa phase=awaiting-fallback sentinel=ok role=n2
+G6-MARK: boot=8 role=n2
+G6: boot=8 booted=sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc staged=none rollback=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa phase=awaiting-fallback sentinel=ok role=n2
+G6-MARK: boot=9 role=n2
+G6: boot=9 booted=sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc staged=none rollback=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa phase=awaiting-fallback sentinel=ok role=n2
+G6-MARK: boot=10 role=n2
+G6: boot=10 booted=sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc staged=none rollback=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa phase=awaiting-fallback sentinel=ok role=n2
+G6-STEP: fallback rc=1 n2_boots=5
+G6-END

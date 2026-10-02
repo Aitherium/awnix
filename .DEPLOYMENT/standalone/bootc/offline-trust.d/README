@@ -1,0 +1,19 @@
+awnix offline-update trust store (vendor half)
+==============================================
+
+Installed to /usr/share/awnix/offline-trust.d/. The admin half is
+/etc/awnix/offline-trust.d/ (writable; `awnix offline-update trust add <hex64>`).
+
+Only files named *.pub count. The first non-comment line of each must be a
+64-hex-character Ed25519 public key (awseal's hex form; `awseal pubkey`). This
+README is never read as a key.
+
+A bundle whose awseal signature is valid but whose signer is not listed in either
+directory is REFUSED (reason untrusted-key) before anything is staged.
+
+This directory is EMPTY on purpose until the owner mints the production offline
+signing key (a B2 trust anchor) and bakes its public half here as
+aitherium-offline-<year>.pub. Until then check_awnix_offline_update.py OFU007 is
+allowlisted, and a node only accepts bundles signed by a key its admin added.
+
+The private key never exists on a node or in this repository.

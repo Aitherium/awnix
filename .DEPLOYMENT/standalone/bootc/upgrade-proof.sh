@@ -11,6 +11,12 @@
 # Run with the dummy auth.json first: the expected, honest result is an auth
 # wall at pull (401/denied) — which proves every moving part except the token.
 # Drop in the real read:packages token's auth.json and rerun for the real proof.
+#
+# Exit: 0 AUTHED-PULL-OK · 1 AUTH-WALL · 2 NO-RUN / UNCLEAR / rig could not run.
+# (Until 2026-09-28 this always exited 0, so a caller could not tell a wall from a pass.)
+#
+# For a proof that needs NO credential at all -- a real upgrade, a real rollback and a
+# greenboot fallback against a LOCAL registry -- use g6/g6-proof.sh (AFRL gap G6).
 set -u
 AUTH="${1:-/var/tmp/garg-rig/auth.json}"
 SRC=/var/tmp/garg-boot-proof-r19/disk.qcow2
@@ -18,17 +24,17 @@ RAW=/var/tmp/garg-rig/proof-disk.raw
 SER=/var/tmp/garg-rig/upgrade-serial.log
 LOOP=""
 
-[ -f "$AUTH" ] || { echo "AUTH-MISSING: $AUTH"; exit 1; }
-[ -f "$SRC" ] || { echo "DISK-MISSING: $SRC"; exit 1; }
+[ -f "$AUTH" ] || { echo "AUTH-MISSING: $AUTH"; exit 2; }
+[ -f "$SRC" ] || { echo "DISK-MISSING: $SRC"; exit 2; }
 
 echo "== converting disk to raw (sparse)"
 rm -f "$RAW"
-qemu-img convert -O raw -S 1M "$SRC" "$RAW" || { echo CONVERT-FAILED; exit 1; }
+qemu-img convert -O raw -S 1M "$SRC" "$RAW" || { echo CONVERT-FAILED; exit 2; }
 
 echo "== injecting credential + proof unit (into the DEPLOYMENT etc/usr)"
-LOOP=$(losetup -Pf --show "$RAW") || { echo LOSETUP-FAILED; exit 1; }
+LOOP=$(losetup -Pf --show "$RAW") || { echo LOSETUP-FAILED; exit 2; }
 mkdir -p /mnt/proofdisk
-mount "${LOOP}p3" /mnt/proofdisk || { losetup -d "$LOOP"; echo MOUNT-FAILED; exit 1; }
+mount "${LOOP}p3" /mnt/proofdisk || { losetup -d "$LOOP"; echo MOUNT-FAILED; exit 2; }
 # This disk BOOTS the ostree deployment at ostree/deploy/default/deploy/<sha>.0
 # — its etc/ IS the booted /etc (firstboot.done lives there) and its usr/ is
 # the booted /usr. Writing to the partition's TOP-LEVEL etc/ (the first version
@@ -81,17 +87,20 @@ rm -f "$LOG"
 LOOP2=$(losetup -Pf --show "$RAW") && mkdir -p /mnt/proofdisk && mount -o ro,norecovery "${LOOP2}p3" /mnt/proofdisk 2>/dev/null   && cp /mnt/proofdisk/ostree/deploy/default/var/log/garg-upgrade-test.log "$LOG" 2>/dev/null; umount /mnt/proofdisk 2>/dev/null; losetup -d "$LOOP2" 2>/dev/null
 [ -s "$LOG" ] || LOG="$SER"
 if grep -q "GARG-UPGRADE-TEST end" "$LOG" 2>/dev/null; then
-    sed -n '/GARG-UPGRADE-TEST begin/,/GARG-UPGRADE-TEST end/p' "$LOG" | tr -d ''
+    sed -n '/GARG-UPGRADE-TEST begin/,/GARG-UPGRADE-TEST end/p' "$LOG" | tr -d '\r'
     BLOCK=$(sed -n '/GARG-UPGRADE-TEST begin/,/GARG-UPGRADE-TEST end/p' "$LOG")
-    if echo "$BLOCK" | grep -qiE "Staged|Queued for next boot|upgrade_exit=0.*" && echo "$BLOCK" | grep -qiE "staged:|Queued|Staged"; then :; fi
     if echo "$BLOCK" | grep -qiE "denied|unauthorized|401|403|authentication required"; then
         echo "VERDICT: AUTH-WALL (the pull was rejected - see the error line above)"
+        exit 1
     elif echo "$BLOCK" | grep -qiE "Queued for next boot|staged: *$|Staged|No update available|up to date|Up to date"; then
         echo "VERDICT: AUTHED-PULL-OK (bootc reached the registry through the credential)"
+        exit 0
     else
         echo "VERDICT: UNCLEAR - read the block above"
+        exit 2
     fi
 else
     echo "VERDICT: NO-RUN (unit never completed) - tail:"
     tail -30 "$LOG" 2>/dev/null
+    exit 2
 fi

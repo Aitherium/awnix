@@ -1,0 +1,26 @@
+#!/bin/sh
+# awnix-screenshot region|full|edit|text -- grim + slurp. Files land in
+# ~/Pictures/Screenshots and on the clipboard; `text` runs local OCR (tesseract) and
+# copies the words. Nothing leaves the machine.
+set -u
+pics=$(xdg-user-dir PICTURES 2>/dev/null) || pics="$HOME/Pictures"
+dir="$pics/Screenshots"
+mkdir -p "$dir"
+f="$dir/$(date +%Y-%m-%d_%H-%M-%S).png"
+note() { notify-send -a awnix -t 3000 "$@" >/dev/null 2>&1 || true; }
+mode="${1:-region}"
+if [ "$mode" = region ]; then
+    g=$(slurp) || exit 1
+    grim -g "$g" "$f" && wl-copy -t image/png < "$f" && note "Screenshot" "$f"
+elif [ "$mode" = full ]; then
+    grim "$f" && wl-copy -t image/png < "$f" && note "Screenshot" "$f"
+elif [ "$mode" = edit ]; then
+    g=$(slurp) || exit 1
+    grim -g "$g" - | swappy -f - -o "$f"
+elif [ "$mode" = text ]; then
+    g=$(slurp) || exit 1
+    grim -g "$g" - | tesseract - - 2>/dev/null | wl-copy && note "Text copied"
+else
+    echo "usage: awnix-screenshot region|full|edit|text" >&2
+    exit 2
+fi

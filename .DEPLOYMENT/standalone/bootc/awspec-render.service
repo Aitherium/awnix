@@ -1,0 +1,25 @@
+# awspec-render.service -- render the machine's resolved spec (awspec) into drop-ins,
+# env files and lists before the workloads that read them start.
+#
+# BOOT SAFETY (the aither-attach-fleet-data lesson, ALP005): this unit keeps DEFAULT
+# dependencies, so it runs after sysinit.target/basic.target -- never Before=sysinit --
+# and the only manager call it makes is `systemctl --no-block daemon-reload`, only when
+# an installed unit file changed. It waits on no job, so no job can wait on it forever.
+# Leaves order their workloads After= this unit with a drop-in; nothing Requires= it,
+# so a failed render is loud in the journal and never blocks the boot.
+#
+# Skipped on a plain awnix (no leaf layers): ConditionDirectoryNotEmpty.
+[Unit]
+Description=Render the awspec layers into drop-ins and env files
+Documentation=file:///usr/lib/awspec/awspec.py
+ConditionDirectoryNotEmpty=/usr/share/awspec/layers.d
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/awspec-render
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

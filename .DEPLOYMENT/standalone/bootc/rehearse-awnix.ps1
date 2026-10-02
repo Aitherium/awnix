@@ -52,6 +52,11 @@ param(
     # would boot it without its data disk. Empty = the fleet name, which is refused
     # with a message naming this parameter.
     [string]$Distro = '',
+    # Where the rootfs tarball and the throwaway distro are staged (as bootstrap).
+    [string]$StageDir = $(if ($env:AWNIX_WSL_STAGE) { $env:AWNIX_WSL_STAGE } else { Join-Path $env:LOCALAPPDATA 'awnix\wsl' }),
+    # Optional resolver for -Build containers (a host whose default resolver the build
+    # cannot reach). Empty = podman's default.
+    [string]$Dns = '',
     [switch]$Build,
     # Run ONLY the assertion against an already-imported distro. The identity probe
     # (pid1 / podman / unit count) was run standalone three times in one session
@@ -140,16 +145,22 @@ if ($Distro -ieq (Get-AitherFleetDistro)) {
     Refuse "-Distro '$Distro' is the fleet distro: exporting there would boot the stopped fleet without its data disk, and the import would then be refused. Pass -Distro <another distro with podman and the image>."
 }
 
-$StageRoot = Resolve-AwnixStageRoot
+$StageRoot = ($StageDir -replace '\\','/').TrimEnd('/')
+New-Item -ItemType Directory -Force -Path $StageRoot | Out-Null
 $StageWsl  = ConvertTo-AwnixWslPath $StageRoot
-Say "stage dir: $StageRoot (AITHER_WSL_STAGE_DIR)"
+Say "stage dir: $StageRoot (-StageDir)"
+# This script's own directory as the export distro sees it -- derived, never a
+# literal checkout path.
+$BootcWsl = (Wsl-Text @('-d', $Distro, '-u', 'root', '--', 'wslpath', '-a', ($PSScriptRoot -replace '\\','/'))).Trim()
+if (-not $BootcWsl) { Dead "wslpath could not map $PSScriptRoot inside '$Distro'" }
 
 if ($Build) {
     Say "building $Image"
-    # --dns: build containers inherit the host's Tailscale-only resolver and cannot
-    # reach it, so public names fail while the fleet's own containers resolve fine.
+    # -Dns: on a host whose default resolver build containers cannot reach (a
+    # tailnet-only resolver), pass one they can; empty keeps podman's default.
+    $dnsArg = if ($Dns) { "--dns $Dns " } else { '' }
     $b = Wsl-Text @('-d', $Distro, '-u', 'root', '--', 'sh', '-c',
-        "cd /mnt/c/AitherOS-Fresh/.DEPLOYMENT/standalone/bootc && podman build --dns 10.89.0.1 -t $Image -f Containerfile.aitheros-fleet . 2>&1 | tail -3")
+        "cd '$BootcWsl' && podman build $dnsArg-t $Image -f Containerfile.aitheros-fleet . 2>&1 | tail -3")
     if (Wedged $b) { Fail 'WSL is wedged (E_UNEXPECTED); nothing was changed' }
     if ($b -notmatch 'Successfully tagged') { Say $b; Fail 'build did not tag an image' }
     Say 'built'
@@ -170,7 +181,7 @@ if ($existing -split "`r?`n" | Where-Object { $_.Trim() -eq $Name }) {
 # The export's free-space check runs inside awnix-to-wsl.sh (it knows the image size).
 Say "exporting $Image"
 $e = Wsl-Text @('-d', $Distro, '-u', 'root', '--', 'sh', '-c',
-    "cd /mnt/c/AitherOS-Fresh/.DEPLOYMENT/standalone/bootc && AITHER_WSL_STAGE_DIR='$StageWsl' sh awnix-to-wsl.sh --image '$Image' --name '$Name'")
+    "cd '$BootcWsl' && AITHER_WSL_STAGE_DIR='$StageWsl' AWNIX_WSL_STAGE='$StageWsl' sh awnix-to-wsl.sh --image '$Image' --name '$Name'")
 if (Wedged $e) { Fail 'WSL is wedged (E_UNEXPECTED) during export' }
 if ($e -notmatch 'exported (\d+) bytes') { Say $e; Fail 'export did not report a byte count' }
 $tarBytes = [int64]$Matches[1]

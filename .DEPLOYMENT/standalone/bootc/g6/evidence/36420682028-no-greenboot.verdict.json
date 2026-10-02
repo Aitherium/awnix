@@ -1,0 +1,59 @@
+{
+  "agent_reboots_on_n2": 0,
+  "base_image": "quay.io/centos-bootc/centos-bootc:stream9",
+  "boots": 6,
+  "digests": {
+    "derived_from_log": false,
+    "n": "sha256:9399d155206ad7ef5150218a039cc455e5a91ca98427fe9d06a0cd0d20d5c12f",
+    "n1": "sha256:091cb311dda351c6bb2b528c3e07b5e503af456cc6bf8793d73f386194d3c6be",
+    "n2": "sha256:4c26fde66309746444152b3caea5e4027b4f2f65238ac2682194523bddc5f558",
+    "n_registry": "sha256:87eb01990613ddcb2219a55f7517684a68a5234c3d8bddd53caa6bf3c77dc921"
+  },
+  "ended_at": "2026-09-28T12:27:41Z",
+  "exit_code": 1,
+  "fallback_reboot": "added",
+  "gh_run_id": "36420682028",
+  "greenboot_attempts": 1,
+  "greenboot_max": 3,
+  "grub_counting": "present",
+  "inject": "no-greenboot",
+  "kvm": true,
+  "mode": "vm",
+  "plan": [
+    "upgrade",
+    "rollback",
+    "fallback"
+  ],
+  "reason": "first failing step decides",
+  "runner": "GitHub Actions 1000164837 (github-hosted)",
+  "schema": 1,
+  "started_at": "2026-09-28T12:17:37Z",
+  "state_sentinel_intact": true,
+  "steps": [
+    {
+      "booted_digest": "sha256:091cb311dda351c6bb2b528c3e07b5e503af456cc6bf8793d73f386194d3c6be",
+      "expect_digest": "sha256:091cb311dda351c6bb2b528c3e07b5e503af456cc6bf8793d73f386194d3c6be",
+      "ok": true,
+      "rc": 0,
+      "step": "upgrade"
+    },
+    {
+      "booted_digest": "sha256:9399d155206ad7ef5150218a039cc455e5a91ca98427fe9d06a0cd0d20d5c12f",
+      "expect_digest": "sha256:9399d155206ad7ef5150218a039cc455e5a91ca98427fe9d06a0cd0d20d5c12f",
+      "ok": true,
+      "rc": 0,
+      "step": "rollback",
+      "via": "bootc"
+    },
+    {
+      "agent_reboots_on_n2": 0,
+      "booted_digest": "sha256:4c26fde66309746444152b3caea5e4027b4f2f65238ac2682194523bddc5f558",
+      "expect_digest": "!= n2 (n1 or n)",
+      "n2_boots": 1,
+      "ok": false,
+      "rc": 1,
+      "step": "fallback"
+    }
+  ],
+  "verdict": "NO-AUTO-FALLBACK"
+}
