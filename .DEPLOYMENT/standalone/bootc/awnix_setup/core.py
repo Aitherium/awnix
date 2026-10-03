@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 import time
@@ -272,7 +273,25 @@ def _atomic_write(path: Path, text: str, mode: int = 0o600) -> None:
         os.chmod(str(tmp), mode)
     except OSError as e:  # os.open already created it no wider than `mode`
         _warn(f"chmod {oct(mode)} {tmp}", e)
+    _clear_empty_dir(path)
     os.replace(str(tmp), str(path))
+
+
+def _clear_empty_dir(path: Path) -> None:
+    """Remove an EMPTY directory squatting on a file path before it is written.
+
+    The aither-license.path unit once created the licence spool as a directory
+    (MakeDirectory=yes, fixed in #10872); boxes that booted with it keep that directory,
+    and os.replace onto it fails with EISDIR. rmdir refuses a non-empty directory, so
+    nothing with content is ever removed.
+    """
+    try:
+        if stat.S_ISDIR(os.lstat(path).st_mode):
+            os.rmdir(path)
+    except FileNotFoundError:
+        return
+    except OSError as e:  # not empty, or not ours to remove: os.replace reports it
+        _warn(f"could not clear the directory at {path}", e)
 
 
 def read_state() -> dict:
