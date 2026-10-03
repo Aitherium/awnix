@@ -110,6 +110,17 @@ def answers_path() -> Path:
     return _at("/etc/aither/setup-answers.json")
 
 
+def seed_answers_path() -> Path:
+    """The installer's copy of the seed volume's answers (%post -> /etc/awnix/seed.d).
+
+    It exists from the first instant of first boot. /etc/aither/setup-answers.json is
+    only written when awnix-setup.service applies the seed, which starts after
+    network-online.target exactly like the gated units, so the gate could run first,
+    find nothing and skip the product (boot-smoke 37147757705).
+    """
+    return _at("/etc/awnix/seed.d/setup-answers.json")
+
+
 # ── helpers ─────────────────────────────────────────────────────────────────────────
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -465,10 +476,13 @@ def _accept_from_answers() -> None:
     _, st = status()
     if st.get("state") not in ("pending", "grandfathered"):
         return
-    ans = _read_json(answers_path())
-    if not isinstance(ans, dict):
-        return
-    raw = str(ans.get("eula_accept") or "").strip().lower()
+    raw = ""
+    for path in (answers_path(), seed_answers_path()):
+        ans = _read_json(path)
+        if isinstance(ans, dict):
+            raw = str(ans.get("eula_accept") or "").strip().lower()
+            if raw:
+                break
     if not raw:
         return
     value = raw if raw.startswith("accept:") else f"accept:{raw}"
@@ -604,6 +618,14 @@ def self_test() -> int:
             check("grandfathered gate passes", run(["gate"])[0] == 0)
             gf.unlink()
             check("no marker = pending again", run(["gate"])[0] == 1)
+            # the installer's seed copy opens the gate before awnix-setup applies it
+            seed_ans = base / "etc/awnix/seed.d/setup-answers.json"
+            seed_ans.parent.mkdir(parents=True)
+            _wt(seed_ans, json.dumps({"eula_accept": "accept:" + sha}))
+            check("seed copy of the answers opens the gate", run(["gate"])[0] == 0)
+            (base / "var/lib/aither/eula/acceptance.json").unlink(missing_ok=True)
+            seed_ans.unlink()
+            check("seed copy gone = pending again", run(["gate"])[0] == 1)
             # the answers channel records via=answers for the exact sha only
             ans = base / "etc/aither/setup-answers.json"
             ans.parent.mkdir(parents=True)
