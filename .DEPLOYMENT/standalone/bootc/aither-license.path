@@ -6,11 +6,13 @@ Description=Watch the appliance license spool
 Documentation=man:aitheros(1)
 
 [Path]
+# PathChanged only. MakeDirectory= creates the WATCHED path itself as a directory
+# (systemd.path), which turned the spool file into a directory on first boot; and
+# PathExists= re-fires for as long as the path exists, so a left-over directory would
+# trip the trigger limit. tmpfiles (aither-license.conf) makes the parent 0700. A spool
+# already present at boot is picked up by aither-license.timer (OnBootSec).
 PathChanged=/var/lib/aither/license/incoming.lic
-PathExists=/var/lib/aither/license/incoming.lic
 Unit=aither-license.service
-MakeDirectory=yes
-DirectoryMode=0700
 
 [Install]
 WantedBy=paths.target

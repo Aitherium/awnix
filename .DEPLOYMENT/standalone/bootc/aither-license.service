@@ -9,9 +9,13 @@
 Description=AitherOS appliance license refresh (license -> registry pull token)
 Documentation=man:aitheros(1)
 # Either an installed license or a spooled one; with neither there is nothing to do and
-# the legacy garg token (if any) is left alone.
-ConditionPathExists=|/etc/aither/appliance.lic
-ConditionPathExists=|/var/lib/aither/license/incoming.lic
+# the legacy garg token (if any) is left alone. FileNotEmpty, not PathExists: a
+# directory or an empty file at either path is NOT a license. Measured 2026-10-02: the
+# path unit's MakeDirectory=yes created incoming.lic as a DIRECTORY on first boot,
+# PathExists passed, refresh found no license and exited 1, and the unit failed in a
+# loop on every awnix image with no license (boot proof run 37043642515).
+ConditionFileNotEmpty=|/etc/aither/appliance.lic
+ConditionFileNotEmpty=|/var/lib/aither/license/incoming.lic
 Wants=network-online.target
 After=network-online.target time-sync.target
 
