@@ -4,8 +4,13 @@
 #   sign-awnix-image.sh install [DIR]                 cosign, pinned + sha256-checked, into DIR
 #   sign-awnix-image.sh sign <ref|repo@digest>...     keyless sign (GitHub OIDC) by digest
 #   sign-awnix-image.sh sign --digests-file FILE      every "<ref> <digest>" line of FILE
-#   sign-awnix-image.sh verify <ref> <identity-regexp>
+#   sign-awnix-image.sh verify <ref> <identity-regexp> [--digests-file FILE]
 #   sign-awnix-image.sh --self-test                   parsing + pin integrity, offline
+#
+# verify --digests-file: take <ref>'s digest from the "<ref> <digest>" lines the push in
+# the SAME run recorded, instead of asking skopeo. The AWS ISO pool ships podman and no
+# skopeo, so every publishing garg build died at verify after a good push and sign
+# (build-awnix-iso 37105818044, 2026-10-03: "skopeo: command not found").
 #
 # Why a script and not sigstore/cosign-installer: the org's Actions allowlist does not
 # admit sigstore/*, and widening an org security setting is the owner's call. A pinned
@@ -123,9 +128,14 @@ cmd_sign() {
 }
 
 cmd_verify() {
-    local ref="${1:-}" re="${2:-}" dref
-    [ -n "$ref" ] && [ -n "$re" ] || die "verify <ref> <identity-regexp>"
-    dref=$(to_digest_ref "$ref") || die "cannot resolve $ref to a digest"
+    local ref="${1:-}" re="${2:-}" dref dg=""
+    [ -n "$ref" ] && [ -n "$re" ] || die "verify <ref> <identity-regexp> [--digests-file FILE]"
+    if [ "${3:-}" = "--digests-file" ]; then
+        [ -r "${4:-}" ] || die "digests file not readable: ${4:-}"
+        dg=$(awk -v r="$ref" '$1 == r { print $2; exit }' "$4")
+        [ -n "$dg" ] || die "$ref is not in the digests file -- this run did not push it"
+    fi
+    dref=$(to_digest_ref "$ref" "$dg") || die "cannot resolve $ref to a digest"
     if "$COSIGN" verify --certificate-identity-regexp "$re" --certificate-oidc-issuer "$OIDC_ISSUER" \
             "$dref" >/dev/null 2>&1; then
         echo "  ok    $dref is signed by $re"; return 0
@@ -165,6 +175,14 @@ self_test() {
     rm -f "$tmp/cosign-bad"; : > "$tmp/cosign.log"
     cmd_verify ghcr.io/aitherium/awnix@sha256:cc '^x$' >/dev/null; t "verify passes a good signature" "$?" "0"
     grep -q -- "--certificate-oidc-issuer $OIDC_ISSUER" "$tmp/cosign.log"; t "  pinned to the GitHub OIDC issuer" "$?" "0"
+    # No skopeo on the box (the AWS ISO pool): the pushed digest is used, by digest.
+    SKOPEO="$tmp/no-such-skopeo"; : > "$tmp/cosign.log"
+    printf 'ghcr.io/aitherium/garg-appliance:beta sha256:dd\n' > "$tmp/p.txt"
+    (cmd_verify ghcr.io/aitherium/garg-appliance:beta '^x$' --digests-file "$tmp/p.txt") >/dev/null 2>&1
+    t "verify --digests-file needs no skopeo" "$?" "0"
+    grep -q 'garg-appliance@sha256:dd' "$tmp/cosign.log"; t "  verifies the pushed digest" "$?" "0"
+    (cmd_verify ghcr.io/aitherium/garg-appliance:2026.10.03 '^x$' --digests-file "$tmp/p.txt") >/dev/null 2>&1
+    t "  a ref this run did not push is could-not-judge" "$?" "2"
     rm -rf "$tmp"
     [ "$rc" = 0 ] && echo "SELF-TEST PASS" || echo "SELF-TEST FAILED"
     return $rc
