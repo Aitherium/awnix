@@ -318,7 +318,13 @@ RUN python3.11 -m pip install --no-cache-dir \
         "git+https://github.com/Aitherium/awnet.git@main" \
         "git+https://github.com/Aitherium/awtunnel.git@main"
 
-RUN npm install -g @aitherium/awsh
+# Pinned, same as awnix-full: the BUSL-1.1 text this image ships
+# (licenses/LICENSE.BUSL-1.1.awsh) is the one the 1.19.0 package carries, and an
+# unpinned install could ship a later release under a text nobody compared (D-2742).
+# `rm -f` the bins first so a re-run cannot die on npm EEXIST; assert all three resolve.
+RUN rm -f /usr/local/bin/aither /usr/local/bin/aither-shell /usr/local/bin/awsh \
+    && npm install -g @aitherium/awsh@1.19.0 \
+    && command -v aither && command -v aither-shell && command -v awsh
 
 # ── first-boot setup ────────────────────────────────────────────────────────────────# The thing that turns "an image that builds" into "an OS someone can install": the
 # questions every Linux asks after install -- hostname, which optional components, and
