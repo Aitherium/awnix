@@ -59,7 +59,12 @@ to_digest_ref() {  # to_digest_ref <ref> [digest] -> repo@sha256:...
     repo=$ref
     case "${repo##*/}" in *:*) repo=${repo%:*} ;; esac
     if [ -z "$dg" ]; then
-        dg=$("$SKOPEO" inspect --format '{{.Digest}}' "docker://$ref" 2>/dev/null) || return 1
+        # Anonymous first: the published ref must be publicly pullable, and a stale login
+        # left in the runner's auth file made this fail with no message at all (build-awnix-iso
+        # 37100282835, 2026-10-03, twice) while the same ref resolved fine without creds.
+        # Say WHY on failure instead of swallowing skopeo's error.
+        local err
+        dg=$("$SKOPEO" inspect --no-creds --format '{{.Digest}}' "docker://$ref" 2>/tmp/skopeo-resolve.err)             || dg=$("$SKOPEO" inspect --format '{{.Digest}}' "docker://$ref" 2>>/tmp/skopeo-resolve.err)             || { err=$(tail -c 400 /tmp/skopeo-resolve.err 2>/dev/null); echo "  skopeo: ${err:-no output}" >&2; return 1; }
     fi
     case "$dg" in sha256:*) ;; *) return 1 ;; esac
     printf '%s@%s' "$repo" "$dg"
