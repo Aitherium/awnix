@@ -149,13 +149,32 @@ def detect_wsl() -> bool:
         return False
 
 
+def windows_explorers(mounts: str | None = None) -> list:
+    """explorer.exe under each Windows drive WSL mounted (drvfs / 9p in /proc/mounts).
+
+    Read from the mount table, not a drive letter: the system drive and the automount
+    root are the user's (wsl.conf [automount] root=), and with appendWindowsPath=false
+    (the fleet distro sets it) `which explorer.exe` finds nothing."""
+    if mounts is None:
+        try:
+            mounts = Path("/proc/mounts").read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            mounts = ""
+    out = []
+    for ln in mounts.splitlines():
+        parts = ln.split()
+        if len(parts) >= 3 and parts[2] in ("drvfs", "9p"):
+            out.append(parts[1].replace("\\040", " ").rstrip("/") + "/Windows/explorer.exe")
+    return out
+
+
 def open_in_windows_browser(url: str) -> bool:
     """On WSL, open the device-code URL in the Windows default browser via interop.
 
     Best effort: returns False (the printed URL still works) when interop is off."""
     if not url.startswith("https://"):
         return False
-    for exe in ("/mnt/c/Windows/explorer.exe", shutil.which("explorer.exe") or ""):
+    for exe in windows_explorers() + [shutil.which("explorer.exe") or ""]:
         if exe and os.path.exists(exe):
             try:
                 subprocess.Popen([exe, url], stdout=subprocess.DEVNULL,  # noqa: S603
@@ -1517,6 +1536,10 @@ def self_test() -> int:
     except SetupError:
         chk(True, "plain-http IdP refused")
     chk(free_system_id({999, 998}) == 997, "system uid allocated from the top of 201..999")
+    chk(windows_explorers("sys /win/c drvfs rw 0 0\nnone /proc proc rw 0 0\n"
+                          "data /win/d\\040x 9p rw 0 0\n")
+        == ["/win/c/Windows/explorer.exe", "/win/d x/Windows/explorer.exe"],
+        "explorer.exe found under each drvfs/9p mount, not a hardcoded drive")
     try:
         cat = load_catalogue()
         chk("customer-core" in cat["capability_profiles"], "catalogue has customer-core")
