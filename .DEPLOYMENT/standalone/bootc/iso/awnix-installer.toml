@@ -97,7 +97,13 @@ if isinstance(seed, dict) and seed.get("schema") == 1 and "PRIVATE KEY" not in j
                 print("awnix-seed: github keys not fetched now (first boot retries):", e)
         ph = str(adm.get("password_hash") or "")
         cred = ("--iscrypted --password=%s" % ph) if ph.startswith("$") else "--lock"
-        lines = ["user --name=%s --groups=wheel %s" % (name, cred)]
+        # rootpw --lock: Anaconda counts a LOCKED wheel user as no admin at all
+        # (users.check_admin_user_exists), so a key-only seed admin left the Root password
+        # spoke mandatory and the unattended install waited at the hub forever
+        # (boot-smoke 37118920469, 2026-10-03). A kickstarted rootpw satisfies that check
+        # and keeps root locked. Only here, never outside the %pre: a seedless install
+        # must still ask for an admin (AIN013).
+        lines = ["rootpw --lock", "user --name=%s --groups=wheel %s" % (name, cred)]
         lines += ['sshkey --username=%s "%s"' % (name, k) for k in keys]
         open(USER, "w").write("\n".join(lines) + "\n")
         open(COPY + "/admin", "w").write(name)
