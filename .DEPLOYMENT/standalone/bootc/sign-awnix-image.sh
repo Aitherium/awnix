@@ -53,18 +53,38 @@ cmd_install() {
     echo "cosign $COSIGN_VERSION installed at $dir/cosign (sha256 $got)"
 }
 
+registry_digest() {  # registry_digest <host/path:tag> -> sha256:... via the registry API, anonymous
+    # No skopeo on some runners (aitheros-aws-8, run 37106926198): read Docker-Content-Digest
+    # from an anonymous HEAD instead. Public refs are what this script verifies anyway.
+    local ref="$1" host rest path tag tok dg
+    host=${ref%%/*}; rest=${ref#*/}; path=${rest%:*}; tag=${rest##*:}
+    tok=$(curl -fsS "https://$host/token?scope=repository:$path:pull&service=$host" \
+          | sed -n 's/.*"token":"\([^"]*\)".*/\1/p') || return 1
+    dg=$(curl -fsSI -H "Authorization: Bearer $tok" \
+          -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.docker.distribution.manifest.v2+json' \
+          "https://$host/v2/$path/manifests/$tag" \
+          | tr -d '\r' | sed -n 's/^[Dd]ocker-[Cc]ontent-[Dd]igest: *//p') || return 1
+    [ -n "$dg" ] && printf '%s' "$dg"
+}
+
 to_digest_ref() {  # to_digest_ref <ref> [digest] -> repo@sha256:...
-    local ref="$1" dg="${2:-}" repo
+    local ref="$1" dg="${2:-}" repo err
     case "$ref" in *@sha256:*) printf '%s' "$ref"; return 0 ;; esac
     repo=$ref
     case "${repo##*/}" in *:*) repo=${repo%:*} ;; esac
     if [ -z "$dg" ]; then
-        # Anonymous first: the published ref must be publicly pullable, and a stale login
-        # left in the runner's auth file made this fail with no message at all (build-awnix-iso
-        # 37100282835, 2026-10-03, twice) while the same ref resolved fine without creds.
-        # Say WHY on failure instead of swallowing skopeo's error.
-        local err
-        dg=$("$SKOPEO" inspect --no-creds --format '{{.Digest}}' "docker://$ref" 2>/tmp/skopeo-resolve.err)             || dg=$("$SKOPEO" inspect --format '{{.Digest}}' "docker://$ref" 2>>/tmp/skopeo-resolve.err)             || { err=$(tail -c 400 /tmp/skopeo-resolve.err 2>/dev/null); echo "  skopeo: ${err:-no output}" >&2; return 1; }
+        # Anonymous first: the published ref must be publicly pullable, and a stale login in
+        # the runner's auth file is the known way skopeo fails silently here. When skopeo is
+        # absent or fails, ask the registry API directly. Say WHY when everything fails.
+        if command -v "$SKOPEO" >/dev/null 2>&1; then
+            dg=$("$SKOPEO" inspect --no-creds --format '{{.Digest}}' "docker://$ref" 2>/tmp/skopeo-resolve.err) \
+                || dg=$("$SKOPEO" inspect --format '{{.Digest}}' "docker://$ref" 2>>/tmp/skopeo-resolve.err) \
+                || dg=""
+        else
+            echo "no skopeo on this runner; resolving via the registry API" >/tmp/skopeo-resolve.err
+        fi
+        [ -n "$dg" ] || dg=$(registry_digest "$ref" 2>>/tmp/skopeo-resolve.err) || dg=""
+        [ -n "$dg" ] || { err=$(tail -c 400 /tmp/skopeo-resolve.err 2>/dev/null); echo "  resolve: ${err:-no output}" >&2; return 1; }
     fi
     case "$dg" in sha256:*) ;; *) return 1 ;; esac
     printf '%s@%s' "$repo" "$dg"
