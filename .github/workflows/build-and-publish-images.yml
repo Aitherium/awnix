@@ -66,7 +66,9 @@ jobs:
       - name: login to ghcr
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" \
-            | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+            | sudo podman login ghcr.io -u '${{ github.actor }}' --password-stdin
+          # docker stays logged in too: the sign step reads digests with buildx.
+          echo "${{ secrets.GITHUB_TOKEN }}"             | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
 
       - name: build the chain and push the three public variants
         env:
@@ -77,6 +79,10 @@ jobs:
           # copy at the repo root was written only by a manual --push and went stale
           # (2026-09-10 to 2026-10-03: 14 files where the base COPYs ~100).
           cd .DEPLOYMENT/standalone/bootc
+          # PODMAN, not docker: centos-bootc already carries ~65 chunked layers and
+          # Containerfile.awnix adds ~110 more; docker's overlay snapshotter stops at
+          # "max depth exceeded" (run 37144050937, step 65/113). The private lane
+          # builds the same files with podman (build_awnix_images.py) and never hit it.
           REG=ghcr.io/aitherium
           DATE_TAG="$(date +%Y.%m.%d)"
 
@@ -85,7 +91,7 @@ jobs:
           # `localhost/...` is how the Containerfiles refer to each other, so the local
           # tags have to match those names exactly or the FROM lines miss.
           echo "::group::awnix-base"
-          docker build -f Containerfile.awnix -t localhost/awnix-base:latest .
+          sudo podman build -f Containerfile.awnix -t localhost/awnix-base:latest .
           echo "::endgroup::"
 
           # A denied push RECORDS the failure and lets the other variants continue.
@@ -108,8 +114,8 @@ jobs:
           push() {
             local img="$1" repo="$2" t
             for t in beta "$DATE_TAG" "sha-${GITHUB_SHA:0:12}"; do
-              docker tag "$img" "$REG/$repo:$t"
-              if ! docker push "$REG/$repo:$t"; then
+              sudo podman tag "$img" "$REG/$repo:$t"
+              if ! sudo podman push "$REG/$repo:$t"; then
                 echo "::error::push denied for $REG/$repo:$t -- if this is"
                 echo "::error::permission_denied:write_package the package already"
                 echo "::error::exists and this repository is not granted write access"
@@ -128,7 +134,7 @@ jobs:
 
           if want awnix-full; then
             echo "::group::awnix-full"
-            docker build -f Containerfile.awnix-full -t localhost/awnix-full:latest .
+            sudo podman build -f Containerfile.awnix-full -t localhost/awnix-full:latest .
             echo "::endgroup::"
             push localhost/awnix-full:latest awnix-full
           fi
@@ -138,10 +144,10 @@ jobs:
           # assumed, because `want awnix-ai-full` alone must be a complete lane.
           if want awnix-ai-full; then
             echo "::group::awnix-full (parent)"
-            docker build -f Containerfile.awnix-full -t localhost/awnix-full:latest .
+            sudo podman build -f Containerfile.awnix-full -t localhost/awnix-full:latest .
             echo "::endgroup::"
             echo "::group::awnix-ai-full"
-            docker build -f Containerfile.awnix-ai-full -t localhost/awnix-ai-full:latest .
+            sudo podman build -f Containerfile.awnix-ai-full -t localhost/awnix-ai-full:latest .
             echo "::endgroup::"
             push localhost/awnix-ai-full:latest awnix-ai-full
           fi
@@ -152,13 +158,13 @@ jobs:
           # is the runner chain below.
           if want gobbonet-appliance; then
             echo "::group::awnix-runner (parent)"
-            docker build -f Containerfile.awnix-runner -t localhost/awnix-runner:latest .
+            sudo podman build -f Containerfile.awnix-runner -t localhost/awnix-runner:latest .
             echo "::endgroup::"
             echo "::group::awnix-runner-ai (parent)"
-            docker build -f Containerfile.awnix-runner-ai -t localhost/awnix-runner-ai:latest .
+            sudo podman build -f Containerfile.awnix-runner-ai -t localhost/awnix-runner-ai:latest .
             echo "::endgroup::"
             echo "::group::gobbonet-appliance"
-            docker build -f Containerfile.gobbonet-appliance \
+            sudo podman build -f Containerfile.gobbonet-appliance \
               -t localhost/gobbonet-appliance:latest .
             echo "::endgroup::"
             push localhost/gobbonet-appliance:latest gobbonet-appliance
@@ -180,10 +186,10 @@ jobs:
 
           if want awnix-ai; then
             echo "::group::awnix-runner (intermediate)"
-            docker build -f Containerfile.awnix-runner -t localhost/awnix-runner:latest .
+            sudo podman build -f Containerfile.awnix-runner -t localhost/awnix-runner:latest .
             echo "::endgroup::"
             echo "::group::awnix-runner-ai"
-            docker build -f Containerfile.awnix-runner-ai -t localhost/awnix-runner-ai:latest .
+            sudo podman build -f Containerfile.awnix-runner-ai -t localhost/awnix-runner-ai:latest .
             echo "::endgroup::"
             push localhost/awnix-runner-ai:latest awnix-ai
           fi
