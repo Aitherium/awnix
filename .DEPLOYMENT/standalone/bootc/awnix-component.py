@@ -663,6 +663,14 @@ class Tool:
         racing it (CUT007). But a WantedBy= naming a target systemd has never seen does
         not start late -- it does not start at all -- so on a box with no ladder (a
         sellable awnix with no fleet) the unit falls back to multi-user.target.
+
+        Two limits, both intended under the core-only ruling:
+          * it checks that the target FILE exists, not that it is ENABLED. A ladder
+            that is installed but disabled leaves the component waiting on a rung
+            nothing pulls in at boot;
+          * the rung is fixed at INSTALL time. A ladder installed, removed or grown
+            later is picked up only when the component is installed again (or by
+            `sync` after a pin moves), never live.
         """
         tiers = set()
         for d in self.paths.systemd_unit_dirs:
