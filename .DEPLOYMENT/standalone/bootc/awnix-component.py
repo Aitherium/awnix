@@ -65,6 +65,11 @@ IMAGE_RE = re.compile(r"^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)+$")
 SHIM_MARK = "# awnix-component shim id="
 #: Where a BAKED command lives. A shim in /usr/local/bin would shadow these on PATH.
 BAKED_BIN_DIRS = ("/usr/bin", "/usr/sbin", "/bin", "/sbin", "/usr/local/sbin")
+#: Where systemd reads unit files -- and so where an installed aither-tier<N>.target is.
+SYSTEMD_UNIT_DIRS = ("/etc/systemd/system", "/run/systemd/system", "/usr/lib/systemd/system")
+#: The fleet boot ladder (generate-deploy-units.py). 99 is the held-out marker, not a rung.
+TIER_TARGET_RE = re.compile(r"^aither-tier(\d+)\.target$")
+HELD_OUT_TIER = 99
 
 EXIT_OK, EXIT_FAILED, EXIT_UNJUDGED, EXIT_NOT_ENTITLED = 0, 1, 2, 3
 
@@ -93,6 +98,9 @@ class Paths:
         self.awpack_shelf = e.get("AWPACK_SHELF") or "/usr/share/awpack/packs"
         dirs = e.get("AWNIX_BAKED_BIN_DIRS")
         self.baked_bin_dirs = tuple(dirs.split(os.pathsep)) if dirs else BAKED_BIN_DIRS
+        udirs = e.get("AWNIX_SYSTEMD_UNIT_DIRS")
+        self.systemd_unit_dirs = (tuple(Path(d) for d in udirs.split(os.pathsep)) if udirs
+                                  else tuple(Path(d) for d in SYSTEMD_UNIT_DIRS))
         self.health_timeout = float(e.get("AWNIX_COMPONENT_HEALTH_TIMEOUT") or 90)
 
     @property
@@ -647,11 +655,31 @@ class Tool:
     def _quadlet_path(self, cid: str) -> Path:
         return self.paths.quadlet_dir / f"awnix-{cid}.container"
 
+    def _boot_target(self) -> str:
+        """The rung a component joins: the highest INSTALLED aither-tier<N>.target.
+
+        A component is late/optional, so it starts after the whole fleet ladder (the
+        role tier 50 has in generate-deploy-units.py), never flat on multi-user.target
+        racing it (CUT007). But a WantedBy= naming a target systemd has never seen does
+        not start late -- it does not start at all -- so on a box with no ladder (a
+        sellable awnix with no fleet) the unit falls back to multi-user.target.
+        """
+        tiers = set()
+        for d in self.paths.systemd_unit_dirs:
+            if d.is_dir():
+                for f in d.iterdir():
+                    m = TIER_TARGET_RE.match(f.name)
+                    if m and int(m.group(1)) != HELD_OUT_TIER:
+                        tiers.add(int(m.group(1)))
+        return f"aither-tier{max(tiers)}.target" if tiers else "multi-user.target"
+
     def _quadlet_text(self, cid: str, row: dict, image: str, digest: str) -> str:
         q = row.get("quadlet") or {}
+        rung = self._boot_target()
+        after = "network-online.target" + ("" if rung == "multi-user.target" else f" {rung}")
         lines = ["# Written by awnix-component. Edits are replaced on the next install.",
                  "[Unit]", f"Description=awnix component {cid} {row.get('version', '')}",
-                 "Wants=network-online.target", "After=network-online.target", "",
+                 "Wants=network-online.target", f"After={after}", "",
                  "[Container]", f"Image={image}@{digest}", f"ContainerName=awnix-{cid}"]
         for p in q.get("ports") or []:
             host, cport = int(p["host"]), int(p.get("container") or p["host"])
@@ -664,7 +692,7 @@ class Tool:
             lines.append(f"Volume={data}:{dest}:Z")
         lines.append(f"EnvironmentFile={self.paths.env_dir / (cid + '.env')}")
         lines += ["", "[Service]", "Restart=on-failure", "TimeoutStartSec=900", "",
-                  "[Install]", "WantedBy=multi-user.target", ""]
+                  "[Install]", f"WantedBy={rung}", ""]
         return "\n".join(lines)
 
     def _install_container(self, cid: str, row: dict,
@@ -1095,6 +1123,7 @@ def _fixture(tmp: Path, lock_rows: list[dict], license_state: dict | None = None
         "AWNIX_PYTHON": "python3.11",
         "AWNIX_AWPACK": str(root / "awpack"),
         "AWNIX_BAKED_BIN_DIRS": str(root / "bakedbin"),
+        "AWNIX_SYSTEMD_UNIT_DIRS": str(root / "systemd"),
         "AWNIX_COMPONENT_HEALTH_TIMEOUT": "6",
     }
     return Paths(env)
@@ -1188,6 +1217,20 @@ def self_test() -> int:
             and "PublishPort=127.0.0.1:8100:8100" in text, "container quadlet @sha256 on 127.0.0.1")
         chk(not any("--authfile" in c for c in fr2.calls if c[:2] == ["podman", "pull"]),
             "no --authfile when /etc/containers/auth.json is absent")
+        chk("WantedBy=multi-user.target" in text and "aither-tier" not in text,
+            "no installed ladder -> multi-user.target (a WantedBy on an absent target "
+            "starts nothing)")
+        sysd = paths.systemd_unit_dirs[0]
+        sysd.mkdir(parents=True, exist_ok=True)
+        for n in ("aither-tier3.target", "aither-tier50.target", "aither-tier99.target"):
+            (sysd / n).write_text("[Unit]\n", encoding="utf-8")
+        laddered = tool2._quadlet_text("svc", rows[2], "ghcr.io/aitherium/svc", d1)
+        chk("WantedBy=aither-tier50.target" in laddered
+            and "After=network-online.target aither-tier50.target" in laddered
+            and "multi-user.target" not in laddered,
+            "an installed ladder -> the highest normal rung, never 99 (CUT007)")
+        for n in ("aither-tier3.target", "aither-tier50.target", "aither-tier99.target"):
+            (sysd / n).unlink()
         (paths.authfile).write_text("{}", encoding="utf-8")
         rows[2]["pin"] = d2
         lock = json.loads(paths.lock.read_text(encoding="utf-8"))
