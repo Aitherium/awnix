@@ -495,6 +495,18 @@ def _systemctl() -> str:
 
 
 def cmd_release(args: list[str]) -> int:
+    # The seed's answers file can land AFTER the gated unit's ExecCondition ran: the
+    # tty1 setup (awnix-setup) applies the seed once the console is up, while
+    # garg-firstboot only waits for the network. The gate then saw "pending",
+    # skipped the product, and nothing ever ran it again -- the appliance booted
+    # with GargBot dark despite an accepting seed (boot-smoke 37134355366). The
+    # path unit now also fires when setup-answers.json appears, and release records
+    # an answers-file acceptance itself before deciding.
+    try:
+        _accept_from_answers()
+    except OSError as e:
+        print(f"aither-eula: answers file not applied ({e.__class__.__name__})",
+              file=sys.stderr)
     code, st = status()
     if code != 0:
         print(f"{marker(code, st)} -- nothing released")
@@ -601,6 +613,15 @@ def self_test() -> int:
             check("answers with the sha opens the gate", run(["gate"])[0] == 0)
             rec = json.loads((base / "var/lib/aither/eula/acceptance.json").read_text())
             check("answers recorded via=answers", rec["via"] == "answers")
+            # answers that land AFTER the gate ran: release must record them itself
+            # (rc 2 = it got past "pending" and tried to start the unit; 1 = refused)
+            for f in ("acceptance.json", "history.jsonl"):
+                (base / "var/lib/aither/eula" / f).unlink()
+            os.environ["AITHER_EULA_SYSTEMCTL"] = sys.executable
+            check("release accepts late seed answers", run(["release"])[0] == 2)
+            rec = json.loads((base / "var/lib/aither/eula/acceptance.json").read_text())
+            check("late answers recorded via=answers", rec["via"] == "answers")
+            os.environ.pop("AITHER_EULA_SYSTEMCTL", None)
             ans.unlink()
             for f in ("acceptance.json", "history.jsonl"):
                 (base / "var/lib/aither/eula" / f).unlink()

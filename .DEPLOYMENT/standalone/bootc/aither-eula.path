@@ -7,6 +7,8 @@ ConditionPathExists=/usr/share/aither/eula/eula.json
 
 [Path]
 PathChanged=/var/lib/aither/eula/acceptance.json
+# A seed's answers file, written by awnix-setup after the gate already ran.
+PathChanged=/etc/aither/setup-answers.json
 Unit=aither-eula-release.service
 
 [Install]
