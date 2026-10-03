@@ -3,8 +3,10 @@
 #
 # Build: podman build -t gobbonet-appliance:latest -f Containerfile.gobbonet-appliance .
 #        (requires awnix-runner-ai:latest)
-# Licence: Apache-2.0 for the OS and the aw* stack. GobboNet is its author's, under
-#          its own licence; this image ships it unmodified from its repo.
+# Licence: Apache-2.0 AND BUSL-1.1. The OS and the aw* bricks are Apache-2.0; awdk
+#          and @aitherium/awsh are BUSL-1.1 (texts in /usr/share/licenses/awnix/).
+#          GobboNet is its author's, under its own licence; this image ships it
+#          unmodified from its repo.
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # WHY THIS IS NOT awnix-full, AND NOT awnix-ai.
@@ -244,6 +246,7 @@ RUN set -eu; \
 
 LABEL org.opencontainers.image.title="gobbonet-appliance" \
       org.opencontainers.image.description="GobboNet on awnix — immutable Linux, llama.cpp, Bonsai baked in, and awdk for building agents and characters" \
-      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/." \
       com.aitheros.variant="gobbonet-appliance" \
       com.aitheros.ui="gobbonet"

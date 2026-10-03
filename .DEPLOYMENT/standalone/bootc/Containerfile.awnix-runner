@@ -115,4 +115,5 @@ RUN chmod 755 /usr/local/sbin/register-awnix-runner.sh
 
 LABEL com.aitheros.layer="awnix-runner" \
       com.aitheros.description="awnix + a non-root, non-privileged GitHub Actions runner" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."

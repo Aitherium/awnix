@@ -123,7 +123,7 @@ RUN pip3 install --no-cache-dir \
         git+https://github.com/Aitherium/awbrain
 
 # ── Node 20, NOT the default ───────────────────────────────────────────────
-# Stream 9's default `nodejs` package is v16.20.2. `@aitherium/shell-cli`
+# Stream 9's default `nodejs` package is v16.20.2. `@aitherium/awsh`
 # declares `node >=18.0.0`, and one of its dependencies wants `>=20.17.0`.
 #
 # npm only WARNS on an engine mismatch -- it installs anyway, exits 0, and puts
@@ -141,14 +141,16 @@ RUN dnf module reset -y nodejs && \
     node --version
 
 # ── awsh (from npm, not pip) ────────────────────────────────────────────────
-# awsh is @aitherium/shell-cli on npm. PyPI has an unrelated awsh by a third
+# awsh is @aitherium/awsh on npm. PyPI has an unrelated awsh by a third
 # party (Jean-Martin Archer SSH tool) -- if we pip install awsh we get the
-# wrong thing. The user who types awsh must get the Aither World shell. Install
-# from npm and provide a shim on PATH with the expected name.
-RUN npm install -g @aitherium/shell-cli && \
-    echo '#!/bin/bash' > /usr/local/bin/awsh && \
-    echo 'aither-shell "$@"' >> /usr/local/bin/awsh && \
-    chmod +x /usr/local/bin/awsh
+# wrong thing. The user who types awsh must get the Aither World shell.
+# @aitherium/awsh declares the `awsh`, `aither` and `aither-shell` bins itself, so
+# no shim is written. Until 2026-10-03 this installed @aitherium/shell-cli, the
+# older name of the same shell, which declared only aither/aither-shell and shipped
+# no licence text (D-2742). `rm -f` first keeps a re-run idempotent (npm EEXIST).
+RUN rm -f /usr/local/bin/aither /usr/local/bin/aither-shell /usr/local/bin/awsh && \
+    npm install -g @aitherium/awsh@1.19.0 && \
+    command -v aither && command -v aither-shell && command -v awsh
 
 # ── awdk daemon systemd unit ────────────────────────────────────────────────
 # awdk is installed but UNCONFIGURED. It is present and its daemon systemd unit
@@ -277,6 +279,15 @@ RUN cd /tmp && \
       || { echo "FATAL: obscura LICENSE not installed -- we redistribute the binary, so shipping the Apache-2.0 text is an obligation, not a nicety"; exit 1; } && \
     echo "obscura: ${OBSCURA_VERSION} installed, sha256-verified, executes, licence shipped"
 
+# ── Licence texts ──────────────────────────────────────────────────────────
+# The image is labelled Apache-2.0 AND BUSL-1.1: the OS tree and most aw* bricks
+# are Apache-2.0, and awdk and @aitherium/awsh (installed above) are BUSL-1.1,
+# Licensor Aitherium Inc., each with its own text. The texts ship with it; each is a
+# byte copy of its repo source (check_awnix_variants.py AWV013).
+COPY LICENSE /usr/share/licenses/awnix/LICENSE.Apache-2.0
+COPY licenses/LICENSE.BUSL-1.1.awdk /usr/share/licenses/awnix/LICENSE.BUSL-1.1.awdk
+COPY licenses/LICENSE.BUSL-1.1.awsh /usr/share/licenses/awnix/LICENSE.BUSL-1.1.awsh
+
 # ── Rootless podman ────────────────────────────────────────────────────────
 COPY storage.conf /etc/containers/storage.conf
 RUN echo "awnix:100000:65536" >> /etc/subuid && \
@@ -353,5 +364,6 @@ RUN (firewall-offline-cmd --new-zone=awnix 2>/dev/null || true) && \
 
 LABEL org.opencontainers.image.title="awnix" \
       org.opencontainers.image.description="Bootable immutable Linux base for containerised services" \
-      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/." \
       awnix.layer="base"

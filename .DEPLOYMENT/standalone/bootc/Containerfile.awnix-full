@@ -3,7 +3,9 @@
 #
 # Build: podman build -t awnix-full:latest -f Containerfile.awnix-full .
 #        (requires awnix-base:latest)
-# Licence: Apache-2.0, same as the packages it carries.
+# Licence: Apache-2.0 AND BUSL-1.1. The base it builds on installs awdk and
+# @aitherium/awsh, both BUSL-1.1; the texts ship in /usr/share/licenses/awnix/
+# (check_awnix_variants.py AWV012/AWV013).
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # The base ships SEVEN tools: the ones a stranger needs to be handed a machine an agent
@@ -46,32 +48,15 @@ RUN python3.11 -m pip install --no-cache-dir \
 # import assert below would pass -- there IS a module -- so nothing downstream can
 # tell the difference. That is dependency confusion arriving through a fix.
 #
-# Ours ships on npm as @aitherium/shell-cli, which is installed in the node layer
-# below.
+# Ours ships on npm as @aitherium/awsh, installed in the node layer below.
 #
-# 🪤 AND THE PUBLISHED ONE DOES NOT PROVIDE AN `awsh` COMMAND -- YET.
-#
-# The SOURCE package (.PRODUCTS/.AITHERSHELL/cli) is named `awsh` at v1.18.0 and
-# declares bins awsh/awshell/aither/aither-shell. What is PUBLISHED is older:
-# @aitherium/shell-cli@1.16.1, declaring only aither/aither-shell.
-#
-# The gap is a broken publish lane, not a missing feature. sync-awsh.yml ran
-# three times on 2026-08-22 and failed all three in its test step, because
-# `node --test "test/**/*.test.ts"` only globs on Node 21+ and the job pins no
-# node version -- so on Node 20 the pattern is a literal path and the run dies
-# with "Could not find .../test/**/*.test.ts" while 40+ test files sit in git.
-# Fixed there; until a green run publishes v1.18.0, this image installs what the
-# registry actually has.
-#
-# Asserting `awsh` below today would fail the build; shipping without asserting
-# would put an advertised command in this image that is not a declared console
-# script -- the ONB002 defect, which fails on a stranger's machine with
-# `command not found` after everything reported success.
-#
-# So the shell ships under the names the REGISTRY actually has today. When a
-# green sync-awsh run publishes v1.18.0, add `awsh` to the assertion below in
-# the same commit that makes it true -- never before. The gap closes by
-# publishing the bin, not by editing this file.
+# It was @aitherium/shell-cli@1.16.1 until 2026-10-03: the older name of the same
+# shell, declaring only aither/aither-shell and shipping NO licence text, so an image
+# carrying it could not carry the BUSL-1.1 text it is under (D-2742,
+# check_awnix_variants.py AWV013). @aitherium/awsh@1.19.0 (published 2026-09-30) is
+# its successor: the same aither/aither-shell bins (both -> dist/main.js) plus
+# `awsh`, the same engines (node >=18), and its own package/LICENSE, which this
+# image ships (.PRODUCTS/.AITHERSHELL/cli/LICENSE, staged as LICENSE.BUSL-1.1.awsh).
 
 # ── node, for the one aw* tool that is not a Python package ───────────────
 # nodejs is NOT in the base and this is the only thing that needs it, so it goes
@@ -82,12 +67,12 @@ RUN python3.11 -m pip install --no-cache-dir \
 # -tool (score_awnix.py), and it is taken knowingly: -full is the
 # batteries-included variant and the interactive shell is the most user-facing
 # thing in the family.
-# The stream9 default module is nodejs:16; @aitherium/shell-cli's dependency
+# The stream9 default module is nodejs:16; the shell's dependency
 # tree requires >= 20 (measured 2026-09-22, run 35736823902: EBADENGINE on
 # every inquirer package, then the install died and ai-full, which builds on
 # this layer, could not even start). Pick the stream explicitly.
 #
-# `rm -f` the two bins before the global install: the very next run
+# `rm -f` the bins before the global install: the very next run
 # (35743978959, same commit) got node 20 clean and then died
 # `npm error EEXIST: file already exists /usr/local/bin/aither` on a
 # guaranteed-fresh layer -- root cause not pinned down (a buildah cache/retry
@@ -98,18 +83,17 @@ RUN dnf module reset -y nodejs \
     && dnf module enable -y nodejs:20 \
     && dnf install -y nodejs npm \
     && node --version | grep -qE '^v(2[0-9]|[3-9][0-9])\.' \
-    && rm -f /usr/local/bin/aither /usr/local/bin/aither-shell \
-    && npm install -g @aitherium/shell-cli \
+    && rm -f /usr/local/bin/aither /usr/local/bin/aither-shell /usr/local/bin/awsh \
+    && npm install -g @aitherium/awsh@1.19.0 \
     && dnf clean all \
     && rm -rf /var/cache/dnf
 # Assert the COMMANDS resolve, not that npm exited 0. A global npm install
 # creates the shim regardless, so `npm i -g` succeeds and the command can still
 # be missing or unrunnable -- and the difference only shows up on the user's
 # machine, at the moment they reach for the thing they installed this variant to
-# get. Both declared bins are checked; if upstream ever adds `awsh`, add it here
-# in the same commit that makes it real.
-RUN command -v aither && command -v aither-shell \
-    || (echo "@aitherium/shell-cli installed but its commands do not resolve" >&2; exit 1)
+# get. All three declared bins are checked.
+RUN command -v aither && command -v aither-shell && command -v awsh \
+    || (echo "@aitherium/awsh installed but its commands do not resolve" >&2; exit 1)
 
 # WHY awdk IS HERE, and why its absence was invisible.
 #
@@ -166,7 +150,8 @@ RUN python3.11 -c "import importlib.util, sys; mods='awgit awgraph awrelay awm a
 LABEL com.aitheros.layer="awnix-full" \
       com.aitheros.base="awnix" \
       com.aitheros.description="awnix + every aw* package (27)" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."
 
 # PowerShell 7 comes from the BASE (Containerfile.awnix) -- owner decision:
 # pwsh 7 by default everywhere. It was briefly installed here instead, which
@@ -241,4 +226,6 @@ RUN set -eu; \
 #
 # Build: podman build -t awnix-full:latest -f Containerfile.awnix-full .
 #        (requires awnix-base:latest)
-# Licence: Apache-2.0, same as the packages it carries.
+# Licence: Apache-2.0 AND BUSL-1.1. The base it builds on installs awdk and
+# @aitherium/awsh, both BUSL-1.1; the texts ship in /usr/share/licenses/awnix/
+# (check_awnix_variants.py AWV012/AWV013).

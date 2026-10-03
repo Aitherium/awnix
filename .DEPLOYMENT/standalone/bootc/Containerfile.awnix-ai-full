@@ -16,7 +16,9 @@
 #
 # Build: podman build -t awnix-ai-full:latest -f Containerfile.awnix-ai-full .
 #        (requires awnix-full:latest)
-# Licence: Apache-2.0.
+# Licence: Apache-2.0 AND BUSL-1.1. The base it builds on installs awdk and
+# @aitherium/awsh, both BUSL-1.1; the texts ship in /usr/share/licenses/awnix/
+# (check_awnix_variants.py AWV012/AWV013).
 # ==============================================================================
 
 # Same throwaway stage, same reason as Containerfile.awnix-runner-ai: the
@@ -112,4 +114,5 @@ RUN bash /usr/local/libexec/awnix-model-load-check.sh
 LABEL com.aitheros.layer="awnix-ai-full" \
       com.aitheros.base="awnix-full" \
       com.aitheros.description="Every aw* package plus PrismML llama.cpp -- the aw* stack WITH inference (model fetched and sized at first boot)" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."

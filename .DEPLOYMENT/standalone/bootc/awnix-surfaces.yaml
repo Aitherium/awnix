@@ -14,7 +14,10 @@
 #   absent         not offered.
 #
 # Rules the checker holds (AWS001-AWS007): rows == awnix-variants.yaml; no BUSL or
-# commercial surface baked into a publish:true variant; Living Desktop, AOL and Veil
+# commercial surface baked into a publish:true variant unless the variant's AND-only SPDX
+# licence names it (AWS003 -- awsh is BUSL-1.1 per its package.json and is baked into
+# variants labelled Apache-2.0 AND BUSL-1.1: owner decision 2026-10-02, D-2742); Living
+# Desktop, AOL and Veil
 # are link-only on every public variant. awnix-desktop-open and awnix-dev carry no
 # console in v1 (D-2662): desktop-open is FROM fedora-bootc and inherits none of
 # Containerfile.awnix, and awnix-dev is the internal sandbox image.
@@ -43,7 +46,7 @@
     },
     "awsh": {
       "label": "awsh",
-      "licence": "Apache-2.0",
+      "licence": "BUSL-1.1",
       "command": "awsh",
       "description": "The terminal agent. Run it from an SSH session.",
       "baked_proof": [

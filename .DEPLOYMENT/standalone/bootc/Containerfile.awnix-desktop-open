@@ -15,7 +15,10 @@
 #   awdk + awsh baked in; greenboot rolls a failed update back (same check as awnix)
 #
 # Build: podman build -t awnix-desktop-open:latest -f Containerfile.awnix-desktop-open .
-# Licence: Apache-2.0.
+# Licence: Apache-2.0 AND BUSL-1.1. The desktop's own files are Apache-2.0; awdk and
+# @aitherium/awsh, installed below, are BUSL-1.1. The label names both and the texts
+# ship in /usr/share/licenses/awnix-desktop-open/ (check_awnix_variants.py
+# AWV012/AWV013).
 # ==============================================================================
 FROM quay.io/fedora/fedora-bootc:42@sha256:077182b6ba853b3348d0bede602ac30b9e6568c6422bcf0654de5af96f19b9c3
 
@@ -34,6 +37,10 @@ RUN python3 -m pip install --no-cache-dir "awdk>=3.8.27" && adk --help >/dev/nul
 RUN HOME=/tmp/npmhome npm install -g --cache /tmp/npmhome/cache @aitherium/awsh \
     && rm -rf /tmp/npmhome \
     && command -v awsh
+
+# The licence texts the label names, each a byte copy of its repo source (AWV013):
+# awnix/LICENSE, awdk/LICENSE and .PRODUCTS/.AITHERSHELL/cli/LICENSE (awsh).
+COPY licenses/LICENSE.Apache-2.0 licenses/LICENSE.BUSL-1.1.awdk licenses/LICENSE.BUSL-1.1.awsh /usr/share/licenses/awnix-desktop-open/
 
 COPY desktop-open/awnix.conf /etc/sway/config.d/50-awnix.conf
 
@@ -72,4 +79,5 @@ RUN cp /usr/bin/sway /tmp/sway-validate \
 
 LABEL com.aitheros.layer="awnix-desktop-open" \
       com.aitheros.description="awnix open desktop: sway tiling Wayland, Super+A local agent, greenboot rollback" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix-desktop-open/."

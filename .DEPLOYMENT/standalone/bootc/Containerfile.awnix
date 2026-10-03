@@ -12,8 +12,11 @@
 # every guarantee the base provides.
 #
 # Build: podman build -t awnix-base:latest -f Containerfile.awnix .
-# Licence: Apache-2.0 (same as all nineteen aw* packages this image bakes in —
-# see AitherOS/config/awnix_boundary.yaml for the precedent reasoning).
+# Licence: Apache-2.0 AND BUSL-1.1. The OS tree and the aw* bricks are Apache-2.0 (a
+# few are MIT); awdk and @aitherium/awsh are BUSL-1.1, so the label names both and
+# the licence texts ship in /usr/share/licenses/awnix/. Apache-2.0 packages
+# redistribute cleanly inside the aggregate; an image carrying BUSL code while
+# calling itself Apache-2.0 is the error (check_awnix_variants.py AWV012/AWV013).
 # ═══════════════════════════════════════════════════════════════════════════════
 FROM quay.io/centos-bootc/centos-bootc:stream9@sha256:216b78988500e61795076315ff095e952ed00507bf445bb625ae9e0df182fadb
 
@@ -695,6 +698,11 @@ RUN python3.11 -m pip install --no-cache-dir pyyaml \
 # Third-party notices, generated from what THIS image actually installed (rpm + pip), in the
 # last layer so nothing installed after it is missed (SSC004). A leaf that installs more
 # regenerates them in its own last layer.
+# The licence texts this image is labelled with. An image that restricts some use and
+# does not carry the text saying so is not something a user can comply with. Each is
+# a byte copy of its repo source (AWV013): awnix/LICENSE, awdk/LICENSE and
+# .PRODUCTS/.AITHERSHELL/cli/LICENSE (the text the published @aitherium/awsh carries).
+COPY licenses/LICENSE.Apache-2.0 licenses/LICENSE.BUSL-1.1.awdk licenses/LICENSE.BUSL-1.1.awsh /usr/share/licenses/awnix/
 COPY licenses/THIRD-PARTY-NOTICES.md gen-image-notices.sh /tmp/notices/
 RUN sed -i 's/\r$//' /tmp/notices/gen-image-notices.sh \
     && sh /tmp/notices/gen-image-notices.sh --notices /tmp/notices/THIRD-PARTY-NOTICES.md \
@@ -703,4 +711,5 @@ RUN sed -i 's/\r$//' /tmp/notices/gen-image-notices.sh \
 
 LABEL com.aitheros.layer="awnix-base" \
       com.aitheros.description="awnix — immutable Linux + the 19 aw* tools, no services/agent/account" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."
