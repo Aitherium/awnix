@@ -1,3 +1,0 @@
-# A block device with a filesystem UUID appeared: let the fleet late-attach decide
-# whether it is the fleet's source disk arriving after boot (aither-fleet-late-attach.sh).
-ACTION=="add", SUBSYSTEM=="block", ENV{ID_FS_UUID}=="?*", TAG+="systemd", ENV{SYSTEMD_WANTS}+="aither-fleet-late-attach@$env{ID_FS_UUID}.service"
