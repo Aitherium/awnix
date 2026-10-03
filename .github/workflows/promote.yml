@@ -1,0 +1,113 @@
+name: promote
+
+run-name: promote ${{ inputs.variant }} ${{ inputs.digest }} -> stable
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: "public image under ghcr.io/aitherium"
+        required: true
+        type: choice
+        options:
+          - awnix
+          - awnix-ai
+          - awnix-full
+          - awnix-ai-full
+          - gobbonet-appliance
+          - awnix-desktop-open
+      digest:
+        description: "sha256:... that awnix-update-proof proved"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: promote-${{ inputs.variant }}
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VARIANT: ${{ inputs.variant }}
+      DIGEST: ${{ inputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: the digest is a digest
+        run: |
+          echo "$DIGEST" | grep -Eq '^sha256:[0-9a-f]{64}$' \
+            || { echo "::error::digest must be sha256:<64 hex>"; exit 1; }
+
+      # The proof lives in the PRIVATE monorepo; reading its runs needs a token with
+      # actions:read there. No token = no promotion (fail closed, never skip the gate).
+      - name: gate 1 -- awnix-update-proof passed for this exact digest, with its VM drills
+        env:
+          GH_TOKEN: ${{ secrets.AWNIX_PROOF_READ_TOKEN || secrets.GH_ORG_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::no token can read the monorepo's proof runs"
+            echo "::error::refusing to promote an unproven digest"; exit 1
+          fi
+          want="awnix-update-proof $VARIANT $DIGEST"
+          ids=$(gh run list --repo Aitherium/AitherOS --workflow awnix-update-proof.yml \
+                  --branch develop --event workflow_dispatch --status success --limit 200 \
+                  --json databaseId,displayTitle \
+                  --jq ".[] | select(.displayTitle == \"$want\") | .databaseId")
+          if [ -z "$ids" ]; then
+            echo "::error::no successful develop dispatch of awnix-update-proof titled '$want'"
+            exit 1
+          fi
+          ok=""
+          for id in $ids; do
+            legs=$(gh run view "$id" --repo Aitherium/AitherOS --json jobs \
+                     --jq '[.jobs[] | select(.name | startswith("vm")) | .conclusion] | join(",")')
+            if [ -n "$legs" ] && ! printf '%s' "$legs" | tr ',' '\n' | grep -vqx success; then
+              ok=$id; break
+            fi
+          done
+          if [ -z "$ok" ]; then
+            echo "::error::'$want' has no green vm leg -- not an upgrade/rollback proof"; exit 1
+          fi
+          echo "proof: Aitherium/AitherOS run $ok ($want)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: install cosign
+        run: |
+          bash .DEPLOYMENT/standalone/bootc/sign-awnix-image.sh install "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: gate 2 -- the digest is signed by the expected workflow
+        run: |
+          set -euo pipefail
+          RE=$(awk -v r="ghcr.io/aitherium/$VARIANT" '$1 == r {print $2}' .DEPLOYMENT/standalone/bootc/awnix-signers.conf)
+          [ -n "$RE" ] || { echo "::error::no signer for $VARIANT"; exit 1; }
+          bash .DEPLOYMENT/standalone/bootc/sign-awnix-image.sh verify "ghcr.io/aitherium/$VARIANT@$DIGEST" "$RE"
+
+      - name: move stable and latest to the digest
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for t in stable latest; do
+            skopeo copy --all --preserve-digests "docker://ghcr.io/aitherium/$VARIANT@$DIGEST" \
+              "docker://ghcr.io/aitherium/$VARIANT:$t"
+          done
+
+      - name: re-verify -- stable resolves to exactly that digest, still signed, anonymously
+        run: |
+          set -euo pipefail
+          got=$(skopeo inspect --format '{{.Digest}}' "docker://ghcr.io/aitherium/$VARIANT:stable")
+          if [ "$got" != "$DIGEST" ]; then
+            echo "::error::stable resolves to $got, not $DIGEST"; exit 1
+          fi
+          RE=$(awk -v r="ghcr.io/aitherium/$VARIANT" '$1 == r {print $2}' .DEPLOYMENT/standalone/bootc/awnix-signers.conf)
+          bash .DEPLOYMENT/standalone/bootc/sign-awnix-image.sh verify "ghcr.io/aitherium/$VARIANT:stable" "$RE"
+          echo "promoted ghcr.io/aitherium/$VARIANT $DIGEST -> stable, latest" \
+            >> "$GITHUB_STEP_SUMMARY"
