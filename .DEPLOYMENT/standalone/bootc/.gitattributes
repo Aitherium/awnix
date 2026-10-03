@@ -3,6 +3,7 @@
 # Scoped to the offline-update (G5) files; peers may widen it to *.conf.
 awnix-offline-update.tmpfiles.conf text eol=lf
 offline-trust.d/** text eol=lf
+awnix-role.tmpfiles.conf text eol=lf
 # garg LAN HTTPS (GTLS). These ship into the garg appliance image by COPY from the
 # build context, so the bytes ON DISK are what boots: a core.autocrlf=true checkout
 # (every Windows worktree) would otherwise write the unit and conf CRLF. GTLS003

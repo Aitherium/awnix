@@ -6,6 +6,7 @@
     awnix role add <role> [--set KEY=VALUE ...] [--apply]
     awnix role remove <role> [--apply]
     awnix role configure <role> --set KEY=VALUE [...] [--apply]
+    awnix role hook <role> backup|restore|replicate [--param NAME=VALUE ...] [--apply]
 
 The Windows Server "Add Roles and Features" shape: a ROLE is a bundle of
 platform services (identity, storage, inference, mail, web-portal, backup,
@@ -20,6 +21,17 @@ command list with no side effects.
 
 The catalog is JSON compiled from AitherOS/config/os_roles.yaml by
 check_os_role_catalog.py --write-catalog; nothing on the box parses YAML.
+
+Units come from the monorepo generator when the box has it
+(/opt/aitheros/.../generate_os_roles.py), else from the unit TEMPLATES the image
+ships (/usr/share/aither/roles/units/<role>, rendered by
+check_os_role_catalog.py --write-templates). With neither, `add` refuses before
+changing anything.
+
+Hooks (backup/restore/replicate) call a member's HTTPS route with the fleet
+internal key from a 0600 header file, run a shipped script, or podman-export the
+role's named volumes. `remove` runs the backup hook first and REFUSES when it
+fails; a hook declared `none` is a documented no-op.
 
 This file is ALSO the licence gate. `/usr/libexec/aither/role-entitlement-check`
 imports `entitlement_main` from here; the decision is `decide()`. See its
@@ -37,7 +49,9 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
+import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -63,6 +77,19 @@ QUADLET_DIR_DEFAULT = "/etc/containers/systemd"
 UNIT_DIR_DEFAULT = "/etc/systemd/system"
 STAGING_DEFAULT = "/var/lib/awnix/roles"
 GENERATOR_DEFAULT = "/opt/aitheros/AitherOS/dev/tools/generate_os_roles.py"
+BACKUP_DIR_DEFAULT = "/var/lib/awnix/backups"
+SECRET_ENV_DIR_DEFAULT = "/etc/aither"
+PODMAN = "/usr/bin/podman"
+
+
+def templates_dir() -> Path:
+    env = os.environ.get("AWNIX_ROLE_TEMPLATES", "").strip()
+    if env:
+        return Path(env)
+    installed = Path("/usr/share/aither/roles/units")
+    if installed.is_dir():
+        return installed
+    return Path(__file__).resolve().with_name("awnix-role-units")          # repo checkout
 LICENCE_DEFAULT = "/etc/aither/appliance.lic"
 LICENCE_STATUS_DEFAULT = "/var/lib/aither/license/status.json"
 
@@ -236,6 +263,22 @@ class Runner:
         os.chmod(tmp, mode)
         os.replace(tmp, path)
 
+    def make_private_dir(self, path: Path) -> None:
+        """mkdir -p `path` as 0700 (missing parents too). Backups carry key
+        material and the DIT's password hashes, so no level is world-readable."""
+        if not self.apply:
+            self.say(f"WOULD: mkdir -m 0700 -p {path}")
+            return
+        missing = []
+        cur = Path(path)
+        while not cur.exists() and cur != cur.parent:
+            missing.append(cur)
+            cur = cur.parent
+        for d in reversed(missing):
+            d.mkdir(mode=0o700, exist_ok=True)
+            os.chmod(d, 0o700)
+        os.chmod(path, 0o700)
+
     def sleep(self, seconds: float) -> None:
         if self.apply:
             time.sleep(seconds)
@@ -257,6 +300,9 @@ class Box:
         self.unit_dir = _env_path("AWNIX_UNIT_DIR", UNIT_DIR_DEFAULT)
         self.staging = _env_path("AWNIX_ROLE_STAGING", STAGING_DEFAULT)
         self.generator = _env_path("AWNIX_ROLE_GENERATOR", GENERATOR_DEFAULT)
+        self.templates = templates_dir()
+        self.backup_dir = _env_path("AWNIX_BACKUP_DIR", BACKUP_DIR_DEFAULT)
+        self.secret_env_dir = _env_path("AWNIX_SECRET_ENV_DIR", SECRET_ENV_DIR_DEFAULT)
         self.python = os.environ.get("AWNIX_ROLE_PYTHON", "").strip() or sys.executable or "python3"
         self.licence = _env_path("AITHER_APPLIANCE_LICENSE", LICENCE_DEFAULT)
         self.licence_status = _env_path("AITHER_LICENSE_STATUS", LICENCE_STATUS_DEFAULT)
@@ -366,11 +412,53 @@ def resolve_config(rid: str, role: Dict[str, Any], prior: Dict[str, str],
     return values, errors
 
 
-def render_env(rid: str, role: Dict[str, Any], values: Dict[str, str]) -> str:
+#: The file aither-setup writes the box's own identity into (mode, domain).
+BOX_ENV_FILE = "aitheros.env"
+#: What a role unit must be told so it runs as THIS box. Unset, the services
+#: run as the vendor's platform: OIDC redirect URIs, connector callbacks, session
+#: cookies and login links on the vendor's hosts (lib.security.sovereign_idp).
+BOX_MODE_ENV = "AITHER_DEPLOYMENT_MODE"
+BOX_DOMAIN_ENV = "AITHER_SOVEREIGN_DOMAIN"
+
+
+def box_identity(box: "Box") -> Dict[str, str]:
+    """{env name: value} every role env file carries: whose stack this is.
+
+    Read from the box's own /etc/aither/aitheros.env when aither-setup wrote
+    one. A box with no monorepo generator installs from the shipped templates
+    -- a product box -- and is `sovereign` unless it says otherwise; with no
+    domain configured the identity plane then names no public host at all,
+    never the vendor's.
+    """
+    found: Dict[str, str] = {}
+    try:
+        text = (box.secret_env_dir / BOX_ENV_FILE).read_text(encoding="utf-8")
+    except OSError:
+        text = ""
+    for line in text.splitlines():
+        name, sep, value = line.strip().partition("=")
+        if sep and name in (BOX_MODE_ENV, BOX_DOMAIN_ENV, "AITHER_DOMAIN"):
+            found[name] = value.strip().strip('"').strip("'")
+    out: Dict[str, str] = {}
+    mode = found.get(BOX_MODE_ENV) or ("" if box.generator.is_file() else "sovereign")
+    if mode:
+        out[BOX_MODE_ENV] = mode
+    domain = found.get(BOX_DOMAIN_ENV) or found.get("AITHER_DOMAIN") or ""
+    if domain and domain.lower() != "localhost":
+        out[BOX_DOMAIN_ENV] = domain
+    return out
+
+
+def render_env(rid: str, role: Dict[str, Any], values: Dict[str, str],
+               identity: Optional[Dict[str, str]] = None) -> str:
     lines = [f"# awnix role {rid} -- written by `awnix role`; edit with `awnix role configure`.",
              "# Secret values are NEVER written here; the services read them from the vault."]
     for k in sorted(values):
         lines.append(f"{k}={values[k]}")
+    extra = {k: v for k, v in sorted((identity or {}).items()) if k not in values}
+    if extra:
+        lines.append("# whose stack this is (from this box, never from the shipped unit)")
+        lines += [f"{k}={v}" for k, v in extra.items()]
     for k, sch in sorted((role.get("config") or {}).items()):
         if isinstance(sch, dict) and sch.get("type") == "secret":
             lines.append(f"# {k}: vault key {sch.get('secret_ref')}")
@@ -411,21 +499,223 @@ def health_gate(box: Box, rid: str, runner: Runner) -> List[str]:
     return failed
 
 
-def run_hook(box: Box, rid: str, kind: str, runner: Runner) -> Tuple[bool, str]:
+def run_hook(box: Box, rid: str, kind: str, runner: Runner,
+             params: Optional[Dict[str, str]] = None) -> Tuple[bool, str]:
+    """Run one role hook. (ok, what happened).
+
+    `none` is a DECLARED no-op and succeeds; a leftover `todo` (an old catalog)
+    FAILS -- an undeclared backup is not a backup, and `remove` refuses on it.
+    """
     hook = (box.roles[rid].get("hooks") or {}).get(kind) or {}
+    if hook.get("none"):
+        return True, f"no {kind} for {rid} by design: {hook['none']}"
     if hook.get("todo"):
-        return True, f"no {kind} hook for {rid} (TODO: {hook['todo']})"
-    if hook.get("script"):
-        rc, out = runner.run([str(hook["script"]), rid])
-        return rc == 0, f"{kind} script rc={rc} {out.strip()[:200]}"
-    if hook.get("http"):
-        method, path = str(hook["http"]).split(" ", 1)
-        facts = box.services.get(str(hook.get("service"))) or {}
-        if not facts.get("port"):
-            return False, f"{kind} hook service {hook.get('service')} has no port"
-        rc, out = runner.run(_curl(box, f"https://127.0.0.1:{facts['port']}{path}", method))
-        return rc == 0, f"{kind} {method} {path} rc={rc} {out.strip()[:200]}"
-    return False, f"{rid}: {kind} hook is malformed"
+        return False, f"{rid}.{kind} is undeclared (TODO: {hook['todo']})"
+    ctx = HookContext(box, rid, params or {})
+    # Every file a hook writes (curl --output, podman volume export) is created
+    # by a child that inherits this umask: 0600 files, 0700 dirs. Under the
+    # default 022 a DIT snapshot (password/API-key hashes) was world-readable.
+    old_umask = os.umask(0o077)
+    try:
+        if hook.get("volumes"):
+            return _volumes_hook(box, rid, kind, str(hook["volumes"]), runner, ctx)
+        steps = hook.get("steps") if isinstance(hook.get("steps"), list) else [hook]
+        msgs = []
+        for i, step in enumerate(steps):
+            ok, msg = _run_action(box, rid, kind, step if isinstance(step, dict) else {},
+                                  runner, ctx)
+            msgs.append(msg if len(steps) == 1 else f"[{i + 1}/{len(steps)}] {msg}")
+            if not ok:
+                return False, "; ".join(msgs)
+        return True, "; ".join(msgs)
+    finally:
+        os.umask(old_umask)
+
+
+_PH = re.compile(r"\{([a-z_][a-z0-9_]*)\}")
+
+
+class HookContext:
+    """Placeholder values for one hook run: {ts} {role} {backup_dir} + --param."""
+
+    def __init__(self, box: Box, rid: str, params: Dict[str, str]) -> None:
+        self.values = dict(params)
+        self.values.update(
+            ts=_dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
+            role=rid, backup_dir=str(box.backup_dir))
+
+    def fill(self, text: str, url: bool = False) -> str:
+        """Substitute placeholders. `url=True` percent-encodes EVERY value
+        (safe=''), so `--param backup_id=../../x` stays one path segment and
+        cannot walk the route or smuggle a query string."""
+        missing = sorted({m for m in _PH.findall(text) if m not in self.values})
+        if missing:
+            raise KeyError(", ".join(missing))
+        if url:
+            return _PH.sub(lambda m: urllib.parse.quote(self.values[m.group(1)], safe=""), text)
+        return _PH.sub(lambda m: self.values[m.group(1)], text)
+
+    def fill_obj(self, obj: Any) -> Any:
+        if isinstance(obj, str):
+            return self.fill(obj)
+        if isinstance(obj, list):
+            return [self.fill_obj(x) for x in obj]
+        if isinstance(obj, dict):
+            return {k: self.fill_obj(v) for k, v in obj.items()}
+        return obj
+
+
+def internal_key(box: Box) -> str:
+    """The fleet internal secret the hook authenticates with ('' = none found).
+
+    AITHER_INTERNAL_SECRET in the environment, else the first
+    `AITHER_INTERNAL_SECRET=` line in the /etc/aither/*.env files the generated
+    units already load (generate_os_roles moves every credential there). The
+    value is never printed and never placed on a command line.
+    """
+    env = os.environ.get("AITHER_INTERNAL_SECRET", "").strip()
+    if env:
+        return env
+    if not box.secret_env_dir.is_dir():
+        return ""
+    for f in sorted(box.secret_env_dir.glob("*.env")):
+        try:
+            for line in f.read_text(encoding="utf-8").splitlines():
+                if line.startswith("AITHER_INTERNAL_SECRET="):
+                    val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                    if val:
+                        return val
+        except OSError:
+            continue
+    return ""
+
+
+def _header_file(box: Box, auth: str, runner: Runner) -> Tuple[Optional[str], str]:
+    """(path of a 0600 curl header file, '') or (None, why). Dry-run: a placeholder."""
+    if not runner.apply:
+        return "<internal-auth-headers>", ""
+    key = internal_key(box)
+    if not key:
+        return None, (f"no internal key (AITHER_INTERNAL_SECRET unset and none in "
+                      f"{box.secret_env_dir}/*.env) -- refusing an unauthenticated hook call")
+    lines = [f"X-API-Key: {key}"] if auth == "api-key" else \
+        [f"X-Internal-Key: {key}", "X-Caller-Type: platform"]
+    fd, path = tempfile.mkstemp(prefix="awnix-hook-", suffix=".hdr")
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines) + "\n")
+    os.chmod(path, 0o600)
+    return path, ""
+
+
+def _run_action(box: Box, rid: str, kind: str, a: Dict[str, Any], runner: Runner,
+                ctx: HookContext) -> Tuple[bool, str]:
+    try:
+        if a.get("script"):
+            argv = [ctx.fill(str(a["script"]))] + [ctx.fill(str(x)) for x in a.get("args") or []]
+            rc, out = runner.run(argv)
+            return rc == 0, f"{kind} script rc={rc} {out.strip()[:200]}"
+        if not a.get("http"):
+            return False, f"{rid}.{kind}: hook is malformed"
+        method, path = str(a["http"]).split(" ", 1)
+        path = ctx.fill(path, url=True)
+        body = ctx.fill_obj(a.get("body", {} if method in ("POST", "PUT") else None))
+        save_to = ctx.fill(str(a["save_to"])) if a.get("save_to") else ""
+    except KeyError as e:
+        return False, (f"{rid}.{kind} needs --param {e.args[0].replace(', ', ' --param ')}"
+                       f" (value)")
+    facts = box.services.get(str(a.get("service"))) or {}
+    if not facts.get("port"):
+        return False, f"{kind} hook service {a.get('service')} has no port"
+    hdr, why = _header_file(box, str(a.get("auth") or "internal"), runner)
+    if hdr is None:
+        return False, f"{kind} {method} {path}: {why}"
+    # --max-time 600: a backup is not a health probe. Headers come from a 0600
+    # file (`-H @file`) so the key is never on a command line or in `ps`.
+    # --globoff: a URL is taken literally; curl's own [] {} globbing never applies.
+    argv = ["curl", "--fail", "--silent", "--show-error", "--globoff", "--max-time", "600"]
+    if box.ca_bundle:
+        argv += ["--cacert", box.ca_bundle]
+    argv += ["-H", f"@{hdr}"]
+    if body is not None:
+        argv += ["-H", "Content-Type: application/json", "--data", json.dumps(body, sort_keys=True)]
+    if save_to:
+        runner.make_private_dir(Path(save_to).parent)
+        argv += ["--output", save_to]
+    if method != "GET":
+        argv += ["-X", method]
+    argv.append(f"https://127.0.0.1:{facts['port']}{path}")
+    try:
+        rc, out = runner.run(argv, timeout=660)
+    finally:
+        if runner.apply and hdr and os.path.isfile(hdr):
+            os.unlink(hdr)
+    msg = f"{kind} {method} {path} rc={rc}" + (f" -> {save_to}" if save_to else "")
+    if rc != 0:
+        return False, f"{msg} {out.strip()[:200]}"
+    expect = a.get("expect") or {}
+    if expect and runner.apply:
+        try:
+            reply = json.loads(out)
+        except ValueError:
+            return False, f"{msg}: reply is not JSON, cannot check {expect}"
+        for k, want in expect.items():
+            got = reply.get(k) if isinstance(reply, dict) else None
+            if got not in (want if isinstance(want, list) else [want]):
+                return False, f"{msg}: {k}={got!r}, expected {want!r}"
+    return True, msg
+
+
+def role_volumes(box: Box, rid: str) -> List[str]:
+    """The named volumes that hold this role's state ON THIS BOX: the catalog's
+    data_volumes, plus the state volumes the shipped template mounts in place of
+    a writable monorepo bind (recorded at install; a generator box binds a host
+    directory there instead and has no such volume)."""
+    vols = [str(v) for v in box.roles[rid].get("data_volumes") or [] if "/" not in str(v)]
+    for v in (box.installed().get(rid) or {}).get("state_volumes") or []:
+        if str(v) not in vols and "/" not in str(v):
+            vols.append(str(v))
+    return vols
+
+
+def _volumes_hook(box: Box, rid: str, kind: str, action: str, runner: Runner,
+                  ctx: HookContext) -> Tuple[bool, str]:
+    """podman volume export/import of the role's named volumes."""
+    vols = role_volumes(box, rid)
+    if not vols:
+        return False, f"{rid}.{kind}: volumes hook but no named data_volumes"
+    if action == "export":
+        dest = Path(ctx.fill("{backup_dir}/{role}/{ts}"))
+        try:
+            runner.make_private_dir(dest)
+        except OSError as e:
+            return False, f"{kind}: mkdir {dest}: {e}"
+        for v in vols:
+            rc, out = runner.run([PODMAN, "volume", "export", v,
+                                  "--output", str(dest / f"{v}.tar")])
+            if rc != 0:
+                return False, f"{kind}: podman volume export {v} rc={rc} {out.strip()[:200]}"
+        return True, f"{kind}: exported {', '.join(vols)} -> {dest}"
+    if action == "import":
+        raw = ctx.values.get("from", "")
+        if not raw:
+            return False, (f"{rid}.{kind} needs --param from=<dir> (a {box.backup_dir}/{rid}/<ts> "
+                           f"directory written by the backup hook)")
+        # Only an archive this CLI wrote may be imported into a role's volume:
+        # resolve symlinks and `..` first, then require it under backup_dir.
+        root = Path(os.path.realpath(box.backup_dir))
+        src = Path(os.path.realpath(raw))
+        if src == root or root not in src.parents:
+            return False, (f"{rid}.{kind}: --param from={raw} resolves to {src}, which is not "
+                           f"under the backup dir {root} -- refusing")
+        for v in vols:
+            rc, out = runner.run([PODMAN, "volume", "create", "--ignore", v])
+            if rc != 0:
+                return False, f"{kind}: podman volume create {v} rc={rc} {out.strip()[:200]}"
+            rc, out = runner.run([PODMAN, "volume", "import", v, str(Path(src) / f"{v}.tar")])
+            if rc != 0:
+                return False, f"{kind}: podman volume import {v} rc={rc} {out.strip()[:200]}"
+        return True, f"{kind}: imported {', '.join(vols)} <- {src}"
+    return False, f"{rid}.{kind}: unknown volumes action {action!r}"
 
 
 # ── verbs ─────────────────────────────────────────────────────────────────────
@@ -481,6 +771,12 @@ def cmd_add(box: Box, runner: Runner, rid: str, sets: Dict[str, str]) -> int:
         vals, errs = resolve_config(x, box.roles[x], prior, sets if x == rid else {})
         configs[x] = vals
         errors += errs
+    use_generator = box.generator.is_file()
+    for x in todo:
+        if box.roles[x].get("deploy") and not use_generator \
+                and not (box.templates / x / "manifest.json").is_file():
+            errors.append(f"{x}: no unit source -- neither the generator ({box.generator}) nor "
+                          f"shipped templates ({box.templates / x}) exist on this box")
     if errors:
         for e in errors:
             runner.say("REFUSED: " + e)
@@ -488,15 +784,30 @@ def cmd_add(box: Box, runner: Runner, rid: str, sets: Dict[str, str]) -> int:
     for x in todo:
         role = box.roles[x]
         deploy = [str(m) for m in role.get("deploy") or []]
+        state_volumes: List[str] = []
         env_file = box.env_dir / f"{x}.env"
-        runner.write_file(env_file, render_env(x, role, configs[x]), mode=0o640)
+        runner.write_file(env_file, render_env(x, role, configs[x], box_identity(box)), mode=0o640)
         if deploy:
-            stage = box.staging / x
-            rc, out = runner.run([box.python, str(box.generator), "--for", ",".join(deploy),
-                                  "--out", str(stage), "--entitle"])
-            if rc != 0:
-                runner.say(f"FAILED: unit generation for {x} rc={rc}\n{out[-2000:]}")
-                return 1
+            if use_generator:
+                stage = box.staging / x
+                rc, out = runner.run([box.python, str(box.generator), "--for", ",".join(deploy),
+                                      "--out", str(stage), "--entitle"])
+                if rc != 0:
+                    runner.say(f"FAILED: unit generation for {x} rc={rc}\n{out[-2000:]}")
+                    return 1
+            else:
+                stage = box.templates / x
+                manifest, why = read_json(stage / "manifest.json")
+                if manifest is None:
+                    runner.say(f"FAILED: {stage / 'manifest.json'} is {why}")
+                    return 1
+                runner.say(f"  {x}: units from shipped templates {stage} "
+                           f"(no generator on this box)")
+                state_volumes = [str(v) for v in manifest.get("state_volumes") or []]
+                dirs = [str(d) for d in manifest.get("host_dirs") or []]
+                if dirs:
+                    # the data binds the units mount; podman refuses a missing source
+                    runner.run(["mkdir", "-p"] + dirs)
             runner.run(["cp", "-rf", f"{stage}/containers/.", f"{box.quadlet_dir}/"])
             runner.run(["cp", "-rf", f"{stage}/system/.", f"{box.unit_dir}/"])
             for m in deploy:
@@ -523,6 +834,8 @@ def cmd_add(box: Box, runner: Runner, rid: str, sets: Dict[str, str]) -> int:
             "requested": x == rid,
             "config": configs[x],
             "units": box.units(x),
+            # backed up and restored with the role's data_volumes (role_volumes)
+            "state_volumes": state_volumes,
         }
         box.save_state(runner)
         runner.say(f"  {x}: installed")
@@ -579,7 +892,8 @@ def cmd_configure(box: Box, runner: Runner, rid: str, sets: Dict[str, str]) -> i
         for e in errors:
             runner.say("REFUSED: " + e)
         return 1
-    runner.write_file(box.env_dir / f"{rid}.env", render_env(rid, box.roles[rid], values), mode=0o640)
+    runner.write_file(box.env_dir / f"{rid}.env",
+                      render_env(rid, box.roles[rid], values, box_identity(box)), mode=0o640)
     if inst:
         inst["config"] = values
         box.save_state(runner)
@@ -593,10 +907,42 @@ def cmd_configure(box: Box, runner: Runner, rid: str, sets: Dict[str, str]) -> i
     return 0
 
 
+def cmd_hook(box: Box, runner: Runner, rid: str, kind: str, params: Dict[str, str]) -> int:
+    """Run one declared hook on demand (restore/replicate take --param)."""
+    if rid not in box.roles:
+        raise SystemExit(f"awnix role: unknown role {rid!r}")
+    if kind not in ("backup", "restore", "replicate"):
+        runner.say(f"awnix role hook: kind must be backup|restore|replicate, got {kind!r}")
+        return 2
+    hook = (box.roles[rid].get("hooks") or {}).get(kind) or {}
+    if hook.get("note"):
+        runner.say(f"  note: {hook['note']}")
+    if rid not in box.installed():
+        runner.say(f"  {rid} is not recorded as installed by `awnix role`; running anyway")
+    ok, msg = run_hook(box, rid, kind, runner, params)
+    runner.say(("  " if ok else "FAILED: ") + msg)
+    if ok and not runner.apply:
+        runner.say("dry run -- nothing changed. Re-run with --apply to act.")
+    return 0 if ok else 1
+
+
+def parse_params(pairs: Sequence[str]) -> Dict[str, str]:
+    out = {}
+    for p in pairs or []:
+        k, sep, v = p.partition("=")
+        if not sep or not re.match(r"^[a-z_][a-z0-9_]*$", k):
+            raise SystemExit(f"awnix role: --param wants name=value (lower_snake name), got {p!r}")
+        out[k] = v
+    return out
+
+
 def role_main(argv: Sequence[str], runner: Optional[Runner] = None) -> int:
     ap = argparse.ArgumentParser(prog="awnix role", description="Add and remove awnix OS roles.")
-    ap.add_argument("verb", choices=["list", "status", "add", "remove", "configure"])
+    ap.add_argument("verb", choices=["list", "status", "add", "remove", "configure", "hook"])
     ap.add_argument("role", nargs="?")
+    ap.add_argument("kind", nargs="?", help="hook: backup|restore|replicate")
+    ap.add_argument("--param", dest="params", action="append", default=[], metavar="NAME=VALUE",
+                    help="hook placeholder value (restore/replicate), e.g. backup_id=...")
     ap.add_argument("--set", dest="sets", action="append", default=[], metavar="KEY=VALUE")
     ap.add_argument("--apply", action="store_true", help="act (default is a dry run)")
     ap.add_argument("--state", default="", help=f"state file (default {STATE_DEFAULT})")
@@ -606,8 +952,12 @@ def role_main(argv: Sequence[str], runner: Optional[Runner] = None) -> int:
     r.apply = args.apply
     box = Box(load_catalog(Path(args.catalog) if args.catalog else None),
               Path(args.state or os.environ.get("AWNIX_ROLES_STATE", "") or STATE_DEFAULT))
-    if args.verb in ("add", "remove", "configure") and not args.role:
+    if args.verb in ("add", "remove", "configure", "hook") and not args.role:
         ap.error(f"{args.verb} needs a role")
+    if args.verb == "hook":
+        if not args.kind:
+            ap.error("hook needs a kind: backup|restore|replicate")
+        return cmd_hook(box, r, args.role, args.kind, parse_params(args.params))
     if args.verb == "list":
         return cmd_list(box, r)
     if args.verb == "status":

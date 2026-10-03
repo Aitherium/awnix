@@ -85,7 +85,7 @@
           "service": "Recover"
         },
         "replicate": {
-          "todo": "off-box copies go through awrtifact (offsite_backup.sh), not this role"
+          "none": "Recover's backup already carries its GitHub/R2 legs; awrtifact offsite copies are an owner-host tool, not on the box"
         },
         "restore": {
           "http": "POST /recover/restore/now",
@@ -135,13 +135,33 @@
       ],
       "hooks": {
         "backup": {
-          "todo": "identity/directory backup sets are owned by the identity-resilience lane (services.yaml backup:)"
+          "steps": [
+            {
+              "auth": "api-key",
+              "expect": {
+                "success": true
+              },
+              "http": "POST /backup",
+              "service": "Secrets"
+            },
+            {
+              "http": "GET /directory/platform/backup/sqlite",
+              "save_to": "{backup_dir}/identity/{ts}/directory.db",
+              "service": "Directory"
+            }
+          ]
         },
         "replicate": {
-          "todo": "identity-resilience lane (services.yaml replication:)"
+          "none": "Directory DIT replication is Postgres physical streaming, disabled in services.yaml replication.directory_dit (0 rows streaming); no on-demand route exists"
         },
         "restore": {
-          "todo": "identity-resilience lane"
+          "auth": "api-key",
+          "expect": {
+            "success": true
+          },
+          "http": "POST /restore?source={source}",
+          "note": "vault from lockbox|strata|vault (--param source=auto). The DIT is restored by POST /recover/backup/sets/restore into an EMPTY scratch dir and proven by /recover/backup/sets/identity-drill; moving it into place is a human act by design.",
+          "service": "Secrets"
         }
       },
       "removable": false,
@@ -174,13 +194,13 @@
       ],
       "hooks": {
         "backup": {
-          "todo": "stateless router; traces in aither-llm-traces are diagnostic, not backed up"
+          "none": "stateless router: which weights serve is config/model-postures.yaml (awmodels); aither-llm-traces is diagnostic only"
         },
         "replicate": {
-          "todo": "stateless"
+          "none": "stateless router -- nothing to replicate"
         },
         "restore": {
-          "todo": "stateless"
+          "none": "stateless router -- nothing to restore; re-apply the posture with awmodels use"
         }
       },
       "removable": true,
@@ -203,7 +223,9 @@
           "type": "string"
         }
       },
-      "data_volumes": [],
+      "data_volumes": [
+        "Library/Data/mail"
+      ],
       "deploy": [
         "MailCore"
       ],
@@ -212,13 +234,25 @@
       ],
       "hooks": {
         "backup": {
-          "todo": "mail queue lives in Postgres; covered by the pg dump stage, no role-level hook yet"
+          "body": {
+            "backup_dir": "/data/backups",
+            "backup_id": "role-mail-{ts}",
+            "include_github": false,
+            "include_strata": false,
+            "paths": [
+              "/app/AitherOS/Library/Data/mail"
+            ]
+          },
+          "http": "POST /recover/local/backup/now",
+          "service": "SecurityCore"
         },
         "replicate": {
-          "todo": "none"
+          "none": "mail is a single-box relay with no peer copy; off-box copies are the backup role's job"
         },
         "restore": {
-          "todo": "see backup"
+          "http": "POST /recover/local/restore?backup_id={backup_id}",
+          "note": "--param backup_id=role-mail-<ts> (GET /recover/local/backups lists them)",
+          "service": "SecurityCore"
         }
       },
       "removable": true,
@@ -234,7 +268,16 @@
     },
     "platform": {
       "config": {},
-      "data_volumes": [],
+      "data_volumes": [
+        "aither-factory-workspace",
+        "aither-pack-data",
+        "business-pilot-data",
+        "calibration-data",
+        "marketplace-data",
+        "plans-db",
+        "saga-data",
+        "selfserve-shop-data"
+      ],
       "deploy": [
         "Genesis"
       ],
@@ -243,13 +286,14 @@
       ],
       "hooks": {
         "backup": {
-          "todo": "Genesis state is reconstructible from services.yaml + Strata; no dedicated backup route yet"
+          "volumes": "export"
         },
         "replicate": {
-          "todo": "HA is the genesis/genesis-standby pair, not a role hook"
+          "none": "HA is the genesis/genesis-standby pair (a second unit), not a data copy a hook can trigger"
         },
         "restore": {
-          "todo": "see backup"
+          "note": "stop aither-genesis first; --param from=<backup_dir>/platform/<ts>",
+          "volumes": "import"
         }
       },
       "removable": false,
@@ -284,13 +328,19 @@
       ],
       "hooks": {
         "backup": {
-          "todo": "job state only (aither-strata-mesh-repl-state); rebuilt from Strata"
+          "volumes": "export"
         },
         "replicate": {
-          "todo": "replication is Flux-driven (strata.write); there is no on-demand route to call"
+          "body": {
+            "path": "{path}"
+          },
+          "http": "POST /strata/mesh/replicate",
+          "note": "--param path=aither://...",
+          "service": "Strata"
         },
         "restore": {
-          "todo": "see backup"
+          "note": "stop aither-stratameshreplicationtrigger first; --param from=<backup_dir>/replication-partner/<ts>",
+          "volumes": "import"
         }
       },
       "removable": true,
@@ -327,15 +377,21 @@
       ],
       "hooks": {
         "backup": {
+          "body": {},
           "http": "POST /strata/backup/create",
           "service": "Strata"
         },
         "replicate": {
+          "body": {
+            "path": "{path}"
+          },
           "http": "POST /strata/mesh/replicate",
+          "note": "replicates ONE Strata path to mesh peers: --param path=aither://...",
           "service": "Strata"
         },
         "restore": {
           "http": "POST /strata/backup/restore/{backup_id}",
+          "note": "--param backup_id=<id from GET /strata/backup/list>",
           "service": "Strata"
         }
       },
@@ -358,7 +414,8 @@
       },
       "data_volumes": [
         "aitheros-acta-data",
-        "marketplace-data"
+        "marketplace-data",
+        "aither-tunnel-data"
       ],
       "deploy": [
         "Veil",
@@ -371,13 +428,14 @@
       ],
       "hooks": {
         "backup": {
-          "todo": "portal state is ACTA data (aitheros-acta-data); no role-level hook yet"
+          "volumes": "export"
         },
         "replicate": {
-          "todo": "none"
+          "none": "the portal serves one box; mesh replication is the replication-partner role's"
         },
         "restore": {
-          "todo": "see backup"
+          "note": "stop the web-portal units first; --param from=<backup_dir>/web-portal/<ts>",
+          "volumes": "import"
         }
       },
       "removable": true,

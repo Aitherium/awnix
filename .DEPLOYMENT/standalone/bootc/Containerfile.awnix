@@ -354,7 +354,15 @@ COPY role-entitlement-check /usr/libexec/aither/role-entitlement-check
 # below), which execs /usr/libexec/awnix/awnix-role; the script answers to either name.
 COPY awnix /usr/libexec/awnix/awnix-role
 COPY awnix-role-catalog.json /usr/share/aither/roles/catalog.json
+# The per-role unit TEMPLATES (check_os_role_catalog.py --write-templates, ROLE017 fails
+# on drift): what `awnix role add` installs on a box WITHOUT the monorepo generator.
+# Data binds live under /var/lib/aitheros (bootc's writable /var); monorepo overlays
+# and operator-host binds are dropped and listed in each role's manifest.json.
+COPY awnix-role-units /usr/share/aither/roles/units
+# /var/lib/awnix/backups 0700: hook backups carry key material and DIT hashes.
+COPY awnix-role.tmpfiles.conf /usr/lib/tmpfiles.d/awnix-role.conf
 RUN chmod 0644 /usr/lib/awnix/awnix_role.py /usr/share/aither/roles/catalog.json \
+    && chmod -R a+rX /usr/share/aither/roles/units \
     && chmod 0755 /usr/libexec/aither/role-entitlement-check /usr/libexec/awnix/awnix-role \
     && mkdir -p /etc/awnix /etc/aither/roles
 
