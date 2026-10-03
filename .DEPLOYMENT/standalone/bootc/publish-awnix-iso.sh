@@ -99,7 +99,7 @@ anon_pull_code() {  # anon_pull_code REF -> the HTTP status of an anonymous mani
         | sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
   curl -s -o /dev/null -w '%{http_code}' --max-time 20 -I \
     -H "Authorization: Bearer ${tok}" \
-    -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.v2+json' \
+    -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.docker.distribution.manifest.v2+json' \
     "https://ghcr.io/v2/${name}/manifests/${tag}" 2>/dev/null || echo 000
 }
 
