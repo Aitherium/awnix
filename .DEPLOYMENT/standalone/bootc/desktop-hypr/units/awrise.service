@@ -1,0 +1,13 @@
+# /usr/lib/systemd/user/awrise.service -- one awrise run-due pass (awrise.timer fires it).
+#
+# The aw* family documents only a Windows schtasks tick; this is the Linux one, in the
+# shape `awrise install --systemd-user` renders (same unit names, so a user who runs
+# that command replaces this vendor pair instead of adding a second clock). awrise runs
+# only the jobs this user registered (`awrise add`); with none it is a no-op that exits 0.
+[Unit]
+Description=awrise: one run-due pass (the wake clock)
+
+[Service]
+Type=oneshot
+Environment=AITHER_OFFLINE=1
+ExecStart=/usr/bin/awrise run-due --quiet --invoker systemd

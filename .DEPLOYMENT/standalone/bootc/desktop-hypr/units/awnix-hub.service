@@ -1,0 +1,32 @@
+# /usr/lib/systemd/user/awnix-hub.service -- the ONE local MCP endpoint for the aw* bricks.
+#
+# `awnode hub` (awnode/awnode/hub.py): 127.0.0.1 only (hardcoded in the hub, not a
+# default), a per-user token in ~/.aither/aw-hub/token, and every request with an
+# Origin header refused. It starts each brick's stdio MCP server (awm, awrelay, awsh,
+# ...) lazily, through the /usr/bin shims, on the first call that needs it.
+#
+# awnode is baked from the component lock (awnix_desktop.components). The hub arrived
+# in awnode 0.3.1; a lock that still pins an older awnode has no awnode.hub module, and
+# then ExecCondition SKIPS this unit -- a skipped unit, never a failed one -- until the
+# lock carries it. awnix-agent-status says which.
+#
+# The port is THIS user's (60-awnix-ports: AWNIX_HUB_PORT, and AW_HUB_PORT for the
+# bridge that dials it); without one the unit is skipped, never started on a port
+# another person's session already holds.
+[Unit]
+Description=awnode hub: the local MCP endpoint for the aw* bricks (this user's port)
+After=awsh-agent.service
+ConditionEnvironment=AWNIX_HUB_PORT
+
+[Service]
+Type=simple
+Environment=AITHER_OFFLINE=1
+Environment=PYTHONUNBUFFERED=1
+ExecCondition=/usr/lib/awnix/components/awnode/current/bin/python -c "import awnode.hub"
+ExecStart=/usr/lib/awnix/components/awnode/current/bin/python -m awnode.hub serve --port ${AWNIX_HUB_PORT}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

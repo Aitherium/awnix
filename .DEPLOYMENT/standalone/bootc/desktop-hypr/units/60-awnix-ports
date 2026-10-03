@@ -1,0 +1,34 @@
+#!/bin/sh
+# 60-awnix-ports -- THIS user's own loopback ports for the awnix desktop's daemons.
+#
+# Installed as /usr/lib/systemd/user-environment-generators/60-awnix-ports: the user
+# manager runs it (as the user) and every user unit inherits what it prints. The
+# session (awnix-session) and login shells (/etc/profile.d/awnix-user-ports.sh) read
+# the same lines, so awsh, waybar and the units agree on one port per daemon per uid.
+#
+# Why per uid: the units are enabled for every user. On fixed ports a second person
+# logged in at the same time could not bind, and their awsh and their bar talked to
+# the FIRST person's daemons. Each uid in 1000..5999 gets its own block of four ports
+# below the kernel's ephemeral range (32768+):
+#     base = 10000 + (uid - 1000) * 4      model base, agent +1, harness +2, hub +3
+# Any other uid gets nothing; the units are conditioned on these variables and are
+# skipped, never started on somebody else's port. awnix_desktop/awstack.py carries the
+# same formula and a test holds the two together.
+uid=$(id -u) || exit 0
+if [ "$uid" -lt 1000 ] || [ "$uid" -ge 6000 ]; then
+    exit 0
+fi
+base=$((10000 + (uid - 1000) * 4))
+echo "AWNIX_MODEL_PORT=$base"
+echo "AWNIX_AGENT_PORT=$((base + 1))"
+echo "AWNIX_HARNESS_PORT=$((base + 2))"
+echo "AWNIX_HUB_PORT=$((base + 3))"
+echo "AW_HUB_PORT=$((base + 3))"
+echo "AITHER_LLM_URL=http://127.0.0.1:$base/v1"
+echo "AITHER_HARNESS_URL=http://127.0.0.1:$((base + 2))"
+echo "ADK_DAEMON_URL=http://127.0.0.1:$((base + 1))"
+echo "AITHER_ADK_URL=http://127.0.0.1:$((base + 1))"
+echo "AITHER_CLOUD_URL=http://127.0.0.1:$((base + 1))"
+echo "AITHER_CLOUD_MCP_URL=http://127.0.0.1:$((base + 1))/mcp"
+# The units own the daemons: awsh must not start a second one on a default port.
+echo "AITHERSHELL_AUTOSTART_ADK=0"

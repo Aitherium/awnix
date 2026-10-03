@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "signin",
+  "title": "Offer account sign-in at first login (optional)",
+  "why": "Nothing on this machine needs an account: the agent, the local model and every tool work offline. On (the default), each person's first login on the desktop asks once whether to sign in to an Aitherium account, defaulting to No, and Super+/ then 'Sign in' does it any time. Off: the question is never asked. Either way nothing is sent anywhere until someone signs in.",
+  "kind": "toggle",
+  "current_cmd": ["awnix-signin", "offer"],
+  "apply_cmd": ["awnix-signin", "offer", "{value}"],
+  "required": false,
+  "timeout_s": 30,
+  "variants": ["awnix-hypr"]
+}

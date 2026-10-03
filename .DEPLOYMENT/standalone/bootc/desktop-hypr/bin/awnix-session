@@ -14,7 +14,14 @@ fi
 awnix-theme ensure || echo "awnix-session: awnix-theme ensure failed" >&2
 # greetd starts this directly, not through a login shell, so /etc/profile.d is not read.
 # awsh-offline.sh keeps an awsh older than 1.19 (which reads no vendor config layer) on
-# this machine's model server too; everything Hyprland starts inherits it.
+# this machine's model server too; everything Hyprland starts inherits it. Before it,
+# awnix-user-ports.sh: THIS user's own daemon ports, so awsh and waybar never dial
+# another logged-in person's daemons.
+if [ -r /etc/profile.d/awnix-user-ports.sh ]; then
+    set +u
+    . /etc/profile.d/awnix-user-ports.sh
+    set -u
+fi
 if [ -r /etc/profile.d/awsh-offline.sh ]; then
     set +u
     . /etc/profile.d/awsh-offline.sh

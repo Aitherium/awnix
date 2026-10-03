@@ -3,11 +3,14 @@
 # A USER unit, enabled for every user by the image (systemctl --global enable). It does
 # nothing until the first-login chooser (awnix-desktop-firstrun) has linked a model as
 # ~/.local/share/awnix/models/current.gguf; from then on it serves that file with the
-# baked llama-server on 127.0.0.1:8199, the URL /usr/lib/awsh/shell.yaml gives awsh.
-# Loopback only: nothing on the network can reach it.
+# baked llama-server on 127.0.0.1, on THIS user's port: AWNIX_MODEL_PORT from the
+# 60-awnix-ports generator, which awsh's AITHER_LLM_URL names too (8199 is only the
+# fallback for a shell outside the desktop). Without a port block it is skipped, so
+# two people's model servers never fight over one port. Loopback only.
 [Unit]
-Description=awnix local model (llama-server on 127.0.0.1:8199)
+Description=awnix local model (llama-server on this user's loopback port)
 ConditionPathExists=%h/.local/share/awnix/models/current.gguf
+ConditionEnvironment=AWNIX_MODEL_PORT
 
 [Service]
 Type=simple

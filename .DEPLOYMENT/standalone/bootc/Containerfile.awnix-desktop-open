@@ -31,12 +31,29 @@ RUN dnf -y install --setopt=install_weak_deps=False \
         fonts-filesystem google-noto-sans-mono-fonts \
     && dnf clean all
 
-RUN python3 -m pip install --no-cache-dir "awdk>=3.8.27" && adk --help >/dev/null
+# awdk and awsh are PINNED, by hash, not "the newest on the day of the build": the
+# desktops on top of this layer auto-start awdk's daemons for every user, so which
+# awdk ships decides what those daemons trust (check_awnix_desktop.py AWDK012).
+#   awdk  desktop-open/awdk-requirements.txt -- awdk and its whole closure at the
+#         component lock's versions, every line hash-pinned; --require-hashes refuses
+#         anything else and --no-deps refuses anything unlisted.
+#   awsh  desktop-open/awsh-npm/package-lock.json -- @aitherium/awsh and every
+#         dependency at an exact version and sha512 integrity; `npm ci` refuses a
+#         tarball that does not match.
+COPY desktop-open/awdk-requirements.txt /tmp/awdk-requirements.txt
+RUN python3 -m pip install --no-cache-dir --require-hashes --no-deps --only-binary=:all: \
+        -r /tmp/awdk-requirements.txt \
+    && rm -f /tmp/awdk-requirements.txt \
+    && adk --help >/dev/null
 # On a bootc image /root is a symlink into /var, which is empty at build time, so npm
 # cannot create its cache there. Give it a throwaway home for the install.
-RUN HOME=/tmp/npmhome npm install -g --cache /tmp/npmhome/cache @aitherium/awsh \
+COPY desktop-open/awsh-npm/package.json desktop-open/awsh-npm/package-lock.json /usr/lib/awsh-npm/
+RUN cd /usr/lib/awsh-npm \
+    && HOME=/tmp/npmhome npm ci --omit=dev --no-audit --no-fund --cache /tmp/npmhome/cache \
     && rm -rf /tmp/npmhome \
-    && command -v awsh
+    && ln -sf /usr/lib/awsh-npm/node_modules/.bin/awsh /usr/bin/awsh \
+    && command -v awsh \
+    && awsh --version >/dev/null
 
 # The licence texts the label names, each a byte copy of its repo source (AWV013):
 # awnix/LICENSE, awdk/LICENSE and .PRODUCTS/.AITHERSHELL/cli/LICENSE (awsh).

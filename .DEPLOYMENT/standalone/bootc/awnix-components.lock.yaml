@@ -5,7 +5,7 @@
 schema: 1
 generated_by: AitherOS/dev/tools/gen_awnix_component_lock.py
 catalogue_sha256: 73d0a707d04c62e37c8bf859bf74ea1c1ab7a177f2633b37f9a6d0777924b682
-generated_at: '2026-10-02T13:56:36Z'
+generated_at: '2026-10-03T10:25:07Z'
 target:
   python: '3.11'
   platform: manylinux_2_34_x86_64
@@ -31,9 +31,9 @@ wheels:
   awdit==0.1.0:
     url: https://files.pythonhosted.org/packages/2d/86/a2fda7a4190764d7583ae23e34067a9cdf6fe1efd666f5fcbc8b6a433604/awdit-0.1.0-py3-none-any.whl
     sha256: 896d23f20592bc7027d2ca2c6bae4e058a7b33e02865d510394fb792f0b7403d
-  awdk==3.8.42:
-    url: https://files.pythonhosted.org/packages/26/48/9fbc51530de0e4c6f5ed91bea6fc92ff8ad64e5b98dfb850db62806a1551/awdk-3.8.42-py3-none-any.whl
-    sha256: 4b75f85ce1cd016b6b608e62465b84dedc86821a1cabdab4c2939b0f786918e9
+  awdk==3.8.48:
+    url: https://files.pythonhosted.org/packages/85/43/a596b3b597093e18c7cab08010177e266dff685df6b3211e545ccf450ebe/awdk-3.8.48-py3-none-any.whl
+    sha256: c6ab98a5286b3387ac51d92acbe0ba6fad03543089bd09d04eb5799c0170386d
   awgit==1.12.0:
     url: https://files.pythonhosted.org/packages/76/0c/841db2f80b7b503fbb48029a7304e36182b42a134cef174af55d5ea4cd3b/awgit-1.12.0-py3-none-any.whl
     sha256: 0356130ee77dfae4663a6c139a7a89bfa72e7b289bfc8503024b5e5f87304320
@@ -133,9 +133,9 @@ wheels:
   markdown-it-py==4.2.0:
     url: https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl
     sha256: 9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a
-  markupsafe==3.0.3:
-    url: https://files.pythonhosted.org/packages/30/ac/0273f6fcb5f42e314c6d8cd99effae6a5354604d461b8d392b5ec9530a54/markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
-    sha256: 0bf2a864d67e76e5c9a34dc26ec616a66b9888e25e7b9460e1c76d3293bd9dbf
+  markupsafe==3.0.4:
+    url: https://files.pythonhosted.org/packages/81/a5/a513b76c139a3915b43404324e55c0b7979ae4f0d39eb6f075b0282e90a8/markupsafe-3.0.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+    sha256: 6da83a088f8ef93b2d483a8232a4dbf4d69d3d8496b568a03c56becac43e1808
   mcp==1.30.0:
     url: https://files.pythonhosted.org/packages/f5/f4/e58bc33317c92a0203664daaf00bf6f41166cc0149e5d6870a03f7cd004a/mcp-1.30.0-py3-none-any.whl
     sha256: 666edb5009503e1047c9d60346a756f94b261f05cc2625f23d41c728ffc484d0
@@ -356,7 +356,7 @@ components:
   - filelock==4.0.9
   - fsspec==2026.9.0
   - jinja2==3.1.6
-  - markupsafe==3.0.3
+  - markupsafe==3.0.4
   - mpmath==1.3.0
   - networkx==3.6.1
   - numpy==2.4.6
@@ -632,9 +632,9 @@ components:
 - id: awdk
   name: awdk
   kind: pypi
-  version: 3.8.42
-  pin: sha256:4b75f85ce1cd016b6b608e62465b84dedc86821a1cabdab4c2939b0f786918e9
-  url: https://files.pythonhosted.org/packages/26/48/9fbc51530de0e4c6f5ed91bea6fc92ff8ad64e5b98dfb850db62806a1551/awdk-3.8.42-py3-none-any.whl
+  version: 3.8.48
+  pin: sha256:c6ab98a5286b3387ac51d92acbe0ba6fad03543089bd09d04eb5799c0170386d
+  url: https://files.pythonhosted.org/packages/85/43/a596b3b597093e18c7cab08010177e266dff685df6b3211e545ccf450ebe/awdk-3.8.48-py3-none-any.whl
   provides:
   - adk
   - adk-bug
@@ -673,7 +673,7 @@ components:
   - idna==3.20
   - jinja2==3.1.6
   - lxml==6.1.3
-  - markupsafe==3.0.3
+  - markupsafe==3.0.4
   - opentelemetry-api==1.45.0
   - primp==2.0.1
   - pycparser==3.0
@@ -724,7 +724,7 @@ components:
   - idna==3.20
   - jinja2==3.1.6
   - markdown-it-py==4.2.0
-  - markupsafe==3.0.3
+  - markupsafe==3.0.4
   - mdurl==0.1.2
   - mpmath==1.3.0
   - networkx==3.6.1
@@ -779,9 +779,9 @@ components:
 - id: awfind
   name: awfind
   kind: pypi
-  version: 0.2.1
-  pin: sha256:565bc8242c10c4cf3c6b076b92803f9310d1f0bc5a40dc834b58521bbb3381b4
-  url: https://files.pythonhosted.org/packages/b3/9e/09216fb60b4b82babf40c1b75e577f2ebfaeff46a477493e21409855d187/awfind-0.2.1-py3-none-any.whl
+  version: 0.3.0
+  pin: sha256:193d609790948471c9b832a348b5e7674982731176b384ac6f6e8e3e58fd0342
+  url: https://files.pythonhosted.org/packages/cc/ed/5017252e87dceb924ac68abacb88a2dbfe0a03b99c59ed376e179d902635/awfind-0.3.0-py3-none-any.whl
   provides:
   - awfind
   requires_license: false
@@ -1121,7 +1121,7 @@ components:
   - annotated-types==0.8.0
   - anyio==4.15.1
   - attrs==26.1.0
-  - awdk==3.8.42
+  - awdk==3.8.48
   - awgit==1.12.0
   - awgraph==1.4.14
   - awrelay==0.5.0
@@ -1144,7 +1144,7 @@ components:
   - jsonschema==4.26.0
   - jsonschema-specifications==2025.9.1
   - lxml==6.1.3
-  - markupsafe==3.0.3
+  - markupsafe==3.0.4
   - mcp==1.30.0
   - opentelemetry-api==1.45.0
   - primp==2.0.1
@@ -1383,7 +1383,7 @@ components:
   - annotated-doc==0.0.5
   - annotated-types==0.8.0
   - anyio==4.15.1
-  - awdk==3.8.42
+  - awdk==3.8.48
   - awgit==1.12.0
   - awgraph==1.4.14
   - awrelay==0.5.0
@@ -1403,7 +1403,7 @@ components:
   - idna==3.20
   - jinja2==3.1.6
   - lxml==6.1.3
-  - markupsafe==3.0.3
+  - markupsafe==3.0.4
   - opentelemetry-api==1.45.0
   - primp==2.0.1
   - pycparser==3.0
@@ -1804,8 +1804,8 @@ components:
 - id: aitherbrain
   name: AitherBrain
   kind: container
-  version: latest@38194ee83de3
-  pin: sha256:38194ee83de3db52d6f9b24357e1f03d222825b0e755ff5083afe96f812e591c
+  version: latest@427b0fbe4711
+  pin: sha256:427b0fbe47113920637d6fd1d5977b94f5455e37cc0cd77b9dae8324fd09abe3
   url: ghcr.io/aitherium/aitheros-brain
   provides: []
   requires_license: true
@@ -1944,8 +1944,8 @@ components:
 - id: autoresearch
   name: AutoResearch
   kind: container
-  version: latest@2be4e9e9221e
-  pin: sha256:2be4e9e9221e86607158545f5a216d224a832c3aa1d50a73c664263eb056368c
+  version: latest@ecbfcd5d9da1
+  pin: sha256:ecbfcd5d9da1ceccf8a12c1c121e7f0eb63d21d2bcdcc14bbcc7b646b9df7825
   url: ghcr.io/aitherium/aitheros-autoresearch
   provides: []
   requires_license: true
@@ -2072,8 +2072,8 @@ components:
 - id: chaosagent
   name: ChaosAgent
   kind: container
-  version: latest@2342811c1ff9
-  pin: sha256:2342811c1ff91ee7549f90f7d1e39d3e13e55a386a32a85fab27b7d53d3a252f
+  version: latest@78e5e2b57801
+  pin: sha256:78e5e2b578013e959355f8e3030fd7efe523110927cf1bc73b744ba6ff6afc97
   url: ghcr.io/aitherium/aitheros-chaos-agent
   provides: []
   requires_license: true
@@ -2164,8 +2164,8 @@ components:
 - id: cognitioncore
   name: CognitionCore
   kind: container
-  version: latest@38194ee83de3
-  pin: sha256:38194ee83de3db52d6f9b24357e1f03d222825b0e755ff5083afe96f812e591c
+  version: latest@427b0fbe4711
+  pin: sha256:427b0fbe47113920637d6fd1d5977b94f5455e37cc0cd77b9dae8324fd09abe3
   url: ghcr.io/aitherium/aitheros-cognition-core
   provides: []
   requires_license: true
@@ -2388,8 +2388,8 @@ components:
 - id: forgeidebackend
   name: ForgeIDEBackend
   kind: container
-  version: latest@e8e3831b3097
-  pin: sha256:e8e3831b3097b94e6ba2cbd3b19e52443422eaea55f36f1911e7c67c8e5ee33f
+  version: latest@250c91e1f081
+  pin: sha256:250c91e1f081755753e1f208b36e479e75f2f072f3ca0a4b0e5dfe4591e52ca1
   url: ghcr.io/aitherium/aitheros-forge-ide
   provides: []
   requires_license: true
@@ -2432,8 +2432,8 @@ components:
 - id: genesis
   name: Genesis
   kind: container
-  version: latest@42e831192208
-  pin: sha256:42e831192208b05dbba779e2d4d3d13b8dd3d19104d02ffd42493d21954798e0
+  version: latest@fcccfaec7725
+  pin: sha256:fcccfaec7725e2b81374b6652ad737ab3f12727597a484109474a0f88bb5f134
   url: ghcr.io/aitherium/aitheros-genesis
   provides: []
   requires_license: true
@@ -2536,8 +2536,8 @@ components:
 - id: knowledgegraph
   name: KnowledgeGraph
   kind: container
-  version: latest@d54c63b4db51
-  pin: sha256:d54c63b4db51e8d43085c5b7ab929135b93c9bf7af2dbaafb68953c593af58f5
+  version: latest@d353195cf0b9
+  pin: sha256:d353195cf0b922556f300bd2c2ce1229fbc09cb5518e4b56a9010d4aa6f23053
   url: ghcr.io/aitherium/aitheros-knowledgegraph
   provides: []
   requires_license: true
@@ -2600,8 +2600,8 @@ components:
 - id: lyrawiki
   name: LyraWiki
   kind: container
-  version: latest@b45ef2742739
-  pin: sha256:b45ef2742739b5556259a58060b2c73f0584fba62f3318cd7351948b05ebec2c
+  version: latest@4aa3a18e274a
+  pin: sha256:4aa3a18e274a0496f261706be8590718bb4abdfa95e0f06a6131b9990099203b
   url: ghcr.io/aitherium/aitheros-lyra
   provides: []
   requires_license: true
@@ -2668,8 +2668,8 @@ components:
 - id: microscheduler
   name: MicroScheduler
   kind: container
-  version: latest@1a0bbddd8340
-  pin: sha256:1a0bbddd8340d61fc988f39aa6844f7f137d524e699d26c138d886f0ce93df27
+  version: latest@af7df677ace1
+  pin: sha256:af7df677ace11755648108809f95eaf7793bcd212974e67550fe21daa481d964
   url: ghcr.io/aitherium/aitheros-microscheduler
   provides: []
   requires_license: true
@@ -2700,8 +2700,8 @@ components:
 - id: omninodesettlementreconciler
   name: OmniNodeSettlementReconciler
   kind: container
-  version: latest@e8e3831b3097
-  pin: sha256:e8e3831b3097b94e6ba2cbd3b19e52443422eaea55f36f1911e7c67c8e5ee33f
+  version: latest@250c91e1f081
+  pin: sha256:250c91e1f081755753e1f208b36e479e75f2f072f3ca0a4b0e5dfe4591e52ca1
   url: ghcr.io/aitherium/aitheros-omninode-settlement
   provides: []
   requires_license: true
@@ -2732,8 +2732,8 @@ components:
 - id: perceptioncore
   name: PerceptionCore
   kind: container
-  version: latest@1b349fc943dd
-  pin: sha256:1b349fc943dd24dd8cd293cbd6ed8ebb2dd12b3ed448718e5c3884d8bd741b15
+  version: latest@863b428af6b8
+  pin: sha256:863b428af6b8502be96230f2f47a7aed8f9e3b64db74462871ffb3302de07a00
   url: ghcr.io/aitherium/aitheros-perception-core
   provides: []
   requires_license: true
@@ -2764,8 +2764,8 @@ components:
 - id: portalgateway
   name: PortalGateway
   kind: container
-  version: latest@17bddd34f2d2
-  pin: sha256:17bddd34f2d2c3ce2456fa3be05c9344e7cb535251d085fe02d75e3aed31778c
+  version: latest@541167c686f0
+  pin: sha256:541167c686f00f0a689dd609684ae7712fa1b349fbec42818a7c91c2aa38031c
   url: ghcr.io/aitherium/aitheros-portal-gateway
   provides: []
   requires_license: true
@@ -2856,8 +2856,8 @@ components:
 - id: remotionrenderer
   name: RemotionRenderer
   kind: container
-  version: latest@13adc3d20f84
-  pin: sha256:13adc3d20f8495de49f96645b2c6ca89da31081f010ef9e359baf57729b60fde
+  version: latest@230f034c55b1
+  pin: sha256:230f034c55b1b84287db82258d3da49fb7ea09b4824230a446adb50cac0ea4c9
   url: ghcr.io/aitherium/aitheros-remotion-renderer
   provides: []
   requires_license: true
@@ -2936,8 +2936,8 @@ components:
 - id: securitycore
   name: SecurityCore
   kind: container
-  version: latest@496c7f60f862
-  pin: sha256:496c7f60f862735f9e4f92da59d6a3638efd394929cb0093f59b37e8fc50ae99
+  version: latest@250c91e1f081
+  pin: sha256:250c91e1f081755753e1f208b36e479e75f2f072f3ca0a4b0e5dfe4591e52ca1
   url: ghcr.io/aitherium/aitheros-security-core
   provides: []
   requires_license: true
@@ -2956,8 +2956,8 @@ components:
 - id: securitydefense
   name: SecurityDefense
   kind: container
-  version: latest@38e4b4c31fd5
-  pin: sha256:38e4b4c31fd52b1c9ecd488fd45008d1c85a8170dd86d90a49e724a0d41951bc
+  version: latest@ddc22c695394
+  pin: sha256:ddc22c69539455a8e5c47647ea4c512614af1709abdc76602d09eedd76db1cfd
   url: ghcr.io/aitherium/aitheros-security-defense
   provides: []
   requires_license: true
@@ -3024,8 +3024,8 @@ components:
 - id: sovereignnode
   name: SovereignNode
   kind: container
-  version: latest@e6668c61eb46
-  pin: sha256:e6668c61eb46e8a032a14aa72eca1367400671da8f34eacd29ad19f215cf6832
+  version: latest@c8ff13e86792
+  pin: sha256:c8ff13e86792da3a98ac68d18aa14cb5c0b91dc84681c4411ec039611c51cfa0
   url: ghcr.io/aitherium/aitheros-sovereign-node
   provides: []
   requires_license: true
@@ -3068,8 +3068,8 @@ components:
 - id: stratameshreplicationtrigger
   name: StrataMeshReplicationTrigger
   kind: container
-  version: latest@e8e3831b3097
-  pin: sha256:e8e3831b3097b94e6ba2cbd3b19e52443422eaea55f36f1911e7c67c8e5ee33f
+  version: latest@250c91e1f081
+  pin: sha256:250c91e1f081755753e1f208b36e479e75f2f072f3ca0a4b0e5dfe4591e52ca1
   url: ghcr.io/aitherium/aitheros-strata-mesh-repl
   provides: []
   requires_license: true
@@ -3184,8 +3184,8 @@ components:
 - id: tunnel
   name: Tunnel
   kind: container
-  version: latest@e6668c61eb46
-  pin: sha256:e6668c61eb46e8a032a14aa72eca1367400671da8f34eacd29ad19f215cf6832
+  version: latest@c8ff13e86792
+  pin: sha256:c8ff13e86792da3a98ac68d18aa14cb5c0b91dc84681c4411ec039611c51cfa0
   url: ghcr.io/aitherium/aitheros-tunnel-service
   provides: []
   requires_license: true
@@ -3216,8 +3216,8 @@ components:
 - id: veil
   name: Veil
   kind: container
-  version: latest@fe485cba7daa
-  pin: sha256:fe485cba7daae2b71f28bdf8a7ca35563aeb0750d0bb0cfbfc6d27dc2ab3e35d
+  version: latest@e316bc06ade1
+  pin: sha256:e316bc06ade1a8ef36a11c28eae055c1ff99f21653fdedaf69b7500ce2a54018
   url: ghcr.io/aitherium/aitheros-veil
   provides: []
   requires_license: true
@@ -3280,8 +3280,8 @@ components:
 - id: workflowhub
   name: WorkflowHub
   kind: container
-  version: latest@17bddd34f2d2
-  pin: sha256:17bddd34f2d2c3ce2456fa3be05c9344e7cb535251d085fe02d75e3aed31778c
+  version: latest@541167c686f0
+  pin: sha256:541167c686f00f0a689dd609684ae7712fa1b349fbec42818a7c91c2aa38031c
   url: ghcr.io/aitherium/aitheros-workflow-hub
   provides: []
   requires_license: true
@@ -3300,8 +3300,8 @@ components:
 - id: workingmemory
   name: WorkingMemory
   kind: container
-  version: latest@d54c63b4db51
-  pin: sha256:d54c63b4db51e8d43085c5b7ab929135b93c9bf7af2dbaafb68953c593af58f5
+  version: latest@d353195cf0b9
+  pin: sha256:d353195cf0b922556f300bd2c2ce1229fbc09cb5518e4b56a9010d4aa6f23053
   url: ghcr.io/aitherium/aitheros-workingmemory
   provides: []
   requires_license: true

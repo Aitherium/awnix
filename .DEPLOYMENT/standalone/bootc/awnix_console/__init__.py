@@ -64,6 +64,9 @@ class Settings:
     profile: str = "awnix"
     brand: str = "awnix"
     tls: bool = True
+    # The awnix desktop: style the page with the CONNECTING user's awnix-theme tokens
+    # (usertheme.py). Off everywhere else; console.d/desktop.conf turns it on.
+    user_theme: bool = False
     # Extra environment handed to child CLIs (tests only; production is scrubbed).
     child_env: Dict[str, str] = dataclasses.field(default_factory=dict)
 
@@ -130,7 +133,7 @@ def parse_env_file(path: str) -> Dict[str, str]:
 
 def load_conf(settings: Settings, environ: Optional[Dict[str, str]] = None) -> Settings:
     """Apply /usr/lib/awnix/console.conf < console.d/*.conf < /etc/awnix/console.conf
-    < process env onto `settings` (bind, port, profile, brand)."""
+    < process env onto `settings` (bind, port, profile, brand, user_theme)."""
     merged: Dict[str, str] = {}
     merged.update(parse_env_file(settings.vendor_conf))
     for p in sorted(glob.glob(os.path.join(settings.vendor_conf_d, "*.conf"))):
@@ -138,9 +141,12 @@ def load_conf(settings: Settings, environ: Optional[Dict[str, str]] = None) -> S
     merged.update(parse_env_file(settings.admin_conf))
     env = os.environ if environ is None else environ
     for k in ("AWNIX_CONSOLE_BIND", "AWNIX_CONSOLE_PORT", "AWNIX_CONSOLE_PROFILE",
-              "AWNIX_CONSOLE_BRAND"):
+              "AWNIX_CONSOLE_BRAND", "AWNIX_CONSOLE_USER_THEME"):
         if k in env:
             merged[k] = env[k]
+    if "AWNIX_CONSOLE_USER_THEME" in merged:
+        settings.user_theme = merged["AWNIX_CONSOLE_USER_THEME"].strip().lower() in (
+            "1", "true", "yes", "on")
     if merged.get("AWNIX_CONSOLE_BIND"):
         settings.bind = merged["AWNIX_CONSOLE_BIND"]
     if merged.get("AWNIX_CONSOLE_PORT"):

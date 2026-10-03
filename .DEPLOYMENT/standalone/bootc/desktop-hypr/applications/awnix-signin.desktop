@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Sign in (optional)
+GenericName=Aitherium account
+Comment=Sign in to an Aitherium account. Optional: this machine works offline without one
+Exec=foot --app-id=awnix-float --title=awnix-signin -e awnix-desktop-run "awnix-signin login"
+Icon=system-users
+Categories=Settings;
+Keywords=account;sign in;login;aitherium;

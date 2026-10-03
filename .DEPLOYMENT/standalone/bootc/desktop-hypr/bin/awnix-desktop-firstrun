@@ -27,6 +27,25 @@ case "${1:-}" in
     *) echo "usage: awnix-desktop-firstrun --if-new|--force" >&2; exit 2 ;;
 esac
 mkdir -p "$state"
+first=0
+[ -e "$done_flag" ] || first=1
+# The optional account step: asked once, on the FIRST run only, after the model.
+# Default No; a skip, a failure or a machine set not to offer it (awnix-signin offer
+# = 0) all leave the desktop exactly as it was: offline, nothing sent anywhere.
+offer_signin() {
+    [ "$first" = 1 ] || return 0
+    [ "$(awnix-signin offer 2>/dev/null)" = 1 ] || return 0
+    awnix-signin status >/dev/null 2>&1 && return 0
+    echo
+    echo "Optional: sign in to an Aitherium account. Nothing here needs one -- the agent,"
+    echo "the model and every tool work offline. Later: Super+/ then 'Sign in'."
+    printf 'Sign in now? [y/N] '
+    read -r ans
+    case "$ans" in
+        y|Y|yes|YES) awnix-signin login || echo "Not signed in; carrying on offline." ;;
+        *) echo "Skipped: staying offline." ;;
+    esac
+}
 echo "Welcome to awnix."
 echo
 echo "  Super+/   every key and action, searchable"
@@ -46,6 +65,7 @@ if [ "$pick" = skip ]; then
     touch "$done_flag"
     echo "Skipped. awsh (Super+A) has no local model to answer from until you choose one:"
     echo "Super+/ then 'Choose the local model' brings this back."
+    offer_signin
     sleep 3
     exit 0
 fi
@@ -102,5 +122,6 @@ else
     echo "The model is downloaded but its server did not come up, so awsh has no model yet."
     echo "See why:  journalctl --user -u awnix-model.service -n 30"
 fi
+offer_signin
 printf 'Press Enter to close '
 read -r _

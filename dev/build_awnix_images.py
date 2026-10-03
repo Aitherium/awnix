@@ -324,12 +324,24 @@ LAYERS: tuple[Layer, ...] = (
             "&& /usr/libexec/awnix/awnix-component --self-test >/dev/null "
             "&& systemctl is-enabled greetd.service awnix-console.service >/dev/null "
             "&& test \"$(systemctl get-default)\" = graphical.target "
+            "&& systemctl --global is-enabled awsh-agent.service awsh-harness.service "
+            "awnix-hub.service awrise.timer >/dev/null "
+            "&& awnix-agent-status --self-test >/dev/null "
+            "&& command -v awnode && command -v awm && command -v awrise "
+            "&& /usr/libexec/awnix/awnix-component info awrise --json "
+            "| grep -q '\"state\": \"baked\"' "
+            "&& awnix-signin --self-test >/dev/null "
+            "&& test -f /usr/share/awnix-setup/steps.d/75-signin.json "
+            "&& grep -qx 'AWNIX_CONSOLE_USER_THEME=1' /usr/lib/awnix/console.d/desktop.conf "
             "&& echo AWNIX_HYPR_OK"
         ),
         verify_label="Hyprland, waybar, fuzzel, swaylock, foot, Firefox, neovim, distrobox and "
                      "awsh are present; awnix-theme and awnix-keys self-test; >=4 themes; the "
                      "binds were generated; greetd starts awnix-session; the console is "
-                     "loopback-only; the machine boots graphical",
+                     "loopback-only; the machine boots graphical; the agent, harness and hub "
+                     "user units and the awrise clock are enabled for every user; awnode, awm "
+                     "and awrise are baked from the lock; the optional sign-in step ships; "
+                     "Settings follows the desktop theme",
     ),
     # ── awnix-full ─ the batteries-included variant ──────────────────────
     # This layer was declared in awnix-variants.yaml with `iso: true` and existed in

@@ -1,0 +1,95 @@
+#!/bin/sh
+# awnix-signin -- the OPTIONAL Aitherium account sign-in of the awnix desktop.
+#
+#   awnix-signin offer          1 if this machine offers sign-in at first login, else 0
+#   awnix-signin offer 1|0      (root) set that -- the console's setup step "signin"
+#   awnix-signin status         exit 0 signed in, 1 not (prints which)
+#   awnix-signin login          run the `adk login` device flow for THIS user
+#   awnix-signin logout         `adk logout`
+#   awnix-signin --self-test
+#
+# Nothing on this desktop needs an account: the agent, the local model, the hub and
+# every tool work offline, and the daemons run AITHER_OFFLINE=1 either way. Sign-in is
+# offered once, by the first-login welcome (awnix-desktop-firstrun), defaulting to No,
+# and lives in the Super+/ menu afterwards. An admin who wants it never offered sets the
+# setup step off (or writes 0 to /etc/awnix/signin.offer).
+#
+# The device flow prints a short code and a URL; open the URL in the browser on this
+# machine or any other and enter the code. Nothing is typed into this terminal but the
+# choice, and no secret is written by this script (adk keeps its own ~/.aither files).
+set -u
+OFFER="${AWNIX_SIGNIN_OFFER:-/etc/awnix/signin.offer}"
+STATUS="${AWNIX_SIGNIN_STATUS_CMD:-awnix-agent-status --json}"
+
+offer_get() {
+    v=""
+    [ -r "$OFFER" ] && v=$(tr -d ' \r\n' < "$OFFER")
+    case "$v" in 0) echo 0 ;; *) echo 1 ;; esac
+}
+
+offer_set() {
+    case "$1" in
+        1|on|true|yes) v=1 ;;
+        0|off|false|no) v=0 ;;
+        *) echo "awnix-signin: offer takes 1 or 0" >&2; return 2 ;;
+    esac
+    mkdir -p "$(dirname "$OFFER")" || return 1
+    printf '%s\n' "$v" > "$OFFER.tmp" && chmod 0644 "$OFFER.tmp" && mv -f "$OFFER.tmp" "$OFFER"
+    echo "sign-in offered at first login: $v"
+}
+
+is_signed_in() {
+    $STATUS 2>/dev/null | grep -q '"signed_in": true'
+}
+
+self_test() {
+    tmp=$(mktemp -d) || return 2
+    fails=0
+    t() { if [ "$2" = "$3" ]; then echo "  ok   $1"; else echo "  FAIL $1 (want '$2' got '$3')"; fails=$((fails + 1)); fi; }
+    me="$0"
+    run() { AWNIX_SIGNIN_OFFER="$tmp/offer" AWNIX_SIGNIN_STATUS_CMD="$STUB" sh "$me" "$@"; }
+    STUB="echo {\"signed_in\": false}"
+    t "no file: offered" 1 "$(run offer)"
+    run offer 0 >/dev/null
+    t "set off" 0 "$(run offer)"
+    run offer 1 >/dev/null
+    t "set on" 1 "$(run offer)"
+    run offer maybe >/dev/null 2>&1
+    t "a bad value is refused" 2 "$?"
+    t "a bad value changes nothing" 1 "$(run offer)"
+    run status >/dev/null
+    t "not signed in: status exits 1" 1 "$?"
+    STUB="echo {\"signed_in\": true}"
+    run status >/dev/null
+    t "signed in: status exits 0" 0 "$?"
+    run login >/dev/null
+    t "login when already signed in does nothing" 0 "$?"
+    rm -rf "$tmp"
+    if [ "$fails" -eq 0 ]; then echo "awnix-signin self-test: PASS"; return 0; fi
+    echo "awnix-signin self-test: FAIL ($fails)"
+    return 1
+}
+
+case "${1:-}" in
+    offer)
+        if [ $# -ge 2 ]; then offer_set "$2"; exit $?; fi
+        offer_get ;;
+    status)
+        if is_signed_in; then echo "signed in"; exit 0; fi
+        echo "not signed in (offline: everything stays on this machine)"
+        exit 1 ;;
+    login)
+        if is_signed_in; then echo "Already signed in."; exit 0; fi
+        echo "Sign in to an Aitherium account (optional -- this machine works without one)."
+        echo "A code and a link follow; open the link in a browser and enter the code."
+        echo
+        adk login || { echo; echo "Not signed in. Everything keeps working offline."; exit 1; }
+        notify-send -a awnix -t 4000 "Account" "Signed in" >/dev/null 2>&1 || true ;;
+    logout)
+        adk logout ;;
+    --self-test)
+        self_test; exit $? ;;
+    *)
+        echo "usage: awnix-signin offer [1|0] | status | login | logout | --self-test" >&2
+        exit 2 ;;
+esac

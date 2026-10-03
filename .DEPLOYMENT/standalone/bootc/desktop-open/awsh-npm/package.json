@@ -1,0 +1,8 @@
+{
+  "name": "awnix-awsh-pin",
+  "private": true,
+  "description": "Pins @aitherium/awsh and its whole dependency tree by integrity for Containerfile.awnix-desktop-open (npm ci). Regenerate: npm install --package-lock-only --ignore-scripts @aitherium/awsh@<version>",
+  "dependencies": {
+    "@aitherium/awsh": "1.19.2"
+  }
+}

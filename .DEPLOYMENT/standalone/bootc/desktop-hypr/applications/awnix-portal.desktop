@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Aitherium portal
+GenericName=Aitherium (web)
+Comment=Opens aitherium.com in Firefox -- a hosted link, nothing of it is on this machine
+Exec=firefox --new-window https://aitherium.com
+Icon=web-browser
+Categories=Network;WebBrowser;
+Keywords=aitherium;portal;account;web;

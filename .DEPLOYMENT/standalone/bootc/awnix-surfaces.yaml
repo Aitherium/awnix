@@ -50,7 +50,7 @@
       "command": "awsh",
       "description": "The terminal agent. Run it from an SSH session.",
       "baked_proof": [
-        "npm install -g[^\n]*@aitherium/awsh"
+        "(npm install -g[^\n]*@aitherium/awsh|ln -sf /usr/lib/awsh-npm/node_modules/\\.bin/awsh /usr/bin/awsh)"
       ]
     },
     "awdesk": {

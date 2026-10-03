@@ -7,12 +7,18 @@
     "spacing": 4,
     "modules-left": ["custom/menu", "hyprland/workspaces"],
     "modules-center": ["clock"],
-    "modules-right": ["custom/awsh", "custom/theme", "pulseaudio", "bluetooth", "network", "battery", "tray"],
+    "modules-right": ["custom/agent", "custom/awsh", "custom/theme", "pulseaudio", "bluetooth", "network", "battery", "tray"],
 
     "custom/menu": {
         "format": "awnix",
         "tooltip-format": "Every key and action (Super+/)",
         "on-click": "awnix-keys menu"
+    },
+    "custom/agent": {
+        "exec": "awnix-agent-status --waybar",
+        "return-type": "json",
+        "interval": 10,
+        "on-click": "awnix-keys run agent-status"
     },
     "custom/awsh": {
         "format": "\uf120 ask",

@@ -36,7 +36,7 @@ from http import HTTPStatus
 from typing import Any, Callable, Dict, Optional, Tuple
 from urllib.parse import unquote, urlsplit
 
-from . import BOOTC_DIR, VERSION, Settings, auth, read_release, resolve_bind
+from . import BOOTC_DIR, VERSION, Settings, auth, read_release, resolve_bind, usertheme
 from . import actions as act
 from . import tls as tlsmod
 
@@ -408,6 +408,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self._not_allowed()
             elif path == "/guide.json":
                 self._file(self.server.settings.guide_json, missing_404=True)
+            elif path == usertheme.ROUTE and self.server.settings.user_theme:
+                self._user_theme()
             else:
                 self._static(path)
         except BrokenPipeError:
@@ -653,9 +655,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             raise
         ext = os.path.splitext(path)[1].lower()
+        if self.server.settings.user_theme and os.path.basename(path) == "index.html":
+            data = usertheme.inject(data)
         extra = {"Cache-Control": "no-cache" if ext == ".html" or ext == ".json"
                  else "public, max-age=3600"}
         self._headers(200, TYPES.get(ext, "application/octet-stream"), len(data), extra)
+        if self.command != "HEAD":
+            self.wfile.write(data)
+
+    def _user_theme(self) -> None:
+        """/awnix-theme.css: the connecting local user's theme tokens (usertheme.py).
+        Open like the bundle's own CSS: colours only, and only the peer's own."""
+        server_port = self.server.server_address[1]
+        css = usertheme.css_for(self.client_address[0], self.client_address[1], server_port)
+        data = css.encode("utf-8")
+        self._headers(200, TYPES[".css"], len(data), {"Cache-Control": "no-cache"})
         if self.command != "HEAD":
             self.wfile.write(data)
 

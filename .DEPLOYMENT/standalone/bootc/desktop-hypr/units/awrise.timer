@@ -1,0 +1,15 @@
+# /usr/lib/systemd/user/awrise.timer -- the awrise wake clock: run-due every 60 s.
+#
+# 60 s is the family's tick (.claude/rules/aw-family.md), so a job that outruns it must
+# carry --detach (WL005). Enabled for every user by the image.
+[Unit]
+Description=awrise clock: wake run-due every 60s
+
+[Timer]
+OnStartupSec=90
+OnUnitActiveSec=60
+AccuracySec=10
+Unit=awrise.service
+
+[Install]
+WantedBy=timers.target

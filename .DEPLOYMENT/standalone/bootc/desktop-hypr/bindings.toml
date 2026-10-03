@@ -34,6 +34,47 @@ desc = "Choose the local model"
 group = "AI"
 cmd = "foot --app-id=awnix-float --title=awnix-model -e awnix-desktop-firstrun --force"
 
+[[entry]]
+id = "agent-status"
+desc = "Agent and harness daemons: are they up (this machine only)"
+group = "AI"
+cmd = "foot --app-id=awnix-float --title=awnix-agent -e awnix-desktop-run 'awnix-agent-status; echo; awnix awsh doctor'"
+
+[[entry]]
+id = "wakes"
+desc = "Scheduled wakes (awrise: what ran, what is due)"
+group = "AI"
+cmd = "foot --app-id=awnix-float --title=awrise -e awnix-desktop-run 'awrise status; echo; awrise list; echo; echo add a job with: awrise add --help; exec bash'"
+
+# ── account and hosted surfaces (all optional: this machine works offline) ──────
+[[entry]]
+id = "signin"
+desc = "Sign in to an Aitherium account (optional)"
+group = "Account"
+cmd = "foot --app-id=awnix-float --title=awnix-signin -e awnix-desktop-run 'awnix-signin login'"
+
+[[entry]]
+id = "signout"
+desc = "Sign out of the Aitherium account"
+group = "Account"
+cmd = "foot --app-id=awnix-float --title=awnix-signin -e awnix-desktop-run 'awnix-signin logout'"
+
+# Hosted, so LINKS only: nothing of them is in this image (awnix-surfaces.yaml marks both
+# `link` for awnix-hypr; check_awnix_desktop.py AWDK015 holds the URLs to that file).
+[[entry]]
+id = "living-desktop"
+desc = "Living Desktop (opens desktop.aitherium.com in Firefox)"
+group = "Account"
+keys = "SUPER SHIFT, D"
+cmd = "firefox --new-window https://desktop.aitherium.com"
+
+[[entry]]
+id = "portal"
+desc = "Aitherium portal (opens aitherium.com in Firefox)"
+group = "Account"
+keys = "SUPER SHIFT, P"
+cmd = "firefox --new-window https://aitherium.com"
+
 # ── the core ────────────────────────────────────────────────────────────────────
 [[entry]]
 id = "menu"

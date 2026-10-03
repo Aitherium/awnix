@@ -28,12 +28,17 @@ tooltip {
 }
 #workspaces button.urgent { color: {{colors.urgent}}; }
 #custom-awsh, #custom-menu, #clock, #pulseaudio, #network, #bluetooth,
-#battery, #cpu, #memory, #tray, #custom-theme {
+#battery, #cpu, #memory, #tray, #custom-theme, #custom-agent {
     padding: 0 10px;
     color: {{colors.fg_dim}};
 }
 #custom-awsh { color: {{colors.accent}}; font-weight: bold; }
 #custom-menu { color: {{colors.accent_alt}}; }
+/* awnix-agent-status: up = signed in, offline = local only (the default), down = a
+   daemon is not answering. */
+#custom-agent.up { color: {{colors.good}}; }
+#custom-agent.offline { color: {{colors.fg_dim}}; }
+#custom-agent.down { color: {{colors.urgent}}; font-weight: bold; }
 #clock { color: {{colors.fg}}; }
 #battery.warning, #network.disconnected { color: {{colors.warn}}; }
 #battery.critical, #pulseaudio.muted { color: {{colors.urgent}}; }
