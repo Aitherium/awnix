@@ -252,6 +252,23 @@ LAYERS: tuple[Layer, ...] = (
                      "exists (it REFUSES to start without it)",
     ),
     Layer(
+        name="ai-offline",
+        tag="localhost/awnix-ai-offline:latest",
+        containerfile="Containerfile.awnix-ai-offline",
+        # ai-full fetches its model at first boot; this rung carries the weights. Verify
+        # the weights are THERE and the server unit is told never to download.
+        verify_cmd=(
+            "test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf "
+            "&& test -s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf "
+            "&& grep -q AWNIX_OFFLINE=1 "
+            "/usr/lib/systemd/system/awnix-bonsai.service.d/10-offline.conf "
+            "&& systemctl is-enabled awnix-bonsai.service >/dev/null "
+            "&& echo AWNIX_AI_OFFLINE_OK"
+        ),
+        verify_label="the Bonsai 1.7B and 4B weights are baked and the server unit is "
+                     "enabled and pinned offline (no first-boot download)",
+    ),
+    Layer(
         name="desktop-gui",
         tag="localhost/awnix-desktop:latest",
         containerfile="Containerfile.awnix-desktop",

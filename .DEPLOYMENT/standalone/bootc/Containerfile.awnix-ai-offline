@@ -1,0 +1,49 @@
+# awnix ai-offline: the aw* stack WITH inference AND the weights, for a box with no
+# internet. awnix-ai-full fetches its model at first boot (the weights are deliberately
+# not in that image), so an air-gapped install of it serves nothing. This layer bakes the
+# two smallest rungs of the Bonsai ladder from awnix-models.yaml -- the exact files the
+# selector names, sha256-checked against that catalogue -- and tells the server unit to
+# serve the largest BAKED model instead of downloading a bigger one.
+#
+# Bonsai only: 1.7B (441 MB) runs on plain CPU, 4B (1025 MB) is the 4 GB-card model.
+# Bigger rungs stay one `AWNIX_MODEL=bonsai-8b` + network away.
+FROM localhost/awnix-ai-full:latest
+
+ARG BONSAI_BASE=https://huggingface.co/prism-ml
+RUN set -eu; \
+    for spec in \
+        "Ternary-Bonsai-1.7B-gguf/resolve/main/Ternary-Bonsai-1.7B-Q2_0.gguf|Ternary-Bonsai-1.7B-Q2_0.gguf|d97d94eb564590c9f0300e54d3f87bbbb25a78693d0ade9f6e177973dcb8228a" \
+        "Ternary-Bonsai-4B-gguf/resolve/main/Ternary-Bonsai-4B-Q2_0.gguf|Ternary-Bonsai-4B-Q2_0.gguf|4e0bf8b737b0431552f8c2c97695ab7c0cb214c94bcdeb4f5f267e67ddf28b8b" \
+    ; do \
+        path="${spec%%|*}"; rest="${spec#*|}"; file="${rest%%|*}"; sha="${rest#*|}"; \
+        echo "baking $file"; \
+        curl -fL --retry 3 --retry-delay 5 -o "/opt/bonsai/models/$file.part" "$BONSAI_BASE/$path"; \
+        got=$(sha256sum "/opt/bonsai/models/$file.part" | cut -d' ' -f1); \
+        if [ "$got" != "$sha" ]; then \
+            echo "$file sha256 $got != catalogue $sha -- refusing to bake it" >&2; exit 1; \
+        fi; \
+        mv "/opt/bonsai/models/$file.part" "/opt/bonsai/models/$file"; \
+    done; \
+    chown -R bonsai:bonsai /opt/bonsai/models; \
+    ls -lh /opt/bonsai/models/
+
+# Serve the largest baked model when the one this machine could fit is not on disk.
+RUN mkdir -p /usr/lib/systemd/system/awnix-bonsai.service.d \
+    && printf '[Service]\nEnvironment=AWNIX_OFFLINE=1\n' \
+        > /usr/lib/systemd/system/awnix-bonsai.service.d/10-offline.conf
+
+# The image must LOAD a baked model, not merely carry it. awnix-model-load-check.sh's
+# cleanup deletes /opt/bonsai/models (right for ai-full, which bakes no weights), so run
+# a copy without that line; the serve script finds the baked file and downloads nothing.
+RUN sed 's#find /opt/bonsai/models -mindepth 1 -delete#true#' \
+        /usr/local/libexec/awnix-model-load-check.sh > /tmp/offline-load-check.sh \
+    && AWNIX_CHECK_MODEL=bonsai-1.7b bash /tmp/offline-load-check.sh \
+    && rm -f /tmp/offline-load-check.sh \
+    && test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf \
+    && test -s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf
+
+LABEL com.aitheros.layer="awnix-ai-offline" \
+      com.aitheros.base="awnix-ai-full" \
+      com.aitheros.description="Every aw* package, PrismML llama.cpp and baked Bonsai 1.7B + 4B -- local AI with no internet" \
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/. The baked Ternary-Bonsai weights are prism-ml's, under the terms on their Hugging Face model cards."

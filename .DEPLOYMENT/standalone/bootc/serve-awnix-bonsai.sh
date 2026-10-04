@@ -92,6 +92,21 @@ else
 fi
 
 MODEL_FILE=$(echo "$PLAN" | jq -r .file)
+
+# AWNIX_OFFLINE=1 (awnix-ai-offline): never download. When the model this machine could
+# fit is not baked, serve the largest baked rung of the ladder that is no bigger.
+if [ "${AWNIX_OFFLINE:-0}" = "1" ] && [ ! -s "$MODEL_DIR/$MODEL_FILE" ]; then
+  for _cand in bonsai2-27b bonsai-8b bonsai-4b bonsai-1.7b; do
+    _p=$("$SELECT" --model "$_cand" --plan 2>/dev/null) || continue
+    _f=$(echo "$_p" | jq -r .file)
+    [ -s "$MODEL_DIR/$_f" ] || continue
+    [ "$(echo "$_p" | jq -r .size_mb)" -le "$(echo "$PLAN" | jq -r .size_mb)" ] || continue
+    echo "serve-awnix-bonsai: offline -- $MODEL_ID is not baked; serving baked $_cand"
+    PLAN="$_p"; MODEL_ID="$_cand"; MODEL_FILE="$_f"
+    break
+  done
+  [ -s "$MODEL_DIR/$MODEL_FILE" ] || die "offline and no baked model fits (wanted $MODEL_ID)"
+fi
 NEEDS_JOIN=$(echo "$PLAN" | jq -r .join)
 GGUF="$MODEL_DIR/$MODEL_FILE"
 
