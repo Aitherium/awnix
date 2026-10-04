@@ -1,0 +1,28 @@
+[Unit]
+# awnix ai-full: serve local inference with no operator. serve-awnix-bonsai.sh picks the
+# largest Bonsai that fits this machine, downloads it on first boot (the weights are never
+# baked into the image), and starts llama-server on 127.0.0.1:8199. Before this unit the
+# ai-full image carried the binary and the script but nothing ran them, so an installed
+# box served no AI unless cloud-init happened to call the script.
+#
+# Every boot: the script is idempotent by port (a server already answering is left alone)
+# and reuses the downloaded model. Opt out with /etc/awnix/bonsai.disabled.
+Description=awnix local inference (Bonsai llama-server on 127.0.0.1:8199)
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/etc/awnix/bonsai.disabled
+
+[Service]
+# exec, not oneshot: a oneshot holds multi-user.target until it exits, and the first-boot
+# model download can take many minutes. Boot completes; the model arrives when it arrives.
+Type=exec
+Environment=BONSAI_USER=bonsai
+ExecStart=/usr/local/sbin/serve-awnix-bonsai.sh
+# The script starts llama-server detached (nohup) and exits. KillMode=process keeps the
+# server alive when the launcher's main process ends (same reason as garg-firstboot).
+KillMode=process
+TimeoutStartSec=infinity
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

@@ -42,6 +42,12 @@ BIN="$(find /opt/bonsai/bin -name llama-server -type f | head -1)"
 
 MODEL_DIR=/opt/bonsai/models
 PORT="${BONSAI_PORT:-8199}"
+# Every boot runs this (awnix-bonsai.service): a server already answering is left alone,
+# never doubled (a second llama-server would only die on bind and overwrite server.log).
+if curl -fsS --max-time 2 "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
+  echo "serving on 127.0.0.1:$PORT (already up)"
+  exit 0
+fi
 
 # ── pick a model this machine can actually run ──────────────────────────────────────
 #

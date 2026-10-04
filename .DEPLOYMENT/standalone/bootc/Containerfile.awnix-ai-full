@@ -103,6 +103,11 @@ RUN chmod 755 /usr/local/sbin/serve-awnix-bonsai.sh /usr/local/sbin/awnix-model-
 # caller: a launcher that needs an env var nobody remembers is a launcher that
 # fails at first boot on the box that needed it.
 ENV BONSAI_USER=bonsai
+# Serve on boot with no operator (the script was otherwise only reachable via cloud-init).
+COPY --chown=root:root awnix-bonsai.service /usr/lib/systemd/system/awnix-bonsai.service
+RUN sed -i 's/\r$//' /usr/lib/systemd/system/awnix-bonsai.service \
+    && systemctl enable awnix-bonsai.service \
+    && test "$(systemctl is-enabled awnix-bonsai.service)" = enabled
 
 # The image must LOAD a model, not merely start llama-server: on 2026-09-27 this
 # image passed every other check and shipped unable to load any model (#9468).
