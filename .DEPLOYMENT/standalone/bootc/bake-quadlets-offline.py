@@ -46,6 +46,16 @@ MAP = {
     "docker.io/library/redis:7-alpine": "localhost/redis:7-alpine",
 }
 
+#: Third-party images whose units the appliance does NOT ship: the generator emits a unit
+#: for every service with a port, but these are internal fleet-host lanes (services.yaml
+#: role.installable: false), never baked and never pulled on a customer box. Their units
+#: are REMOVED, loudly. Anything else unbaked still fails the build.
+#: ComfyUI: a GPU workstation unit started by a lease on the owner's fleet host only
+#: (#11355); its unit broke the sovereign bake (run 37184206841).
+DROP = {
+    "ghcr.io/ai-dock/comfyui:latest",
+}
+
 QUADLET_DIR = Path("/etc/containers/systemd")
 LICENSE_UNIT = "aither-license.service"
 
@@ -94,6 +104,12 @@ def bake(quadlet_dir: Path = QUADLET_DIR, mode: str = "baked",
     """Returns the number of Image= refs rewritten. Raises UnmappedError on a bad ref."""
     changed = 0
     for p in sorted(quadlet_dir.glob("*.container")):
+        imgs = [ln.split("=", 1)[1].strip() for ln in p.read_text(encoding="utf-8").splitlines()
+                if ln.startswith("Image=")]
+        if imgs and all(i in DROP for i in imgs):
+            p.unlink()
+            print(f"bake-quadlets-offline: dropped {p.name} (not shipped: {', '.join(imgs)})")
+            continue
         changed += _rewrite(p, mode, lock or {})
     return changed
 
@@ -124,6 +140,15 @@ def self_test() -> int:
             check(False, "baked: an unmapped ref fails")
         except UnmappedError:
             check(True, "baked: an unmapped ref fails")
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        (d / "a.container").write_text(unit, encoding="utf-8")
+        (d / "comfy.container").write_text(
+            unit.replace("ghcr.io/aitherium/aitheros-base:latest", next(iter(DROP))),
+            encoding="utf-8")
+        n = bake(d, "baked")
+        check(n == 1 and not (d / "comfy.container").exists() and (d / "a.container").exists(),
+              "baked: a DROP image's unit is removed, the rest still baked")
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
         (d / "a.container").write_text(unit, encoding="utf-8")
