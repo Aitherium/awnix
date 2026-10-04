@@ -41,6 +41,19 @@ BIN="$(find /opt/bonsai/bin -name llama-server -type f | head -1)"
 [ -n "$BIN" ] && [ -x "$BIN" ] || die "llama-server missing at /opt/bonsai/bin -- image build did not stage it"
 
 MODEL_DIR=/opt/bonsai/models
+# /opt is part of the IMMUTABLE image on an installed bootc system: baked weights can
+# be READ there (awnix-ai-offline), but nothing can be written. Downloads and the server
+# log go under /var (writable, kept across updates). Boot-smoke 37183526842: the first
+# download died "/opt/bonsai/models/...gguf.part: Read-only file system".
+VAR_DIR="${BONSAI_VAR_DIR:-/var/lib/bonsai}"
+DL_DIR="$VAR_DIR/models"
+LOG="$VAR_DIR/server.log"
+mkdir -p "$DL_DIR"
+chown "$BONSAI_USER:$BONSAI_USER" "$VAR_DIR" "$DL_DIR" 2>/dev/null || true
+# A model is present if it is baked (read-only) or already downloaded.
+model_path() {
+  if [ -s "$MODEL_DIR/$1" ]; then echo "$MODEL_DIR/$1"; else echo "$DL_DIR/$1"; fi
+}
 PORT="${BONSAI_PORT:-8199}"
 # Every boot runs this (awnix-bonsai.service): a server already answering is left alone,
 # never doubled (a second llama-server would only die on bind and overwrite server.log).
@@ -95,20 +108,20 @@ MODEL_FILE=$(echo "$PLAN" | jq -r .file)
 
 # AWNIX_OFFLINE=1 (awnix-ai-offline): never download. When the model this machine could
 # fit is not baked, serve the largest baked rung of the ladder that is no bigger.
-if [ "${AWNIX_OFFLINE:-0}" = "1" ] && [ ! -s "$MODEL_DIR/$MODEL_FILE" ]; then
+if [ "${AWNIX_OFFLINE:-0}" = "1" ] && [ ! -s "$(model_path "$MODEL_FILE")" ]; then
   for _cand in bonsai2-27b bonsai-8b bonsai-4b bonsai-1.7b; do
     _p=$("$SELECT" --model "$_cand" --plan 2>/dev/null) || continue
     _f=$(echo "$_p" | jq -r .file)
-    [ -s "$MODEL_DIR/$_f" ] || continue
+    [ -s "$(model_path "$_f")" ] || continue
     [ "$(echo "$_p" | jq -r .size_mb)" -le "$(echo "$PLAN" | jq -r .size_mb)" ] || continue
     echo "serve-awnix-bonsai: offline -- $MODEL_ID is not baked; serving baked $_cand"
     PLAN="$_p"; MODEL_ID="$_cand"; MODEL_FILE="$_f"
     break
   done
-  [ -s "$MODEL_DIR/$MODEL_FILE" ] || die "offline and no baked model fits (wanted $MODEL_ID)"
+  [ -s "$(model_path "$MODEL_FILE")" ] || die "offline and no baked model fits (wanted $MODEL_ID)"
 fi
 NEEDS_JOIN=$(echo "$PLAN" | jq -r .join)
-GGUF="$MODEL_DIR/$MODEL_FILE"
+GGUF="$(model_path "$MODEL_FILE")"
 
 if [ ! -s "$GGUF" ]; then
   SIZE_MB=$(echo "$PLAN" | jq -r .size_mb)
@@ -239,7 +252,7 @@ pkill -f "$BIN" 2>/dev/null || true
 # either way (measured 2026-09-27 on ghcr.io/aitherium/awnix-ai-full:2026.09.27).
 cd "$BINDIR" || die "cannot enter $BINDIR"
 # shellcheck disable=SC2086
-sudo -u "$BONSAI_USER" bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $SERVE_ARGS >/opt/bonsai/server.log 2>&1 &"
+sudo -u "$BONSAI_USER" bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $SERVE_ARGS >$LOG 2>&1 &"
 
 echo "waiting for it to load..."
 ok=0
@@ -249,16 +262,16 @@ for _ in $(seq 1 120); do
   # a refused flag exits immediately; do not wait two minutes to learn that
   if ! pgrep -f "$BIN" >/dev/null 2>&1; then break; fi
 done
-if [ "$ok" != "1" ] && [ -n "$KV_ARGS" ] && grep -qiE "invalid argument|unknown argument|error while handling argument" /opt/bonsai/server.log 2>/dev/null; then
+if [ "$ok" != "1" ] && [ -n "$KV_ARGS" ] && grep -qiE "invalid argument|unknown argument|error while handling argument" $LOG 2>/dev/null; then
   echo "WARNING: llama-server refused the KV/context flags ($KV_ARGS, ctx $AWNIX_CTX) -- falling back to the legacy 16k/f16 arguments. Upgrade the bundled binary to get the 64k window."
   # shellcheck disable=SC2086
-  sudo -u "$BONSAI_USER" bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $LEGACY_SERVE_ARGS >/opt/bonsai/server.log 2>&1 &"
+  sudo -u "$BONSAI_USER" bash -c "nohup '$LOADER' --library-path /opt/bonsai/lib '$BIN' $LEGACY_SERVE_ARGS >$LOG 2>&1 &"
   for _ in $(seq 1 120); do
     sleep 1
     if curl -fsS --max-time 2 "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then ok=1; break; fi
   done
 fi
-[ "$ok" = "1" ] || die "did not come up in two minutes -- see /opt/bonsai/server.log"
+[ "$ok" = "1" ] || die "did not come up in two minutes -- see $LOG"
 echo "serving on 127.0.0.1:$PORT"
 
 # Mesh registration is OPT-IN, never automatic -- adk mesh provide is

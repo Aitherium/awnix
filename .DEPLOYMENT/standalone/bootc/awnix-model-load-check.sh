@@ -15,6 +15,8 @@ LOG=/tmp/awnix-model-load-check.log
 cleanup() {
   pkill -f /opt/bonsai/bin/ 2>/dev/null || true
   find /opt/bonsai/models -mindepth 1 -delete 2>/dev/null || true
+  find /var/lib/bonsai/models -mindepth 1 -delete 2>/dev/null || true
+  rm -f /var/lib/bonsai/server.log
   rm -f /opt/bonsai/server.log
   rm -rf "${SHIM:-/nonexistent}"
 }
