@@ -243,6 +243,30 @@ def self_test() -> int:  # noqa: C901 - one linear list of assertions
         priv = f"-----BEGIN {pem}-----\nb3BlbnNzaC1rZXktdjEAAAAA\n-----END {pem}-----"
         ok, why = core.validate_pubkey(priv)
         chk(not ok and "PRIVATE" in why, "pubkey: a private key is rejected")
+        # link: the admin's agents get the platform the box just linked to
+        (tmp / "passwd").write_text("ops:x:1000:1000::/home/ops:/bin/bash\n", encoding="utf-8")
+        ops_cfg = tmp / "home/ops/.aither/config.json"
+        ops_cfg.parent.mkdir(parents=True, exist_ok=True)
+        ops_cfg.write_text(json.dumps({"default_backend": "vllm",
+                                       "inference_url": "http://127.0.0.1:8199/v1"}),
+                           encoding="utf-8")
+        res = core.provision_platform_client("tok-123", user="ops")
+        peps = core.platform_endpoints()
+        got = json.loads(ops_cfg.read_text(encoding="utf-8"))
+        chk(res.get("user") == "ops" and got.get("api_key") == "tok-123"
+            and got.get("mcp_url") == peps["mcp_url"] and peps["mcp_url"].endswith("/mcp")
+            and got.get("identity_url") == peps["identity_url"],
+            "link: the admin's adk config carries the platform endpoints and the bearer")
+        chk(got.get("inference_url") == "http://127.0.0.1:8199/v1"
+            and got.get("gateway_inference_url") == peps["inference_url"],
+            "link: a local model stays the default; the platform's inference is the gateway")
+        sh = (tmp / "home/ops/.aither/shell.yaml").read_text(encoding="utf-8")
+        chk(f"mcp_url: {peps['mcp_url']}" in sh and "tok-123" not in sh,
+            "link: shell.yaml points the aither shell at the platform, no token in it")
+        if os.name == "posix":
+            chk((ops_cfg.stat().st_mode & 0o777) == 0o600, "link: config.json is 0600")
+        chk(core.provision_platform_client("", user="ops") == {},
+            "link: no bearer, nothing written")
         chk(
             not any(c[0] == "ssh-keygen" and False for c in calls),
             "pubkey: rejected before ssh-keygen",

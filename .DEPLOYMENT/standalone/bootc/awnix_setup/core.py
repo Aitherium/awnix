@@ -201,6 +201,9 @@ def parse_env_file(path: Path) -> dict[str, str]:
 #: Today's literals. The vendor file ships these same values; they are the floor.
 ENDPOINT_DEFAULTS = {
     "AWNIX_LINK_HOST": "https://mcp.aitherium.com",
+    # Where a linked box's agents sign in (adk/awsh identity_url). The platform's tools,
+    # agent packs and inference stay on AWNIX_LINK_HOST (/mcp, /v1).
+    "AWNIX_IDENTITY_URL": "https://idp.aitherium.com",
     "AWNIX_DEVICE_CODE_URL": "",  # derived from AWNIX_LINK_HOST when empty
     "AWNIX_GITHUB_ORG": "Aitherium",
     "AWNIX_GITHUB_KEYS_URL": "https://github.com/{user}.keys",
@@ -332,6 +335,68 @@ def write_state(state: dict, bearer: str | None = None) -> dict:
 
 def write_link_token(bearer: str) -> None:
     _atomic_write(link_token_file(), bearer.strip() + "\n", 0o600)
+    try:
+        provision_platform_client(bearer.strip())
+    except Exception as e:  # noqa: BLE001 - the link itself succeeded; say so, never undo it
+        _warn("linked, but the admin's adk/awsh platform config was not written", e)
+
+
+def platform_endpoints() -> dict[str, str]:
+    """The platform a LINKED box's agents talk to, from the endpoint chain."""
+    host = endpoint("AWNIX_LINK_HOST").rstrip("/")
+    return {"api_url": host, "mcp_url": host + "/mcp", "inference_url": host + "/v1",
+            "identity_url": endpoint("AWNIX_IDENTITY_URL").rstrip("/")}
+
+
+def provision_platform_client(bearer: str, user: str | None = None) -> dict:
+    """Give the box's admin the same platform sign-in the link just made.
+
+    Before this the link token sat in /etc/awnix/link.token and nothing read it: a box
+    linked at setup still had agents (adk, the aither shell) that knew nothing of the
+    platform's tools, agent packs or inference. This writes what `adk login --api-key`
+    writes -- ~/.aither/config.json (merged, 0600) and ~/.aither/shell.yaml -- without the
+    token ever touching a command line. A local model the user already chose stays the
+    default backend: the platform's inference lands as gateway_inference_url instead.
+    Returns {"user", "config"} or {} when there is no admin to provision.
+    """
+    name = user or detect_admin()
+    if not name or not bearer:
+        return {}
+    home = _home_of(name)
+    d = home / ".aither"
+    eps = platform_endpoints()
+    cfg_path = d / "config.json"
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
+    except (OSError, ValueError):
+        cfg = {}
+    upd = dict(eps)
+    if cfg.get("default_backend") and cfg.get("inference_url"):
+        upd["gateway_inference_url"] = upd.pop("inference_url")
+    cfg.update(upd)
+    cfg["api_key"] = bearer
+    cfg["linked_by"] = "awnix-setup"
+    _atomic_write(cfg_path, json.dumps(cfg, indent=2) + "\n", 0o600)
+    shell = d / "shell.yaml"
+    existing: dict[str, str] = {}
+    try:
+        for line in shell.read_text(encoding="utf-8").splitlines():
+            if ":" in line and not line.strip().startswith("#"):
+                k, _, v = line.partition(":")
+                existing[k.strip()] = v.strip()
+    except OSError:
+        pass
+    existing.update({k: eps[k] for k in ("api_url", "mcp_url", "identity_url")})
+    _atomic_write(shell, "".join(f"{k}: {v}\n" for k, v in existing.items()), 0o600)
+    row = next((r for r in _passwd_rows() if r and r[0] == name and len(r) >= 4), None)
+    chown = getattr(os, "chown", None)  # absent on Windows (the self-test host)
+    if row and chown:
+        for path in (d, cfg_path, shell):
+            try:
+                chown(str(path), int(row[2]), int(row[3]))
+            except (OSError, ValueError):
+                pass  # not root (self-test) or a bad row: the files still exist
+    return {"user": name, "config": str(cfg_path)}
 
 
 def read_progress() -> dict:
