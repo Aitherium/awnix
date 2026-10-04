@@ -217,13 +217,16 @@ LAYERS: tuple[Layer, ...] = (
         # The MODULE list, mirroring Containerfile.awnix-full's own build-time check.
         # Repeating it here is deliberate: an image PULLED from a registry never ran
         # that RUN step, and this tool verifies the image rather than trusting how it
-        # was produced. `awdk` imports as `adk` -- asserting the distribution name
+        # was produced. `awsync` is NOT here: Containerfile.awnix-full leaves it out on
+        # purpose (the PyPI name is a third party's, D-2700), and asserting it failed every
+        # full / ai-full / ai-offline build (runs 37170237443, 37170246009, 37170925100).
+        # `awdk` imports as `adk` -- asserting the distribution name
         # would fail on a perfectly good image. No count is hardcoded (the
         # Containerfile LABEL says 26 and the list holds 27); the check prints what
         # it actually found so the two cannot drift into a lie.
         verify_cmd=(
             "python3.11 -c \"import awgit, awgraph, awrelay, awm, awshare, awrecover, "
-            "awseal, adk, awprism, awreason, awrecurse, awrepl, awsync, awbac, "
+            "awseal, adk, awprism, awreason, awrecurse, awrepl, awbac, "
             "awbrowse, awdit, awfind, awiam, awkno, awmail, awnboard, awnest, awnet, "
             "awpredict, awresearch, awrun, awtunnel; "
             "print('modules ok')\" "
