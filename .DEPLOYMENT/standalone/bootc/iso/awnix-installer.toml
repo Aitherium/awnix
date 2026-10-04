@@ -148,19 +148,28 @@ done
 C=/tmp/awnix-seed-copy
 ADMIN="$(cat $C/admin 2>/dev/null)"
 DISK="$(cat $C/disk 2>/dev/null)"
+# put SRC DST: copy with mode 0600 and SAY so when it fails. This used `install -m 0600`,
+# which the installer environment does not reliably carry; %post does not stop on errors,
+# so every seed file silently failed to copy while seed_used still read true (D-2749:
+# AWNIX-POST on run 37166612943 listed seed.d empty and no seed.json right after the copy).
+put() {
+    if cp -f "$1" "$2" && chmod 0600 "$2"; then return 0; fi
+    echo "AWNIX-POST: FAILED to copy $1 -> $2"
+    return 1
+}
 mkdir -p "$ETC/awnix/seed.d"
 chmod 0700 "$ETC/awnix/seed.d"
 if [ -f "$C/awnix-seed.json" ]; then
-    install -m 0600 "$C/awnix-seed.json" "$ETC/awnix/seed.json"
-    [ -f "$C/license.lic" ] && install -m 0600 "$C/license.lic" "$ETC/awnix/seed.d/license.lic"
-    [ -f "$C/setup-answers.json" ] && install -m 0600 "$C/setup-answers.json" "$ETC/awnix/seed.d/setup-answers.json"
+    put "$C/awnix-seed.json" "$ETC/awnix/seed.json"
+    [ -f "$C/license.lic" ] && put "$C/license.lic" "$ETC/awnix/seed.d/license.lic"
+    [ -f "$C/setup-answers.json" ] && put "$C/setup-answers.json" "$ETC/awnix/seed.d/setup-answers.json"
 fi
 # The answers also go straight to where their readers look (aither-setup, the licence
 # gate). seed.d is applied later by awnix-setup on tty1, and on boot-smoke 37157255377 the
 # seed.d copy was gone by first boot (D-2749), so the gate stayed pending.
 if [ -f "$C/setup-answers.json" ]; then
     mkdir -p "$ETC/aither"
-    install -m 0600 "$C/setup-answers.json" "$ETC/aither/setup-answers.json"
+    put "$C/setup-answers.json" "$ETC/aither/setup-answers.json"
 fi
 if [ -n "$ADMIN" ]; then
     # A key-only admin has no password, so sudo must not ask for one or the box is
