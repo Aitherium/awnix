@@ -259,10 +259,15 @@ LAYERS: tuple[Layer, ...] = (
         tag="localhost/awnix-ai-offline:latest",
         containerfile="Containerfile.awnix-ai-offline",
         # ai-full fetches its model at first boot; this rung carries the weights. Verify
-        # the weights are THERE and the server unit is told never to download.
+        # the weights are THERE and the server unit is told never to download. The file
+        # names come from the image's own catalogue via the selector, never a literal: a
+        # hardcoded Q2_0 name failed a correct PQ2_0 bake (run 37195254846).
         verify_cmd=(
-            "test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf "
-            "&& test -s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf "
+            "for m in bonsai-1.7b bonsai-4b; do "
+            "f=$(python3.11 /usr/local/sbin/awnix-model-select.py --model $m --plan "
+            "| python3.11 -c 'import json,sys; print(json.load(sys.stdin)[\"file\"])') "
+            "&& test -s /opt/bonsai/models/$f || { echo \"missing baked $m ($f)\"; exit 1; }; "
+            "done "
             "&& grep -q AWNIX_OFFLINE=1 "
             "/usr/lib/systemd/system/awnix-bonsai.service.d/10-offline.conf "
             "&& systemctl is-enabled awnix-bonsai.service >/dev/null "
