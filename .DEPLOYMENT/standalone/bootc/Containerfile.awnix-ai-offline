@@ -9,23 +9,16 @@
 # Bigger rungs stay one `AWNIX_MODEL=bonsai-8b` + network away.
 FROM localhost/awnix-ai-full:latest
 
-ARG BONSAI_BASE=https://huggingface.co/prism-ml
-RUN set -eu; \
-    for spec in \
-        "Ternary-Bonsai-1.7B-gguf/resolve/main/Ternary-Bonsai-1.7B-Q2_0.gguf|Ternary-Bonsai-1.7B-Q2_0.gguf|d97d94eb564590c9f0300e54d3f87bbbb25a78693d0ade9f6e177973dcb8228a" \
-        "Ternary-Bonsai-4B-gguf/resolve/main/Ternary-Bonsai-4B-Q2_0.gguf|Ternary-Bonsai-4B-Q2_0.gguf|4e0bf8b737b0431552f8c2c97695ab7c0cb214c94bcdeb4f5f267e67ddf28b8b" \
-    ; do \
-        path="${spec%%|*}"; rest="${spec#*|}"; file="${rest%%|*}"; sha="${rest#*|}"; \
-        echo "baking $file"; \
-        curl -fL --retry 3 --retry-delay 5 -o "/opt/bonsai/models/$file.part" "$BONSAI_BASE/$path"; \
-        got=$(sha256sum "/opt/bonsai/models/$file.part" | cut -d' ' -f1); \
-        if [ "$got" != "$sha" ]; then \
-            echo "$file sha256 $got != catalogue $sha -- refusing to bake it" >&2; exit 1; \
-        fi; \
-        mv "/opt/bonsai/models/$file.part" "/opt/bonsai/models/$file"; \
-    done; \
-    chown -R bonsai:bonsai /opt/bonsai/models; \
-    ls -lh /opt/bonsai/models/
+# Bake EXACTLY what the model selector would fetch: file name, URL(s) and sha256 all come
+# from the image's own catalogue (/usr/local/sbin/awnix-models.yaml) via
+# awnix-model-select.py. The first version hardcoded the legacy Q2_0 file names; the
+# catalogue had moved to the PQ2_0 GGUFs this llama.cpp build loads, so the offline
+# fallback never found a baked model (boot-smoke 37188948217: "offline and no baked
+# model fits (wanted bonsai-4b)").
+COPY --chown=root:root bake-offline-models.py /usr/local/libexec/bake-offline-models.py
+RUN python3.11 /usr/local/libexec/bake-offline-models.py bonsai-1.7b bonsai-4b \
+    && chown -R bonsai:bonsai /opt/bonsai/models \
+    && ls -lh /opt/bonsai/models/
 
 # Serve the largest baked model when the one this machine could fit is not on disk.
 RUN mkdir -p /usr/lib/systemd/system/awnix-bonsai.service.d \
@@ -39,8 +32,7 @@ RUN sed 's#find /opt/bonsai/models -mindepth 1 -delete#true#' \
         /usr/local/libexec/awnix-model-load-check.sh > /tmp/offline-load-check.sh \
     && AWNIX_CHECK_MODEL=bonsai-1.7b bash /tmp/offline-load-check.sh \
     && rm -f /tmp/offline-load-check.sh \
-    && test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-Q2_0.gguf \
-    && test -s /opt/bonsai/models/Ternary-Bonsai-4B-Q2_0.gguf
+    && test "$(ls /opt/bonsai/models/*.gguf | wc -l)" -ge 2
 
 LABEL com.aitheros.layer="awnix-ai-offline" \
       com.aitheros.base="awnix-ai-full" \
