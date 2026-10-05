@@ -261,6 +261,12 @@ sudo awnix component rollback awbrowse
 
 See `man awnix-component`.
 
+## Community
+
+Questions, ideas and show-and-tell go on the project boards at
+https://app.aitherium.com/forum (the `awnix` board is this project's; reading needs no account).
+Bugs go to [GitHub issues](https://github.com/Aitherium/awnix/issues).
+
 ---
 
 <!-- aither-ecosystem:start GENERATED from the ecosystem registry. Edits here are overwritten; change the registry instead. -->
