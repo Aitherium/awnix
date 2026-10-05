@@ -122,13 +122,20 @@ models:
   # ── the fleet models: OPT-IN, never reached by the default ladder ─────────────────
   # Real, measured, and ours. Listed so a booted box can run what the fleet runs without
   # anyone re-deriving a URL -- not so a first boot pulls 20 GB unasked.
+  # Q8_0 of the v18 build, by owner decision 2026-10-05 (experiment run_e18eab0164e74e0b,
+  # llama.cpp vs the v18 f16 reference): Q8_0 PASS top-1 0.9976 / exact 0.9375 at
+  # 54 tok/s; Q4_K_M FAIL top-1 0.9598 / exact 0.8125 at 83 tok/s; f16 32.5 tok/s.
+  # Parts measured 2026-10-04 (4 x 1900000000 + 1109518176 = 8709518176 B, HEAD of
+  # weights.aitherium.com and the release .part4); size_mb is the per-part MiB sum, the
+  # same rule as every multi-part entry here. The adk keeps the old Q4_K_M reachable for
+  # small devices as `orchestrator-q4` (adk_model_catalogue.yaml extra_models).
   orchestrator:
     source: aitherkvcache
-    release: "fleet-orchestrator-q4"
-    file: "aither-orchestrator-Q4_K_M.gguf"
-    parts: 3
-    size_mb: 4792
-    quant: Q4_K_M
+    release: "fleet-orchestrator-v18-q8"
+    file: "aither-orchestrator-v18-Q8_0.gguf"
+    parts: 5
+    size_mb: 8302
+    quant: Q8_0
     opt_in: true
     note: "The fleet's general executor."
 
