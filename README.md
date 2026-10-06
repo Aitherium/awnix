@@ -44,6 +44,17 @@ sha256sum awnix-ai-full-x86_64.iso
 # compare with SHA256SUMS on the matching release page (awnix-iso-ai-full-<date>)
 ```
 
+**Windows, without leaving it (WSL2) — one line, no account:**
+
+```powershell
+irm https://raw.githubusercontent.com/Aitherium/awnix/main/.DEPLOYMENT/standalone/bootc/install-awnix-wsl.ps1 | iex
+```
+
+It exports the public image and imports it as a WSL2 distro named `awnix`
+(≈2 GB download, ≈10 GB free; Docker or podman already on the machine does the
+one-time export). `-Image` picks another variant and any dated tag, `-Force`
+replaces an existing distro of that name.
+
 Write it to a USB stick (balenaEtcher, Rufus, or `dd`) and boot it, or boot it in a VM with
 4 GB of RAM and 20 GB of disk. On first boot `awnix-setup` asks three things, all skippable:
 a hostname, which extra aw* components to add, and whether to link the box to your account.
