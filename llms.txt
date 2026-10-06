@@ -80,3 +80,4 @@ adk doctor                                            # diagnose a broken instal
 - Repo · Releases: https://github.com/Aitherium/awnix · https://github.com/Aitherium/awnix/releases
 - Docs site: https://aitherium.github.io/awnix/ · The Aither World: https://aitherium.github.io/
 - Agent toolkit (awdk) and its own guide: https://github.com/Aitherium/aither · https://raw.githubusercontent.com/Aitherium/aither/main/llms.txt
+- Everything Aitherium (cloud agents + this local setup): https://aitherium.com/llms.txt
