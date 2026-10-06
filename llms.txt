@@ -1,0 +1,82 @@
+# awnix
+
+> awnix is a bootable, immutable Linux base for machines where software writes software — one of the Aither World's 66 bricks, each installs on its own, runs offline, and needs no account. This file is for AI agents: the shortest path from a bare machine to awnix running, then the aw* stack on top of it.
+
+## If you are an agent: setting up this machine
+
+Follow the section for the platform you are on. Every step has a verification —
+run it, and if one fails, report the exact check that failed instead of moving
+on. Nothing below needs an account, a token or a sign-in; do not ask the user
+for one, and if any step asks you to sign in, you are on the wrong path.
+
+### Windows — WSL2 (a Windows workstation, no admin beyond WSL itself)
+
+1. Confirm WSL2: `wsl -l -v`. If wsl.exe is missing, stop: the user must run
+   `wsl --install` once (one admin prompt) and reboot.
+2. Install, one line. Downloads ≈2 GB, needs ≈10 GB free. It uses Docker when
+   its daemon is running, else podman inside a WSL distro (installing podman
+   there when no distro has it):
+
+   ```powershell
+   irm https://raw.githubusercontent.com/Aitherium/awnix/main/.DEPLOYMENT/standalone/bootc/install-awnix-wsl.ps1 | iex
+   ```
+
+   Optional switches: `-Image ghcr.io/aitherium/awnix-full:2026.10.05` (another
+   variant or a dated tag), `-Name <distro>`, `-StageDir <dir>`, `-Force`
+   (replace an existing distro of the same name).
+3. Verify — this must print `systemd`:
+
+   ```powershell
+   wsl -d awnix -- cat /proc/1/comm
+   ```
+
+4. Enter it: `wsl -d awnix`. First boot runs `awnix-setup` (hostname / extra
+   components / link-to-account); every question is skippable — on a machine
+   with no Aitherium account, skip the linking question.
+
+### Any machine — bare metal or VM
+
+Pick a variant, download the ISO in one piece, check it, boot it (4 GB RAM and
+20 GB disk is enough). Write it to a USB stick (`dd`, Rufus, balenaEtcher) or
+boot the ISO directly in a VM.
+
+| variant | one file |
+|---|---|
+| **awnix-ai-full** (recommended — the whole aw* stack + a local model sized to the hardware on first boot) | https://artifact.aitherium.com/awnix-ai-full-x86_64.iso |
+| awnix-full (the stack, no local model) | https://artifact.aitherium.com/awnix-full-x86_64.iso |
+| awnix (the immutable base + aw* tools) | https://artifact.aitherium.com/awnix-x86_64.iso |
+
+`SHA256SUMS` lives on the matching release at
+https://github.com/Aitherium/awnix/releases (same bytes there, split into parts).
+
+### Any machine with a container engine
+
+The public images pull anonymously — no login, no token:
+
+```bash
+podman pull ghcr.io/aitherium/awnix-ai-full:2026.10.05   # or awnix / awnix-full, :latest
+```
+
+## After awnix boots: the stack on top, still no account
+
+```bash
+pip install awdk                                      # the agent toolkit (import package: adk)
+adk quickstart-local                                  # local model + agent on this machine (auto-detects the backend)
+adk setup-all --only adk,shell,node,connect --yes     # the aw* tool products, non-interactive
+adk awconnect                                         # browser extension (installs/checks it; optional)
+adk harness mod install                               # wire awsh into Claude Code (skills + native subagents)
+adk doctor                                            # diagnose a broken install at any point
+```
+
+## What intentionally DOES need an account — do not run unless the user asks
+
+- `adk link`, `adk enroll`, `adk pair` — joining the user's fleet, portal or
+  wallet. Local use never needs these.
+- The gobbonet appliance image and the fleet-host lane are not part of this
+  public lane; if a guide points you at them, it is for a different machine.
+
+## Links
+
+- Repo · Releases: https://github.com/Aitherium/awnix · https://github.com/Aitherium/awnix/releases
+- Docs site: https://aitherium.github.io/awnix/ · The Aither World: https://aitherium.github.io/
+- Agent toolkit (awdk) and its own guide: https://github.com/Aitherium/aither · https://raw.githubusercontent.com/Aitherium/aither/main/llms.txt
