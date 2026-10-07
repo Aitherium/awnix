@@ -2,9 +2,9 @@ Business Source License 1.1
 
 Parameters
 
-Licensor:             David Parkhurst (Aitherium)
+Licensor:             Aitherium, LLC
 Licensed Work:        AitherOS
-                      The Licensed Work is (c) 2025-2026 David Parkhurst.
+                      The Licensed Work is (c) 2025-2026 Aitherium, LLC.
 Additional Use Grant: You may make production use of the Licensed Work for
                       personal, non-commercial purposes. For any commercial
                       or organizational production use, you must obtain a

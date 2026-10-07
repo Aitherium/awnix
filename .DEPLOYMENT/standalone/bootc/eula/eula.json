@@ -28,7 +28,7 @@
         "aitheros-cloud"
       ],
       "file": "aitheros/LICENSE.txt",
-      "sha256": "84bed299e11bddb824ec4d7a6c6ca8e75cd19a76f64d59b378e11ee5e4b35a9c",
+      "sha256": "4863f95f22d949c3dd6199f3801c0cab34bda6f3b0b57bb9a0539e1a8dea137e",
       "reaccept": "major",
       "gated_units": [
         "aitheros-boot-stagger.service",
