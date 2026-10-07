@@ -120,4 +120,4 @@ LABEL com.aitheros.layer="awnix-ai-full" \
       com.aitheros.base="awnix-full" \
       com.aitheros.description="Every aw* package plus PrismML llama.cpp -- the aw* stack WITH inference (model fetched and sized at first boot)" \
       org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
-      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium, LLC with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."

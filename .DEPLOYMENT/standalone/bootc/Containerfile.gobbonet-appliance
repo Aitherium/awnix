@@ -247,6 +247,6 @@ RUN set -eu; \
 LABEL org.opencontainers.image.title="gobbonet-appliance" \
       org.opencontainers.image.description="GobboNet on awnix — immutable Linux, llama.cpp, Bonsai baked in, and awdk for building agents and characters" \
       org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
-      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/." \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium, LLC with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/." \
       com.aitheros.variant="gobbonet-appliance" \
       com.aitheros.ui="gobbonet"

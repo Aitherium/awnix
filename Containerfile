@@ -282,7 +282,7 @@ RUN cd /tmp && \
 # ── Licence texts ──────────────────────────────────────────────────────────
 # The image is labelled Apache-2.0 AND BUSL-1.1: the OS tree and most aw* bricks
 # are Apache-2.0, and awdk and @aitherium/awsh (installed above) are BUSL-1.1,
-# Licensor Aitherium Inc., each with its own text. The texts ship with it; each is a
+# Licensor Aitherium, LLC, each with its own text. The texts ship with it; each is a
 # byte copy of its repo source (check_awnix_variants.py AWV013).
 COPY LICENSE /usr/share/licenses/awnix/LICENSE.Apache-2.0
 COPY licenses/LICENSE.BUSL-1.1.awdk /usr/share/licenses/awnix/LICENSE.BUSL-1.1.awdk
@@ -365,5 +365,5 @@ RUN (firewall-offline-cmd --new-zone=awnix 2>/dev/null || true) && \
 LABEL org.opencontainers.image.title="awnix" \
       org.opencontainers.image.description="Bootable immutable Linux base for containerised services" \
       org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
-      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/." \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium, LLC with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/." \
       awnix.layer="base"

@@ -151,7 +151,7 @@ LABEL com.aitheros.layer="awnix-full" \
       com.aitheros.base="awnix" \
       com.aitheros.description="awnix + every aw* package (27)" \
       org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
-      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium Inc. with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium, LLC with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."
 
 # PowerShell 7 comes from the BASE (Containerfile.awnix) -- owner decision:
 # pwsh 7 by default everywhere. It was briefly installed here instead, which
