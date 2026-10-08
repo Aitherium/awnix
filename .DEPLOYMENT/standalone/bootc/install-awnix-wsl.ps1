@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Run awnix as a WSL2 distro on this Windows machine — one line, no account.
+  Run awnix as a WSL2 distro on this Windows machine -- one line, no account.
 
 .DESCRIPTION
   The self-service lane for a machine you are not signed in on. Everything this
@@ -11,13 +11,13 @@
 
   Three stages, each where its commands exist:
 
-    1. EXPORT a rootfs tarball from the public container image — via Docker
+    1. EXPORT a rootfs tarball from the public container image -- via Docker
        (Docker Desktop) when it is installed and answering, else via podman
        inside a WSL distro (installed into that distro the first time when no
        distro has it).
     2. IMPORT the tarball with `wsl --import` as a WSL2 distro named `awnix`.
     3. Make PID 1 systemd (/etc/wsl.conf, [boot] systemd=true), restart and
-       VERIFY /proc/1/comm. The public images bake no wsl.conf — without this
+       VERIFY /proc/1/comm. The public images bake no wsl.conf -- without this
        step the distro starts but runs no services.
 
   Defaults: the awnix-ai-full image (the whole aw* stack; the model sized to
@@ -25,7 +25,7 @@
   or any dated tag instead of :latest. Needs ~2 GB of download and ~10 GB free.
 
   On a machine whose live fleet runs in a WSL distro, use bootstrap-awnix.ps1
-  -Target wsl beside this script instead — it carries the fleet refusals.
+  -Target wsl beside this script instead -- it carries the fleet refusals.
   This script refuses to touch any distro other than -Name, and -Force is
   required before it replaces an existing one.
 
@@ -37,7 +37,7 @@
 
 .NOTES
   The export runs where a container engine already is; the import runs where
-  wsl.exe is. This script performs both and verifies the result — "import
+  wsl.exe is. This script performs both and verifies the result -- "import
   returned 0" and "the distro boots systemd" are different facts.
 #>
 [CmdletBinding()]
@@ -57,7 +57,7 @@ $MinTarBytes  = [int64](50MB)   # a rootfs smaller than this is not an OS
 function Say  { param([string]$m) Write-Host "  $m" }
 function Die  { param([string]$m) throw "install-awnix-wsl: $m" }
 
-# ── pure helpers (self-tested; no WSL, no I/O) ───────────────────────────────
+# -- pure helpers (self-tested; no WSL, no I/O) -------------------------------
 
 function Test-AwnixWslName {
     param([string]$Candidate)
@@ -132,7 +132,7 @@ function Get-DriveFreeBytes {
     try { return [int64](Get-PSDrive -Name $Matches[1] -ErrorAction Stop).Free } catch { return -1 }
 }
 
-# ── live helpers ─────────────────────────────────────────────────────────────
+# -- live helpers -------------------------------------------------------------
 
 function Get-WslListRaw {
     <# A listing that cannot be read is a refusal: "could not look" is not "clear". #>
@@ -250,7 +250,7 @@ function Set-DistroWslConf {
 }
 
 function Confirm-Systemd {
-    <# Restart the distro and prove systemd is PID 1 — the only fact that says
+    <# Restart the distro and prove systemd is PID 1 -- the only fact that says
        the services (and first-boot setup) will actually run. #>
     param([string]$Name)
     & wsl.exe --terminate $Name *> $null
@@ -267,7 +267,7 @@ function Confirm-Systemd {
     return $false
 }
 
-# ── self-test (pure; touches neither WSL nor the filesystem) ─────────────────
+# -- self-test (pure; touches neither WSL nor the filesystem) -----------------
 
 function Invoke-SelfTest {
     $script:fail = 0
@@ -305,7 +305,7 @@ function Invoke-SelfTest {
 
 if ($SelfTest) { exit (Invoke-SelfTest) }
 
-# ── the install ──────────────────────────────────────────────────────────────
+# -- the install --------------------------------------------------------------
 
 if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
     Die 'WSL is not installed on this machine (wsl.exe not found). Run:  wsl --install'
