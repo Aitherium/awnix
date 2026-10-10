@@ -6,3 +6,4 @@
 quay.io/centos-bootc/centos-bootc:stream10@sha256:57cabe59d0332f9060a8d2768021d2c7457d855857ff2068a0566b3bd19b6cfa
 quay.io/centos-bootc/centos-bootc:stream9@sha256:216b78988500e61795076315ff095e952ed00507bf445bb625ae9e0df182fadb
 quay.io/fedora/fedora-bootc:42@sha256:077182b6ba853b3348d0bede602ac30b9e6568c6422bcf0654de5af96f19b9c3
+ghcr.io/ublue-os/bazzite-deck:stable@sha256:1382b43ee61bcd6925d7dbbfecff1e82ca9397595f666b37ba833c5e14ee57ee

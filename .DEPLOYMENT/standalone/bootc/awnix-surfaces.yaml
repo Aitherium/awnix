@@ -278,6 +278,38 @@
         }
       }
     },
+    "awnix-gaming": {
+      "console": {
+        "bind": "absent",
+        "profile": "none",
+        "brand": "none",
+        "debt": "D-2662",
+        "reason": "FROM bazzite-deck, outside the awnix chain: inherits none of Containerfile.awnix's license/update/console plane in v1"
+      },
+      "surfaces": {
+        "console": {
+          "delivery": "absent"
+        },
+        "awsh": {
+          "delivery": "absent"
+        },
+        "awdesk": {
+          "delivery": "absent"
+        },
+        "living_desktop": {
+          "delivery": "link"
+        },
+        "aol": {
+          "delivery": "link"
+        },
+        "veil": {
+          "delivery": "link"
+        },
+        "gargbot_ui": {
+          "delivery": "absent"
+        }
+      }
+    },
     "awnix-desktop-open": {
       "console": {
         "bind": "absent",
