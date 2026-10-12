@@ -36,7 +36,7 @@ Environment=AITHERWATCH_URL=https://aitheros-watch:8082
 Environment=CHRONICLE_URL=https://aitheros-chronicle:8121
 Environment=AITHERCHRONICLE_URL=https://aitheros-chronicle:8121
 Environment=STRATA_URL=https://aitheros-strata:8136
-Environment=COMFYUI_URL=http://comfyui:8188
+Environment=COMFYUI_URL=https://comfyui:8188
 Environment=SANA_URL=https://aither-sana:8796
 Environment=GATEWAY_URL=https://aitheros-gateway:8777
 Environment=AITHERMICROSCHEDULER_URL=https://aitheros-microscheduler:8150

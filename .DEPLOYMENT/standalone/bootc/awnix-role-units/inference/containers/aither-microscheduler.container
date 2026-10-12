@@ -90,7 +90,7 @@ Environment="VAST_SERVERLESS_SEARCH_PARAMS=gpu_name=RTX_4090,RTX_3090,L40S,A6000
 Environment=VAST_SERVERLESS_GPU_RAM=24
 Environment=GITHUB_REPO=AitherOS
 Environment=COMFYUI_HOST=https://comfyui:8188
-Environment=COMFYUI_URL=http://comfyui:8188
+Environment=COMFYUI_URL=https://comfyui:8188
 Environment=COMFYUI_SERVER_ADDRESS=comfyui:8188
 Environment=COMFYUI_3D_URL=http://comfyui-3d:8188
 Environment=AITHER_REDIS_SENTINELS=redis-sentinel:26379
