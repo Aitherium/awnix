@@ -2,6 +2,7 @@
 # Units the owner may restart remotely (restart-lane, approve tier). Never protected,
 # pool, embedder or kernel/platform-ring units (RSU001). Do not edit by hand.
 aither-aither-omniparser.service
+aither-assetvision.service
 aither-comfyui.service
 aither-llamacpp-bonsai.service
 aither-sana.service
