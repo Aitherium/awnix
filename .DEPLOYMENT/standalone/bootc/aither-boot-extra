@@ -12,3 +12,4 @@ aither-orchestrator.service       # the brain (model-postures: on)
 aither-code-embed-gguf.service    # platform embedder, 1024-d, ~1.5 GB VRAM (model-postures: on)
 aither-aither-directory.service   # directory plane
 aither-worker.service             # runs every routine (embed migration, backups, probes)
+aither-awdiscord.service         # official Discord bot: reads the owner's DM replies (card answers + chat)
