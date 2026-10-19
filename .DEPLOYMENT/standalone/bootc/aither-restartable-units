@@ -6,3 +6,4 @@ aither-assetvision.service
 aither-comfyui.service
 aither-llamacpp-bonsai.service
 aither-sana.service
+aither-vllm-gemma4-12b.service
