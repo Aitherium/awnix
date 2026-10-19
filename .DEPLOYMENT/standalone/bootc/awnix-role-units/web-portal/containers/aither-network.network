@@ -4,6 +4,8 @@ Description=AitherOS network: aither-network
 
 [Network]
 NetworkName=aither-network
+DNS=10.255.255.254
+DNS=1.1.1.1
 
 [Install]
 WantedBy=multi-user.target
