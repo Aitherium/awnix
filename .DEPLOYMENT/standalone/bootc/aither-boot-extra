@@ -13,3 +13,5 @@ aither-code-embed-gguf.service    # platform embedder, 1024-d, ~1.5 GB VRAM (mod
 aither-aither-directory.service   # directory plane
 aither-worker.service             # runs every routine (embed migration, backups, probes)
 aither-awdiscord.service         # official Discord bot: reads the owner's DM replies (card answers + chat)
+aither-cns.service                # system world model (/wm/system/*): arc.aitherium.com + universe forecasts read it
+aither-world-model.service        # CPU world model: arc.aitherium.com "learning" pulse reads its /health (down after every reboot, 2026-10-23)
