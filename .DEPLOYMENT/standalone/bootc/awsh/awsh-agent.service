@@ -26,6 +26,12 @@ ExecStart=/usr/bin/python3.11 -m adk.server --host 127.0.0.1 --port 9001 --backe
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=yes
+# AWH007: a narrow DENY-list, not a jail. It keeps every group CPython, the spawned
+# agent CLIs and the loopback HTTP client need, and it fails a denied call with EPERM
+# so one user command dies instead of the daemon (Restart=on-failure would loop).
+SystemCallFilter=~@module @reboot @swap @obsolete:ENOSYS @cpu-emulation @raw-io
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
 
 [Install]
 WantedBy=default.target

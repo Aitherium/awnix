@@ -33,7 +33,13 @@ LOG="$OUT/proof.log"
 # connect() is the attempt. execve names any child process that makes one, and the
 # Python audit hook below names the resolver call and its stack, so a non-zero count can
 # be traced to its cause.
-STRACE_OPTS="-f -qq -s 160 -e trace=connect,sendto,sendmsg,sendmmsg,execve"
+# The same trace carries AWH007's deny-list (check_awnix_awsh.py). Counting ATTEMPTS is
+# the point: they are visible whether or not a seccomp filter is installed, so this
+# container (no systemd, no [Service] sandboxing) can still prove the daemons never call
+# them. vm86 and pciconfig_* are omitted on purpose -- x86_64 does not name them all and
+# `strace -e trace=<unknown>` refuses the whole run instead of that one syscall.
+DENIED_SYSCALLS="init_module,finit_module,delete_module,reboot,kexec_load,kexec_file_load,swapon,swapoff,ioperm,iopl,modify_ldt"
+STRACE_OPTS="-f -qq -s 160 -e trace=connect,sendto,sendmsg,sendmmsg,execve,$DENIED_SYSCALLS"
 { echo "--- /etc/hosts"; cat /etc/hosts; echo "--- /etc/resolv.conf"; cat /etc/resolv.conf
   echo "--- /etc/nsswitch.conf hosts"; grep '^hosts' /etc/nsswitch.conf; } >> "$LOG" 2>&1
 # sitecustomize (loaded by every Python below via PYTHONPATH): log each non-loopback
@@ -109,6 +115,25 @@ for h in hits:
 EOF
 }
 
+count_denied() {  # count_denied FILE...  -> prints how many DENIED syscalls were attempted
+    "$PY" - "$@" <<'EOF'
+import re, sys
+pat = re.compile(r'^\s*(?:\d+\s+)?(init_module|finit_module|delete_module|reboot|kexec_load|'
+                 r'kexec_file_load|swapon|swapoff|ioperm|iopl|modify_ldt)\(')
+n = 0
+for path in sys.argv[1:]:
+    try:
+        with open(path, errors="replace") as fh:
+            for line in fh:
+                if pat.match(line):
+                    n += 1
+                    sys.stderr.write("denied syscall: %s" % line)
+    except OSError:
+        continue
+print(n)
+EOF
+}
+
 # shellcheck disable=SC1091
 . /etc/profile.d/awsh-offline.sh
 
@@ -120,6 +145,12 @@ DEFAULT_ROUTES=$(grep -c '^default' "$OUT/ip-route.out" || true)
 traced control "$PY" -c "import socket; s = socket.socket(); s.settimeout(1); s.connect_ex(('203.0.113.1', 443))"
 CONTROL=$(count_nonloop "$OUT/control.strace" 2>> "$LOG")
 echo "control_nonloopback_connects=$CONTROL (must be >= 1)" >> "$LOG"
+
+# 4b (control). the trace must SEE a denied syscall, or a 0 in step 6 means nothing.
+traced denied-control "$PY" -c "import ctypes; \
+ctypes.CDLL('libc.so.6', use_errno=True).swapon(b'/nonexistent-swap', 0)"
+DENIED_CONTROL=$(count_denied "$OUT/denied-control.strace" 2>> "$LOG")
+echo "denied_syscall_control=$DENIED_CONTROL (must be >= 1)" >> "$LOG"
 
 # a loopback stub model server on the vendor llm port (8199)
 "$PY" - > "$OUT/stub-model.log" 2>&1 <<'EOF' &
@@ -234,6 +265,11 @@ TRACED_CONNECTS=$(cat "$OUT/awsh-oneshot.strace" "$OUT/awsh-doctor.strace" 2>/de
     | grep -c 'connect(' || true)
 echo "non_loopback_connects=$EGRESS traced_connects(awsh)=$TRACED_CONNECTS" >> "$LOG"
 
+# 6. the AWH007 deny-list: no traced awsh process may ATTEMPT one of these syscalls
+DENIED=$(count_denied "$OUT/awsh-oneshot.strace" "$OUT/awsh-doctor.strace" \
+    "$OUT/harness.strace" "$OUT/agent.strace" 2>> "$LOG")
+echo "denied_syscalls=$DENIED" >> "$LOG"
+
 # 5. negative case: offline off + a cloud url
 printf 'offline: false\nmcp_url: https://gateway.example.com/mcp\n' > /etc/awsh/shell.yaml
 step neg-awnix-awsh-doctor env AITHER_OFFLINE=0 "$CLI" doctor --json
@@ -251,23 +287,25 @@ code=0
 # Could not judge: a route off the box, the harness never came up, or a trace that
 # cannot see the control's deliberate non-loopback connect (a 0 would mean nothing).
 if [ "$HARNESS_UP" != 1 ] || [ "$DEFAULT_ROUTES" != 0 ] || [ "${CONTROL:-0}" -lt 1 ] \
-    || [ "${TRACED_CONNECTS:-0}" -lt 1 ]; then
+    || [ "${TRACED_CONNECTS:-0}" -lt 1 ] || [ "${DENIED_CONTROL:-0}" -lt 1 ]; then
     verdict=COULD-NOT-JUDGE; code=2
 fi
 if [ "$code" = 0 ]; then
     if [ "$POS_AWNIX" != 0 ] || [ "$POS_AWSH" != 0 ] || [ "$NON_LOOPBACK" != 0 ] \
         || [ "$ONESHOT" != 0 ] || [ "$NEG_AWNIX" != 1 ] || [ "$NEG_AWSH" != 1 ] \
-        || [ "$AGENT_UP" != 1 ] || [ "$AGENT_LISTENING" -lt 1 ] || [ "$EGRESS" != 0 ]; then
+        || [ "$AGENT_UP" != 1 ] || [ "$AGENT_LISTENING" -lt 1 ] || [ "$EGRESS" != 0 ] \
+        || [ "${DENIED:-1}" != 0 ]; then
         verdict=FAIL; code=1
     fi
 fi
 
 "$PY" - "$OUT" "$verdict" "$code" "$DEFAULT_ROUTES" "$NON_LOOPBACK" \
     "$POS_AWNIX" "$POS_AWSH" "$NEG_AWNIX" "$NEG_AWSH" "$HARNESS_UP" "$ONESHOT" \
-    "$AGENT_UP" "$AGENT_LISTENING" "${EGRESS:--1}" "${CONTROL:-0}" "${TRACED_CONNECTS:-0}" <<'EOF'
+    "$AGENT_UP" "$AGENT_LISTENING" "${EGRESS:--1}" "${CONTROL:-0}" "${TRACED_CONNECTS:-0}" \
+    "${DENIED:--1}" "${DENIED_CONTROL:-0}" <<'EOF'
 import json, sys
 (out, verdict, code, routes, nonloop, pa, pw, na, nw, up, one,
- agent_up, agent_listen, egress, control, traced) = sys.argv[1:]
+ agent_up, agent_listen, egress, control, traced, denied, denied_control) = sys.argv[1:]
 def load(name):
     try:
         with open("%s/%s.out" % (out, name), encoding="utf-8") as fh:
@@ -281,7 +319,7 @@ def num(s):
         return -1
 doc = load("awnix-awsh-doctor") or {}
 rep = {
-    "schema": 2, "verdict": verdict, "exit_code": num(code), "network": "none",
+    "schema": 3, "verdict": verdict, "exit_code": num(code), "network": "none",
     "image": "node:22-bookworm stand-in (NOT an awnix or garg image)",
     "default_routes": num(routes), "non_loopback_listeners": num(nonloop),
     "harness_up": up == "1", "agent_up": agent_up == "1",
@@ -291,6 +329,12 @@ rep = {
                                    "one-shot, the harness daemon and the agent daemon",
     "trace_control_nonloopback_connects": num(control),
     "traced_connects_awsh": num(traced),
+    "denied_syscalls": num(denied),
+    "denied_syscalls_scope": "strace over the one-shot, awsh doctor, harness and agent "
+                             "daemons; AWH007's deny-list names (module/reboot/swap/"
+                             "raw-io); an ATTEMPT count, so it is meaningful without a "
+                             "seccomp filter installed",
+    "denied_syscall_control": num(denied_control),
     "awnix_awsh_doctor_rc": num(pa), "awsh_doctor_rc": num(pw),
     "awsh_oneshot_rc": num(one),
     "negative_awnix_awsh_doctor_rc": num(na), "negative_awsh_doctor_rc": num(nw),
