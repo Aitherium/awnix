@@ -1,0 +1,167 @@
+# Multi-container stacks the appliance installs with ONE click (`awnix component install
+# <stack id>`), the bundle kind in awnix-component. HAND-WRITTEN source: the lock rows are
+# GENERATED from it by AitherOS/dev/tools/gen_awnix_component_lock.py (every image ref is
+# resolved to an @sha256 digest, every file to its sha256), never typed into the lock.
+# check_awnix_components AWC008 asserts the lock was resolved from THIS file.
+#
+# memory-stack -- the tenant's own Strata+Secrets, Nexus, Retrieval, knowledge graph and
+# embedder (pack feature `memory_stack`, #14410). Wired exactly like the tenant-repo
+# compose template (deliverables/appliance/docker-compose.appliance.yml.j2, profile
+# `memory`): tenant pinned, Nexus embeds DIRECTLY through the embedder, the graph's
+# EventLog off, Retrieval's recursive lane off, every service on a private network and
+# published on 127.0.0.1 only. Differences, all forced by the appliance:
+#   * images: the three private images are the tenant MIRRORS ghcr.io/aitherium/garg-memory*
+#     (publish_memory_images.py --registry), linked to Aitherium/garg-aitherium, because the
+#     licence-minted pull token is scoped to that repo and reads nothing else;
+#   * qdrant: its own container on the stack network (the app's baked qdrant listens on
+#     the HOST's 127.0.0.1, which a bridged container cannot reach);
+#   * secrets (MEMORY_INTERNAL_SECRET -> AITHER_INTERNAL_SECRET, AITHER_MASTER_KEY,
+#     AITHER_KEY_SALT, POSTGRES_PASSWORD) are generated ON THE BOX at install and kept
+#     across remove; nothing is typed, nothing leaves the machine;
+#   * the embedder weights are downloaded and sha256-verified by the installer (no
+#     `fetch_models.py` step).
+schema: 1
+stacks:
+  - id: memory-stack
+    title: Memory & search (self-hosted)
+    entitlement: garg
+    network: memory
+    secrets_group: memory-stack
+    endpoints:
+      STRATA_URL: http://127.0.0.1:8136
+      NEXUS_URL: http://127.0.0.1:8122
+      RETRIEVAL_URL: http://127.0.0.1:8171
+      KG_URL: http://127.0.0.1:8196
+      EMBED_URL: http://127.0.0.1:8209
+    common_env:
+      AITHER_STANDALONE: "true"
+      AITHER_DEPLOYMENT_MODE: appliance
+      AITHER_DOCKER_MODE: "true"
+      AITHER_TENANT: tnt_garg
+      AITHER_PHONEHOME_ENABLED: "false"
+      AITHER_FEDERATION_HUB_URL: ""
+      AITHER_MESH_AUTO_TRUST_TIER1: "false"
+      AITHER_INTERSERVICE_TLS: "false"
+      AITHER_SERVICE_HOST_PREFIX: aitheros-
+      AITHER_EMBED_SPACE: aither-code-embed
+      AITHERSECRETS_URL: http://aitheros-secrets:8111
+      AITHERSTRATA_URL: http://aitheros-strata:8136
+      AITHERNEXUS_URL: http://aitheros-nexus:8122
+      AITHERKNOWLEDGEGRAPH_URL: http://aitheros-knowledgegraph:8196
+      POSTGRES_HOST: aitheros-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: gargbot
+      POSTGRES_DB: gargbot
+      POSTGRES_ADMIN_DB: gargbot
+    members:
+      - id: memory-postgres
+        title: the database
+        image: docker.io/library/postgres
+        ref: 16-alpine
+        public: true
+        aliases: [aitheros-postgres]
+        volumes: [{dest: /var/lib/postgresql/data}]
+        env: {POSTGRES_USER: gargbot, POSTGRES_DB: gargbot}
+        secrets: [POSTGRES_PASSWORD]
+      - id: memory-qdrant
+        title: the vector store
+        image: docker.io/qdrant/qdrant
+        ref: v1.13.6
+        public: true
+        aliases: [qdrant]
+        volumes: [{dest: /qdrant/storage}]
+      - id: memory-embedder
+        title: the embedder
+        image: ghcr.io/ggml-org/llama.cpp
+        ref: server
+        public: true
+        aliases: [embedder, aither-code-embed]
+        ports: [{host: 8209, container: 8080}]
+        volumes: [{dest: /models, ro: true}]
+        files:
+          - name: aither-code-embed.q8_0.gguf
+            url: https://weights.aitherium.com/aither-code-embed.q8_0.gguf
+            bytes: 639145920
+        exec: [-m, /models/aither-code-embed.q8_0.gguf, --alias, aither-code-embed,
+               --embedding, --host, 0.0.0.0, --port, "8080", -c, "512", -b, "512",
+               -ub, "512", -np, "4", --threads, "4", --no-webui, --no-cache-prompt,
+               --cache-ram, "0"]
+        health: http://127.0.0.1:8209/health
+        health_timeout: 180
+      - id: memory-secrets
+        title: the vault (Secrets)
+        image: ghcr.io/aitherium/garg-memory-security
+        ref: latest
+        common_env: true
+        aliases: [aitheros-secrets]
+        ports: [{host: 8111, container: 8111}]
+        volumes: [{dest: /data/secrets}]
+        env: {AITHER_SERVICE: secrets, AITHERSECRETS_PORT: "8111", SECRETS_PATH: /data/secrets}
+        secrets: [AITHER_INTERNAL_SECRET, AITHER_MASTER_KEY, AITHER_KEY_SALT]
+        health: http://127.0.0.1:8111/health
+        health_timeout: 180
+      - id: memory-strata
+        title: the data plane (Strata)
+        image: ghcr.io/aitherium/garg-memory-security
+        ref: latest
+        common_env: true
+        aliases: [aitheros-strata]
+        after: [memory-secrets, memory-postgres]
+        ports: [{host: 8136, container: 8136}]
+        volumes: [{dest: /data}]
+        env: {AITHER_SERVICE: strata_data, AITHER_MODULE: services.infrastructure.strata_data,
+              AITHERSTRATA_PORT: "8136", AITHER_LOCAL_BACKUP_DIR: /data/backups,
+              AITHER_LIBRARY: /data/library,
+              AITHER_STRATA_AUDIT_DB: /data/library/Data/Strata/audit.db,
+              AITHER_REPLICA_STORAGE_ROOT: /data/library/Data/Strata/replicas}
+        secrets: [AITHER_INTERNAL_SECRET, AITHER_MASTER_KEY, POSTGRES_PASSWORD]
+        health: http://127.0.0.1:8136/health
+        health_timeout: 180
+      - id: memory-nexus
+        title: vector memory (Nexus)
+        image: ghcr.io/aitherium/garg-memory
+        ref: latest
+        common_env: true
+        aliases: [aitheros-nexus]
+        after: [memory-qdrant, memory-embedder]
+        ports: [{host: 8122, container: 8122}]
+        volumes: [{dest: /data}, {dest: /app/logs/aither, shared: memory-logs}]
+        env: {AITHER_SERVICE: nexus, AITHERNEXUS_PORT: "8122",
+              AITHER_NEXUS_EMBED_FALLBACK: direct,
+              AITHER_NEXUS_EMBED_DIRECT_URL: "http://embedder:8080",
+              AITHER_NEXUS_CPU_EMBED: "0", AITHER_NEXUS_QDRANT_BACKEND: "true",
+              AITHER_LIBRARY: /data/library, QDRANT_URL: "http://qdrant:6333"}
+        secrets: [AITHER_INTERNAL_SECRET]
+        health: http://127.0.0.1:8122/health
+        health_timeout: 240
+      - id: memory-knowledgegraph
+        title: the knowledge graph
+        image: ghcr.io/aitherium/garg-memory
+        ref: latest
+        common_env: true
+        aliases: [aitheros-knowledgegraph]
+        after: [memory-nexus]
+        ports: [{host: 8196, container: 8196}]
+        volumes: [{dest: /data}]
+        env: {AITHER_SERVICE: KnowledgeGraph, AITHERKNOWLEDGEGRAPH_PORT: "8196",
+              NEXUS_URL: "http://aitheros-nexus:8122", EVENTLOG_ENABLED: "false",
+              AITHER_DATA_DIR: /data, AITHER_GRAPH_SNAPSHOT_INTERVAL_SEC: "300"}
+        secrets: [AITHER_INTERNAL_SECRET]
+        health: http://127.0.0.1:8196/health
+        health_timeout: 240
+      - id: memory-retrieval
+        title: search (Retrieval)
+        image: ghcr.io/aitherium/garg-memory-core
+        ref: latest
+        common_env: true
+        aliases: [aitheros-retrieval]
+        after: [memory-postgres, memory-nexus, memory-strata]
+        ports: [{host: 8171, container: 8171}]
+        volumes: [{dest: /app/logs/aither, shared: memory-logs}]
+        env: {AITHER_SERVICE: Retrieval, AITHER_MODULE: services.infrastructure.AitherRetrieval,
+              AITHERRETRIEVAL_PORT: "8171", AITHER_RETRIEVAL_PIN_TENANT: tnt_garg,
+              AITHER_RETRIEVAL_RECURSE: "off",
+              AITHER_CAPABILITY_KEYS_FILE: /app/logs/aither/.capability_keys.json}
+        secrets: [AITHER_INTERNAL_SECRET, POSTGRES_PASSWORD]
+        health: http://127.0.0.1:8171/health
+        health_timeout: 180

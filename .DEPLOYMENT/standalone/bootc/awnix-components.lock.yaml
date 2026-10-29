@@ -5,7 +5,7 @@
 schema: 1
 generated_by: AitherOS/dev/tools/gen_awnix_component_lock.py
 catalogue_sha256: 73d0a707d04c62e37c8bf859bf74ea1c1ab7a177f2633b37f9a6d0777924b682
-generated_at: '2026-10-03T10:25:07Z'
+generated_at: '2026-10-29T20:13:44Z'
 target:
   python: '3.11'
   platform: manylinux_2_34_x86_64
@@ -313,6 +313,7 @@ wheels:
   websockets==17.1:
     url: https://files.pythonhosted.org/packages/41/63/23572870e01836a98346075b9e17a8bc24a6ddd9800a3204ceee58677f3c/websockets-17.1-py3-none-any.whl
     sha256: f221081107b8c48184d99f7019604486376e7ef826037e70aad6b02540732c23
+stacks_sha256: cda5aa14e842cebc95386a581bd4d056f0f92068ec9dc792c023df57336d107c
 components:
 - id: aitherconnect
   name: AitherConnect
@@ -3377,3 +3378,428 @@ components:
   available: true
   reason: ''
   deps: []
+- id: memory-postgres
+  name: memory-postgres
+  kind: container
+  version: 16-alpine@0cefaabd882e
+  pin: sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+  url: docker.io/library/postgres
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: the database
+  stack: memory-stack
+  quadlet:
+    aliases:
+    - aitheros-postgres
+    volumes:
+    - dest: /var/lib/postgresql/data
+    public: true
+    network: memory
+    env:
+      POSTGRES_USER: gargbot
+      POSTGRES_DB: gargbot
+    secrets:
+    - POSTGRES_PASSWORD
+    secrets_group: memory-stack
+- id: memory-qdrant
+  name: memory-qdrant
+  kind: container
+  version: v1.13.6@bd67306b6cc7
+  pin: sha256:bd67306b6cc77c98122cada2321eb60b20d00b19d26cb61c86681e7bd5951498
+  url: docker.io/qdrant/qdrant
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: the vector store
+  stack: memory-stack
+  quadlet:
+    aliases:
+    - qdrant
+    volumes:
+    - dest: /qdrant/storage
+    public: true
+    network: memory
+    env: {}
+- id: memory-embedder
+  name: memory-embedder
+  kind: container
+  version: server@01c2bc28d512
+  pin: sha256:01c2bc28d51291536df2ccebe5c6af1cdec9ea9b2bd98ac59556408caf96d3f8
+  url: ghcr.io/ggml-org/llama.cpp
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: the embedder
+  stack: memory-stack
+  quadlet:
+    aliases:
+    - embedder
+    - aither-code-embed
+    ports:
+    - host: 8209
+      container: 8080
+    volumes:
+    - dest: /models
+      ro: true
+    exec:
+    - -m
+    - /models/aither-code-embed.q8_0.gguf
+    - --alias
+    - aither-code-embed
+    - --embedding
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - -c
+    - '512'
+    - -b
+    - '512'
+    - -ub
+    - '512'
+    - -np
+    - '4'
+    - --threads
+    - '4'
+    - --no-webui
+    - --no-cache-prompt
+    - --cache-ram
+    - '0'
+    health: http://127.0.0.1:8209/health
+    health_timeout: 180
+    public: true
+    network: memory
+    env: {}
+    files:
+    - name: aither-code-embed.q8_0.gguf
+      url: https://weights.aitherium.com/aither-code-embed.q8_0.gguf
+      sha256: 0b19bc104df332a941ae56eead307b5c8d16a70484a0b95a41b0d7eae56c7b65
+      bytes: 639145920
+- id: memory-secrets
+  name: memory-secrets
+  kind: container
+  version: latest@fdf027db871e
+  pin: sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138
+  url: ghcr.io/aitherium/garg-memory-security
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: the vault (Secrets)
+  stack: memory-stack
+  quadlet:
+    aliases:
+    - aitheros-secrets
+    ports:
+    - host: 8111
+      container: 8111
+    volumes:
+    - dest: /data/secrets
+    health: http://127.0.0.1:8111/health
+    health_timeout: 180
+    network: memory
+    env:
+      AITHER_STANDALONE: 'true'
+      AITHER_DEPLOYMENT_MODE: appliance
+      AITHER_DOCKER_MODE: 'true'
+      AITHER_TENANT: tnt_garg
+      AITHER_PHONEHOME_ENABLED: 'false'
+      AITHER_FEDERATION_HUB_URL: ''
+      AITHER_MESH_AUTO_TRUST_TIER1: 'false'
+      AITHER_INTERSERVICE_TLS: 'false'
+      AITHER_SERVICE_HOST_PREFIX: aitheros-
+      AITHER_EMBED_SPACE: aither-code-embed
+      AITHERSECRETS_URL: http://aitheros-secrets:8111
+      AITHERSTRATA_URL: http://aitheros-strata:8136
+      AITHERNEXUS_URL: http://aitheros-nexus:8122
+      AITHERKNOWLEDGEGRAPH_URL: http://aitheros-knowledgegraph:8196
+      POSTGRES_HOST: aitheros-postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: gargbot
+      POSTGRES_DB: gargbot
+      POSTGRES_ADMIN_DB: gargbot
+      AITHER_SERVICE: secrets
+      AITHERSECRETS_PORT: '8111'
+      SECRETS_PATH: /data/secrets
+    secrets:
+    - AITHER_INTERNAL_SECRET
+    - AITHER_MASTER_KEY
+    - AITHER_KEY_SALT
+    secrets_group: memory-stack
+- id: memory-strata
+  name: memory-strata
+  kind: container
+  version: latest@fdf027db871e
+  pin: sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138
+  url: ghcr.io/aitherium/garg-memory-security
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: the data plane (Strata)
+  stack: memory-stack
+  quadlet:
+    aliases:
+    - aitheros-strata
+    after:
+    - memory-secrets
+    - memory-postgres
+    ports:
+    - host: 8136
+      container: 8136
+    volumes:
+    - dest: /data
+    health: http://127.0.0.1:8136/health
+    health_timeout: 180
+    network: memory
+    env:
+      AITHER_STANDALONE: 'true'
+      AITHER_DEPLOYMENT_MODE: appliance
+      AITHER_DOCKER_MODE: 'true'
+      AITHER_TENANT: tnt_garg
+      AITHER_PHONEHOME_ENABLED: 'false'
+      AITHER_FEDERATION_HUB_URL: ''
+      AITHER_MESH_AUTO_TRUST_TIER1: 'false'
+      AITHER_INTERSERVICE_TLS: 'false'
+      AITHER_SERVICE_HOST_PREFIX: aitheros-
+      AITHER_EMBED_SPACE: aither-code-embed
+      AITHERSECRETS_URL: http://aitheros-secrets:8111
+      AITHERSTRATA_URL: http://aitheros-strata:8136
+      AITHERNEXUS_URL: http://aitheros-nexus:8122
+      AITHERKNOWLEDGEGRAPH_URL: http://aitheros-knowledgegraph:8196
+      POSTGRES_HOST: aitheros-postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: gargbot
+      POSTGRES_DB: gargbot
+      POSTGRES_ADMIN_DB: gargbot
+      AITHER_SERVICE: strata_data
+      AITHER_MODULE: services.infrastructure.strata_data
+      AITHERSTRATA_PORT: '8136'
+      AITHER_LOCAL_BACKUP_DIR: /data/backups
+      AITHER_LIBRARY: /data/library
+      AITHER_STRATA_AUDIT_DB: /data/library/Data/Strata/audit.db
+      AITHER_REPLICA_STORAGE_ROOT: /data/library/Data/Strata/replicas
+    secrets:
+    - AITHER_INTERNAL_SECRET
+    - AITHER_MASTER_KEY
+    - POSTGRES_PASSWORD
+    secrets_group: memory-stack
+- id: memory-nexus
+  name: memory-nexus
+  kind: container
+  version: latest@721e9bab6f1c
+  pin: sha256:721e9bab6f1c368aad7fffc24275aeb0864c7d4fd273adc029f1346634e6cf26
+  url: ghcr.io/aitherium/garg-memory
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: vector memory (Nexus)
+  stack: memory-stack
+  quadlet:
+    aliases:
+    - aitheros-nexus
+    after:
+    - memory-qdrant
+    - memory-embedder
+    ports:
+    - host: 8122
+      container: 8122
+    volumes:
+    - dest: /data
+    - dest: /app/logs/aither
+      shared: memory-logs
+    health: http://127.0.0.1:8122/health
+    health_timeout: 240
+    network: memory
+    env:
+      AITHER_STANDALONE: 'true'
+      AITHER_DEPLOYMENT_MODE: appliance
+      AITHER_DOCKER_MODE: 'true'
+      AITHER_TENANT: tnt_garg
+      AITHER_PHONEHOME_ENABLED: 'false'
+      AITHER_FEDERATION_HUB_URL: ''
+      AITHER_MESH_AUTO_TRUST_TIER1: 'false'
+      AITHER_INTERSERVICE_TLS: 'false'
+      AITHER_SERVICE_HOST_PREFIX: aitheros-
+      AITHER_EMBED_SPACE: aither-code-embed
+      AITHERSECRETS_URL: http://aitheros-secrets:8111
+      AITHERSTRATA_URL: http://aitheros-strata:8136
+      AITHERNEXUS_URL: http://aitheros-nexus:8122
+      AITHERKNOWLEDGEGRAPH_URL: http://aitheros-knowledgegraph:8196
+      POSTGRES_HOST: aitheros-postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: gargbot
+      POSTGRES_DB: gargbot
+      POSTGRES_ADMIN_DB: gargbot
+      AITHER_SERVICE: nexus
+      AITHERNEXUS_PORT: '8122'
+      AITHER_NEXUS_EMBED_FALLBACK: direct
+      AITHER_NEXUS_EMBED_DIRECT_URL: http://embedder:8080
+      AITHER_NEXUS_CPU_EMBED: '0'
+      AITHER_NEXUS_QDRANT_BACKEND: 'true'
+      AITHER_LIBRARY: /data/library
+      QDRANT_URL: http://qdrant:6333
+    secrets:
+    - AITHER_INTERNAL_SECRET
+    secrets_group: memory-stack
+- id: memory-knowledgegraph
+  name: memory-knowledgegraph
+  kind: container
+  version: latest@721e9bab6f1c
+  pin: sha256:721e9bab6f1c368aad7fffc24275aeb0864c7d4fd273adc029f1346634e6cf26
+  url: ghcr.io/aitherium/garg-memory
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: the knowledge graph
+  stack: memory-stack
+  quadlet:
+    aliases:
+    - aitheros-knowledgegraph
+    after:
+    - memory-nexus
+    ports:
+    - host: 8196
+      container: 8196
+    volumes:
+    - dest: /data
+    health: http://127.0.0.1:8196/health
+    health_timeout: 240
+    network: memory
+    env:
+      AITHER_STANDALONE: 'true'
+      AITHER_DEPLOYMENT_MODE: appliance
+      AITHER_DOCKER_MODE: 'true'
+      AITHER_TENANT: tnt_garg
+      AITHER_PHONEHOME_ENABLED: 'false'
+      AITHER_FEDERATION_HUB_URL: ''
+      AITHER_MESH_AUTO_TRUST_TIER1: 'false'
+      AITHER_INTERSERVICE_TLS: 'false'
+      AITHER_SERVICE_HOST_PREFIX: aitheros-
+      AITHER_EMBED_SPACE: aither-code-embed
+      AITHERSECRETS_URL: http://aitheros-secrets:8111
+      AITHERSTRATA_URL: http://aitheros-strata:8136
+      AITHERNEXUS_URL: http://aitheros-nexus:8122
+      AITHERKNOWLEDGEGRAPH_URL: http://aitheros-knowledgegraph:8196
+      POSTGRES_HOST: aitheros-postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: gargbot
+      POSTGRES_DB: gargbot
+      POSTGRES_ADMIN_DB: gargbot
+      AITHER_SERVICE: KnowledgeGraph
+      AITHERKNOWLEDGEGRAPH_PORT: '8196'
+      NEXUS_URL: http://aitheros-nexus:8122
+      EVENTLOG_ENABLED: 'false'
+      AITHER_DATA_DIR: /data
+      AITHER_GRAPH_SNAPSHOT_INTERVAL_SEC: '300'
+    secrets:
+    - AITHER_INTERNAL_SECRET
+    secrets_group: memory-stack
+- id: memory-retrieval
+  name: memory-retrieval
+  kind: container
+  version: latest@fdf027db871e
+  pin: sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138
+  url: ghcr.io/aitherium/garg-memory-core
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: search (Retrieval)
+  stack: memory-stack
+  quadlet:
+    aliases:
+    - aitheros-retrieval
+    after:
+    - memory-postgres
+    - memory-nexus
+    - memory-strata
+    ports:
+    - host: 8171
+      container: 8171
+    volumes:
+    - dest: /app/logs/aither
+      shared: memory-logs
+    health: http://127.0.0.1:8171/health
+    health_timeout: 180
+    network: memory
+    env:
+      AITHER_STANDALONE: 'true'
+      AITHER_DEPLOYMENT_MODE: appliance
+      AITHER_DOCKER_MODE: 'true'
+      AITHER_TENANT: tnt_garg
+      AITHER_PHONEHOME_ENABLED: 'false'
+      AITHER_FEDERATION_HUB_URL: ''
+      AITHER_MESH_AUTO_TRUST_TIER1: 'false'
+      AITHER_INTERSERVICE_TLS: 'false'
+      AITHER_SERVICE_HOST_PREFIX: aitheros-
+      AITHER_EMBED_SPACE: aither-code-embed
+      AITHERSECRETS_URL: http://aitheros-secrets:8111
+      AITHERSTRATA_URL: http://aitheros-strata:8136
+      AITHERNEXUS_URL: http://aitheros-nexus:8122
+      AITHERKNOWLEDGEGRAPH_URL: http://aitheros-knowledgegraph:8196
+      POSTGRES_HOST: aitheros-postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: gargbot
+      POSTGRES_DB: gargbot
+      POSTGRES_ADMIN_DB: gargbot
+      AITHER_SERVICE: Retrieval
+      AITHER_MODULE: services.infrastructure.AitherRetrieval
+      AITHERRETRIEVAL_PORT: '8171'
+      AITHER_RETRIEVAL_PIN_TENANT: tnt_garg
+      AITHER_RETRIEVAL_RECURSE: 'off'
+      AITHER_CAPABILITY_KEYS_FILE: /app/logs/aither/.capability_keys.json
+    secrets:
+    - AITHER_INTERNAL_SECRET
+    - POSTGRES_PASSWORD
+    secrets_group: memory-stack
+- id: memory-stack
+  name: memory-stack
+  kind: bundle
+  version: stack@f391503e62ba
+  pin: sha256:f391503e62baa7fc4c0e03253783f00b5825a363b6f627a6e425b3b81225e3f7
+  url: ''
+  provides: []
+  requires_license: true
+  entitlement: garg
+  available: true
+  reason: ''
+  deps: []
+  title: Memory & search (self-hosted)
+  requires:
+  - memory-postgres
+  - memory-qdrant
+  - memory-embedder
+  - memory-secrets
+  - memory-strata
+  - memory-nexus
+  - memory-knowledgegraph
+  - memory-retrieval
+  endpoints:
+    STRATA_URL: http://127.0.0.1:8136
+    NEXUS_URL: http://127.0.0.1:8122
+    RETRIEVAL_URL: http://127.0.0.1:8171
+    KG_URL: http://127.0.0.1:8196
+    EMBED_URL: http://127.0.0.1:8209

@@ -22,6 +22,20 @@ generated in CI by gen_awnix_component_lock.py), and this tool installs exactly 
   container -> a quadlet /etc/containers/systemd/awnix-<id>.container, Image pinned
                @sha256, ports on 127.0.0.1 only, health-probed before the state is
                committed; on failure the prior quadlet is restored.
+               A container row may also join a private podman network (`network`, with
+               `aliases`), carry static `env`, an `exec` command, `after` ordering on
+               other components, box-local `secrets` (generated ONCE on this box into
+               /var/lib/awnix/components/_secrets/<group>.env, 0600, kept across
+               remove so a re-install still opens its vault), sha256-verified `files`
+               downloaded into its data dir, and `public: true` (pulled anonymously).
+  bundle    -> `requires` = an ordered list of other rows, installed as ONE operation:
+               one click installs every member; a member failing removes what this
+               operation added, so nothing is left half-done. Progress is written to
+               /var/lib/awnix/components/_progress/<id>.json and shown by `list --json`
+               (row.progress), so a detached install (console `component-install-start`)
+               can be watched. On success the bundle's `endpoints` are written to
+               /etc/awnix/components/<id>.endpoints.env for the apps on the box; remove
+               deletes that file first, so no app keeps calling a stack that is gone.
   pack      -> `awpack install <id> --dest /var/lib/awnix/packs` (awpack is baked only
                into private images).
   baked     -> read-only rows from /usr/share/awnix/components.d/*.yaml: what the image
@@ -45,7 +59,9 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import hashlib
 import json
+import secrets as _secrets
 import os
 import re
 import shutil
@@ -132,6 +148,29 @@ class Runner:
     def sleep(self, s: float) -> None:
         time.sleep(s)
 
+    def download(self, url: str, dest: Path, sha256: str) -> tuple[bool, str]:
+        """Stream ``url`` to ``dest`` (atomic) only if its bytes hash to ``sha256``."""
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dest.with_name(f".{dest.name}.part")
+        h = hashlib.sha256()
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "awnix-component"})
+            with urllib.request.urlopen(req, timeout=60) as r, open(tmp, "wb") as f:  # noqa: S310
+                while True:
+                    chunk = r.read(1 << 20)
+                    if not chunk:
+                        break
+                    h.update(chunk)
+                    f.write(chunk)
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            tmp.unlink(missing_ok=True)
+            return False, f"download {url}: {e}"
+        if h.hexdigest() != sha256:
+            tmp.unlink(missing_ok=True)
+            return False, f"download {url}: sha256 {h.hexdigest()[:12]} != locked {sha256[:12]}"
+        os.replace(tmp, dest)
+        return True, f"{dest.name}: sha256 verified"
+
 
 class CannotJudgeError(Exception):
     """Exit 2: the lock (or another required input) is missing or unreadable."""
@@ -156,6 +195,50 @@ def atomic_write(path: Path, text: str, mode: int = 0o644) -> None:
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
+
+
+_ENV_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")
+
+
+def _env_items(env) -> list[tuple[str, str]]:
+    """(key, value) pairs from a lock `env` (dict, or list of "K=V") or env-file text."""
+    if isinstance(env, dict):
+        items = [(str(k), str(v)) for k, v in env.items()]
+    elif isinstance(env, str):
+        items = [tuple(ln.split("=", 1)) for ln in env.splitlines()
+                 if "=" in ln and not ln.lstrip().startswith("#")]
+    else:
+        items = [tuple(str(e).split("=", 1)) for e in env or [] if "=" in str(e)]
+    out = []
+    for k, v in items:
+        k = k.strip()
+        if not _ENV_KEY_RE.match(k) or "\n" in v:
+            raise ValueError(f"bad env entry {k!r}")
+        out.append((k, v))
+    return out
+
+
+def _read_env(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def _quote(arg: str) -> str:
+    """One systemd/quadlet word: quoted when it holds whitespace, quotes or `$`/`%`."""
+    if arg and not re.search(r"[\s\"'\\$%;]", arg):
+        return arg
+    esc = arg.replace("\\", "\\\\").replace('"', '\\"').replace("%", "%%").replace("$", "$$")
+    return f'"{esc}"'
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _real_symlink(target: str, link: Path) -> None:
@@ -370,6 +453,21 @@ class Tool:
 
     # state view --------------------------------------------------------------
     def status_of(self, cid: str) -> dict:
+        """The row's state, plus (bundles) members, the live op's progress and endpoints."""
+        res = self._status_core(cid)
+        row = self.rows.get(cid) or {}
+        if row.get("title"):
+            res["title"] = row["title"]
+        if row.get("kind") == "bundle":
+            res["requires"] = [str(m).lower() for m in row.get("requires") or []]
+            prog = self.read_progress(cid)
+            if prog is not None:
+                res["progress"] = prog
+            if res["state"] == "installed":
+                res["endpoints"] = dict(_env_items(_read_env(self._endpoints_path(cid))))
+        return res
+
+    def _status_core(self, cid: str) -> dict:
         if cid in self.baked:
             b = self.baked[cid]
             return self._res(cid, "baked", "baked", version=str(b.get("version") or ""),
@@ -466,6 +564,8 @@ class Tool:
                 res = self._install_container(cid, row)
             elif kind == "pack":
                 res = self._install_pack(cid, row)
+            elif kind == "bundle":
+                res = self._install_bundle(cid, row)
             else:
                 res = self._res(cid, kind, "failed", reason=f"unknown kind {kind!r}")
         except OSError as e:
@@ -685,10 +785,24 @@ class Tool:
         q = row.get("quadlet") or {}
         rung = self._boot_target()
         after = "network-online.target" + ("" if rung == "multi-user.target" else f" {rung}")
+        deps = [f"awnix-{d}.service" for d in q.get("after") or []]
+        for d in q.get("after") or []:
+            if not ID_RE.match(str(d)):
+                raise ValueError(f"bad after id {d!r}")
         lines = ["# Written by awnix-component. Edits are replaced on the next install.",
                  "[Unit]", f"Description=awnix component {cid} {row.get('version', '')}",
-                 "Wants=network-online.target", f"After={after}", "",
+                 "Wants=network-online.target" + "".join(f" {d}" for d in deps),
+                 f"After={after}" + "".join(f" {d}" for d in deps), "",
                  "[Container]", f"Image={image}@{digest}", f"ContainerName=awnix-{cid}"]
+        net = str(q.get("network") or "")
+        if net:
+            if not ID_RE.match(net):
+                raise ValueError(f"bad network {net!r}")
+            lines.append(f"Network=awnix-{net}.network")
+            for a in q.get("aliases") or []:
+                if not ID_RE.match(str(a)):
+                    raise ValueError(f"bad alias {a!r}")
+                lines.append(f"NetworkAlias={a}")
         for p in q.get("ports") or []:
             host, cport = int(p["host"]), int(p.get("container") or p["host"])
             lines.append(f"PublishPort=127.0.0.1:{host}:{cport}")
@@ -697,11 +811,75 @@ class Tool:
             dest = str(v.get("dest") or "")
             if not dest.startswith("/") or ":" in dest:
                 raise ValueError(f"bad volume dest {dest!r}")
-            lines.append(f"Volume={data}:{dest}:Z")
+            shared = str(v.get("shared") or "")
+            if shared and not ID_RE.match(shared):
+                raise ValueError(f"bad shared volume {shared!r}")
+            src = self.paths.state_dir / "_shared" / shared if shared else data
+            lines.append(f"Volume={src}:{dest}:{'ro,' if v.get('ro') else ''}Z")
+        for k, v in _env_items(q.get("env")):
+            lines.append(f"Environment={_quote(f'{k}={v}')}")
         lines.append(f"EnvironmentFile={self.paths.env_dir / (cid + '.env')}")
+        exe = [str(a) for a in q.get("exec") or []]
+        if exe:
+            lines.append("Exec=" + " ".join(_quote(a) for a in exe))
         lines += ["", "[Service]", "Restart=on-failure", "TimeoutStartSec=900", "",
                   "[Install]", f"WantedBy={rung}", ""]
         return "\n".join(lines)
+
+    def _network_unit(self, net: str) -> None:
+        """The private network a stack's members share (DNS by alias); written once."""
+        path = self.paths.quadlet_dir / f"awnix-{net}.network"
+        text = ("# Written by awnix-component. Shared by every component on this network.\n"
+                f"[Network]\nNetworkName=awnix-{net}\n")
+        if not path.is_file() or path.read_text(encoding="utf-8") != text:
+            atomic_write(path, text)
+
+    def _secrets_env(self, cid: str, row: dict) -> None:
+        """Write the row's env file: its box-local secrets, generated once per group.
+
+        The values are made HERE (secrets.token_hex) and never leave the box; the group
+        file survives `remove`, so a re-install opens the same vault and database.
+        """
+        q = row.get("quadlet") or {}
+        names = [str(n) for n in q.get("secrets") or []]
+        envf = self.paths.env_dir / f"{cid}.env"
+        if not names:
+            if not envf.exists():
+                atomic_write(envf, "", mode=0o600)
+            return
+        group = str(q.get("secrets_group") or cid)
+        if not ID_RE.match(group):
+            raise ValueError(f"bad secrets_group {group!r}")
+        store = self.paths.state_dir / "_secrets" / f"{group}.env"
+        have = dict(_env_items(_read_env(store)))
+        missing = [n for n in names if n not in have]
+        for n in missing:
+            if not re.match(r"^[A-Z][A-Z0-9_]{0,63}$", n):
+                raise ValueError(f"bad secret name {n!r}")
+            have[n] = _secrets.token_hex(32)
+        if missing:
+            atomic_write(store, "".join(f"{k}={v}\n" for k, v in sorted(have.items())),
+                         mode=0o600)
+        atomic_write(envf, "".join(f"{n}={have[n]}\n" for n in names), mode=0o600)
+
+    def _fetch_files(self, cid: str, row: dict) -> tuple[bool, str]:
+        """Download each locked file into the row's data dir, sha256-verified."""
+        logs = []
+        data = self.paths.state_dir / cid / "data"
+        for f in (row.get("quadlet") or {}).get("files") or []:
+            name, sha = str(f.get("name") or ""), str(f.get("sha256") or "")
+            if not re.match(r"^[A-Za-z0-9._-]{1,128}$", name) or not re.match(
+                    r"^[0-9a-f]{64}$", sha):
+                return False, f"bad file spec {f!r}"
+            dest = data / name
+            if dest.is_file() and _sha256_file(dest) == sha:
+                logs.append(f"{name}: already present, sha256 verified")
+                continue
+            ok, out = self.runner.download(str(f.get("url") or ""), dest, sha)
+            logs.append(out)
+            if not ok:
+                return False, "\n".join(logs)
+        return True, "\n".join(logs)
 
     def _install_container(self, cid: str, row: dict,
                            digest: str | None = None) -> dict:
@@ -711,8 +889,9 @@ class Tool:
             return self._res(cid, "container", "failed",
                              reason=f"lock row is not an @sha256 image ({image}@{digest})")
         logs = []
+        q = row.get("quadlet") or {}
         pull = ["podman", "pull"]
-        if self.paths.authfile.is_file():
+        if self.paths.authfile.is_file() and not q.get("public"):
             pull += ["--authfile", str(self.paths.authfile)]
         rc, out = self.runner.run(pull + [f"{image}@{digest}"], timeout=1800)
         logs.append(out)
@@ -720,14 +899,25 @@ class Tool:
             return self._res(cid, "container", "failed", version=row.get("version", ""),
                              pin=digest, reason="image pull failed; nothing changed",
                              log_tail=_tail("\n".join(logs)))
+        (self.paths.state_dir / cid / "data").mkdir(parents=True, exist_ok=True)
+        for v in q.get("volumes") or []:
+            if v.get("shared") and ID_RE.match(str(v["shared"])):
+                (self.paths.state_dir / "_shared" / str(v["shared"])).mkdir(
+                    parents=True, exist_ok=True)
+        ok, out = self._fetch_files(cid, row)
+        logs.append(out)
+        if not ok:
+            return self._res(cid, "container", "failed", version=row.get("version", ""),
+                             pin=digest, reason="a locked file did not download or verify; "
+                                                "nothing changed",
+                             log_tail=_tail("\n".join(logs)))
         qpath = self._quadlet_path(cid)
         prior = qpath.read_text(encoding="utf-8") if qpath.is_file() else None
-        envf = self.paths.env_dir / f"{cid}.env"
-        if not envf.exists():
-            atomic_write(envf, "", mode=0o600)
-        (self.paths.state_dir / cid / "data").mkdir(parents=True, exist_ok=True)
         try:
+            self._secrets_env(cid, row)
             text = self._quadlet_text(cid, row, image, digest)
+            if q.get("network"):
+                self._network_unit(str(q["network"]))
         except (ValueError, KeyError, TypeError) as e:
             return self._res(cid, "container", "failed", reason=f"bad quadlet spec: {e}")
         atomic_write(qpath, text)
@@ -760,8 +950,11 @@ class Tool:
             logs.append(out)
             if rc != 0:
                 return False, "\n".join(logs)
-        health = str((row.get("quadlet") or {}).get("health") or "")
-        deadline = self.paths.health_timeout
+        q = row.get("quadlet") or {}
+        health = str(q.get("health") or "")
+        # a row may need longer than the default (Nexus loads its index ~90 s);
+        # never SHORTER than the box-wide floor
+        deadline = max(self.paths.health_timeout, float(q.get("health_timeout") or 0))
         waited = 0.0
         while waited <= deadline:
             rc, out = self.runner.run(["systemctl", "is-active", unit], timeout=30)
@@ -772,6 +965,92 @@ class Tool:
             waited += 3
         logs.append(f"{unit} not healthy within {deadline:.0f}s ({health or 'is-active'})")
         return False, "\n".join(logs)
+
+    # bundle ------------------------------------------------------------------
+    def _progress_path(self, cid: str) -> Path:
+        return self.paths.state_dir / "_progress" / f"{cid}.json"
+
+    def _progress(self, cid: str, op: str, step: int, steps: int, current: str,
+                  message: str, done: bool = False, ok: bool | None = None,
+                  error: str = "") -> None:
+        """What a watcher (the console, the app, the bot) shows, in plain words."""
+        atomic_write(self._progress_path(cid), json.dumps({
+            "op": op, "step": step, "steps": steps, "current": current, "message": message,
+            "done": done, "ok": ok, "error": error, "updated_at": _now()}, sort_keys=True))
+
+    def read_progress(self, cid: str) -> dict | None:
+        try:
+            return json.loads(self._progress_path(cid).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+
+    def _endpoints_path(self, cid: str) -> Path:
+        return self.paths.env_dir / f"{cid}.endpoints.env"
+
+    def _title(self, cid: str) -> str:
+        return str((self.rows.get(cid) or {}).get("title") or cid)
+
+    def _install_bundle(self, cid: str, row: dict, op: str = "install") -> dict:
+        """Install every member in order as ONE operation; undo this op's members on failure."""
+        members = [str(m).lower() for m in row.get("requires") or []]
+        bad = [m for m in members if m not in self.rows or self.rows[m].get("kind") == "bundle"]
+        if not members or bad:
+            return self._res(cid, "bundle", "failed",
+                             reason=f"bundle names no installable members ({bad or 'none'})")
+        steps = len(members) + 1
+        added: list[str] = []
+        logs: list[str] = []
+        for i, m in enumerate(members, 1):
+            title = self._title(m)
+            self._progress(cid, op, i, steps, m, f"Setting up {title}")
+            st = self.state["components"].get(m) or {}
+            was = st.get("status") == "installed"
+            res = self._install_one(m, op=op)
+            logs.append(f"{m}: {res['state']} {res.get('reason', '')}".strip())
+            if res["state"] != "installed":
+                why = res.get("reason") or res["state"]
+                for n in reversed(added):
+                    self._remove_one(n)
+                err = (f"{title} could not be set up ({why}). Nothing was left half-installed"
+                       + ("" if not added else f": undid {len(added)} part(s) added just now")
+                       + ".")
+                self._progress(cid, op, i, steps, m, f"{title} failed", done=True, ok=False,
+                               error=err)
+                return self._res(cid, "bundle", "failed", version=row.get("version", ""),
+                                 pin=row.get("pin", ""), reason=err,
+                                 log_tail=_tail("\n".join(logs) + "\n" + res.get("log_tail", "")))
+            if not was:
+                added.append(m)
+        self._progress(cid, op, steps, steps, "", "Pointing GargBot at this machine")
+        try:
+            env = _env_items(row.get("endpoints") or {})
+        except ValueError as e:
+            return self._res(cid, "bundle", "failed", reason=f"bad endpoints: {e}")
+        atomic_write(self._endpoints_path(cid), "# Written by awnix-component install "
+                     f"{cid}; removed by `remove {cid}`.\n"
+                     + "".join(f"{k}={v}\n" for k, v in env))
+        self._record(cid, row, [], {"members": members})
+        self._progress(cid, op, steps, steps, "", "Done: memory and search run on this machine",
+                       done=True, ok=True)
+        return self._res(cid, "bundle", "installed", version=row.get("version", ""),
+                         pin=row.get("pin", ""), log_tail=_tail("\n".join(logs), 12))
+
+    def _remove_bundle(self, cid: str, st: dict) -> tuple[bool, str]:
+        """Endpoints file FIRST (no app keeps calling a stack that is going), then members."""
+        members = (st.get("meta") or {}).get(st.get("pin"), {}).get("members") or \
+            [str(m).lower() for m in (self.rows.get(cid) or {}).get("requires") or []]
+        self._endpoints_path(cid).unlink(missing_ok=True)
+        steps = len(members)
+        errors = []
+        for i, m in enumerate(reversed(members), 1):
+            self._progress(cid, "remove", i, steps, m, f"Removing {self._title(m)}")
+            mst = self.state["components"].get(m)
+            if not mst or mst.get("status") != "installed":
+                continue
+            res = self._remove_one(m)
+            if res["state"] == "failed":
+                errors.append(f"{self._title(m)}: {res.get('reason')}")
+        return (not errors), "; ".join(errors)
 
     # pack --------------------------------------------------------------------
     def _awpack_env(self) -> dict:
@@ -818,6 +1097,16 @@ class Tool:
                 d = self.paths.state_dir / cid
                 if d.exists():
                     shutil.rmtree(d)
+            elif kind == "bundle":
+                ok, err = self._remove_bundle(cid, st)
+                if not ok:
+                    msg = f"some parts could not be removed: {err}"
+                    self._progress(cid, "remove", 0, 0, "", "Remove failed", done=True,
+                                   ok=False, error=msg)
+                    return self._res(cid, "bundle", "failed", reason=msg)
+                self._progress(cid, "remove", 0, 0, "", "Removed: GargBot is back on its "
+                               "default memory (your data on this machine is kept)",
+                               done=True, ok=True)
             elif kind == "container":
                 unit = f"awnix-{cid}.service"
                 rc, log = self.runner.run(["systemctl", "stop", unit], timeout=300)
@@ -874,6 +1163,10 @@ class Tool:
             atomic_symlink(pin12(prev), self.paths.state_dir / cid / "current")
             self._remove_shims(cid, [c for c in cur_prov if c not in provides])
             self._write_shims(cid, provides)
+        elif kind == "bundle":
+            return self._res(cid, kind, "failed", pin=st["pin"],
+                             reason="a bundle has no generation of its own: roll back its "
+                                    "members one by one")
         elif kind == "container":
             row = {**(self.rows.get(cid) or {}), "url": meta.get("image") or
                    (self.rows.get(cid) or {}).get("url"), "version": meta.get("version", "")}
@@ -1018,6 +1311,13 @@ def main(argv: list[str] | None = None, paths: Paths | None = None,
     if need_ids and not ids:
         print(f"awnix component {a.verb}: needs at least one id", file=sys.stderr)
         return EXIT_FAILED
+    if a.verb in ("install", "remove", "rollback", "sync", "gc") and not _op_lock(tool.paths):
+        msg = ("another component operation is already running on this box; "
+               "wait for it to finish")
+        if a.json:
+            print(json.dumps({"ok": False, "op": a.verb, "results": [], "reason": msg}))
+        print(f"awnix component: {msg}", file=sys.stderr)
+        return EXIT_FAILED
     if a.verb == "list":
         rc, res = tool.list()
     elif a.verb == "info":
@@ -1038,6 +1338,26 @@ def main(argv: list[str] | None = None, paths: Paths | None = None,
         rc, res = tool.gc(keep=a.keep)
     render(a.verb, rc, res, a.json)
     return rc
+
+
+_LOCK_FD: list = []
+
+
+def _op_lock(paths: Paths) -> bool:
+    """One mutating op at a time (a click and the bot can race). Held until exit."""
+    try:
+        import fcntl  # noqa: PLC0415 - Linux only; the box always has it
+    except ImportError:
+        return True
+    paths.state_dir.mkdir(parents=True, exist_ok=True)
+    f = open(paths.state_dir / ".op.lock", "a")  # noqa: SIM115 - held for the process
+    try:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        return False
+    _LOCK_FD.append(f)
+    return True
 
 
 def _serial(path: str, line: str) -> None:
@@ -1097,11 +1417,21 @@ class FakeRunner(Runner):
             return 0, "ok"
         return 0, "ok"
 
+    WEIGHTS = b"fake-weights"
+
     def http_ok(self, url):
         return self.healthy
 
     def sleep(self, s):
         return None
+
+    def download(self, url, dest, sha256):
+        self.calls.append(["download", url])
+        if hashlib.sha256(self.WEIGHTS).hexdigest() != sha256:
+            return False, "sha256 mismatch"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(self.WEIGHTS)
+        return True, "ok"
 
 
 def _fixture(tmp: Path, lock_rows: list[dict], license_state: dict | None = None,
@@ -1135,6 +1465,100 @@ def _fixture(tmp: Path, lock_rows: list[dict], license_state: dict | None = None
         "AWNIX_COMPONENT_HEALTH_TIMEOUT": "6",
     }
     return Paths(env)
+
+
+def bundle_fixture_rows() -> list[dict]:
+    """A two-member stack + its bundle, shaped like the generated memory-stack rows."""
+    lic = {"requires_license": True, "entitlement": "garg", "available": True, "reason": ""}
+    wsha = hashlib.sha256(FakeRunner.WEIGHTS).hexdigest()
+    db = {"id": "st-db", "kind": "container", "version": "16", "pin": "sha256:" + "1" * 64,
+          "url": "docker.io/library/postgres", "title": "the database", **lic,
+          "quadlet": {"network": "st", "aliases": ["db"], "public": True,
+                      "volumes": [{"dest": "/var/lib/postgresql/data"}],
+                      "env": {"POSTGRES_USER": "app"}, "secrets": ["POSTGRES_PASSWORD"],
+                      "secrets_group": "st", "exec": ["-c", "listen_addresses=*"]}}
+    api = {"id": "st-api", "kind": "container", "version": "1", "pin": "sha256:" + "2" * 64,
+           "url": "ghcr.io/aitherium/garg-memory", "title": "the search service", **lic,
+           "quadlet": {"network": "st", "aliases": ["api"], "after": ["st-db"],
+                       "ports": [{"host": 8171, "container": 8171}],
+                       "volumes": [{"dest": "/models"}, {"dest": "/logs", "shared": "st-logs"}],
+                       "env": {"MODE": "has space"}, "secrets": ["POSTGRES_PASSWORD", "KEY"],
+                       "secrets_group": "st", "health": "http://127.0.0.1:8171/health",
+                       "files": [{"name": "w.gguf", "url": "https://x/w.gguf", "sha256": wsha}]}}
+    bundle = {"id": "st", "kind": "bundle", "version": "1", "pin": "sha256:" + "3" * 64,
+              "url": "", "title": "the stack", **lic, "requires": ["st-db", "st-api"],
+              "endpoints": {"RETRIEVAL_URL": "http://127.0.0.1:8171"}}
+    return [db, api, bundle]
+
+
+def _bundle_self_test(tmp: Path, chk) -> bool:
+    lic = {"state": "valid", "entitlements": {"packs": ["garg"], "images": []}}
+    paths = _fixture(tmp, bundle_fixture_rows(), lic)
+    fr = FakeRunner()
+    tool = Tool(paths, fr)
+    rc, res = tool.install(["st"])
+    chk(rc == 0 and res[0]["state"] == "installed", "bundle install -> installed")
+    st = tool.state["components"]
+    chk(all(st.get(m, {}).get("status") == "installed" for m in ("st-db", "st-api")),
+        "one bundle install installs every member")
+    ep = (paths.env_dir / "st.endpoints.env").read_text(encoding="utf-8")
+    chk("RETRIEVAL_URL=http://127.0.0.1:8171" in ep, "bundle writes its endpoints file")
+    qa = (paths.quadlet_dir / "awnix-st-api.container").read_text(encoding="utf-8")
+    chk("Network=awnix-st.network" in qa and "NetworkAlias=api" in qa
+        and (paths.quadlet_dir / "awnix-st.network").is_file(),
+        "members share a private network with aliases")
+    chk('Environment="MODE=has space"' in qa and "After=network-online.target "
+        "awnix-st-db.service" in qa, "env quoted; member ordered after its dependency")
+    chk(f"Volume={paths.state_dir / '_shared' / 'st-logs'}:/logs:Z" in qa,
+        "shared volume mounts one dir")
+    qd = (paths.quadlet_dir / "awnix-st-db.container").read_text(encoding="utf-8")
+    chk("Exec=-c listen_addresses=*" in qd, "exec args rendered")
+    db_env = (paths.env_dir / "st-db.env").read_text(encoding="utf-8")
+    api_env = (paths.env_dir / "st-api.env").read_text(encoding="utf-8")
+    pw = [ln for ln in db_env.splitlines() if ln.startswith("POSTGRES_PASSWORD=")]
+    chk(len(pw) == 1 and len(pw[0]) > 40 and pw[0] in api_env and "KEY=" not in db_env,
+        "box-local secrets generated once, shared by group, each row gets only its own")
+    chk((paths.state_dir / "st-api" / "data" / "w.gguf").read_bytes() == FakeRunner.WEIGHTS,
+        "locked file downloaded into the data dir")
+    pulls = [c for c in fr.calls if c[:2] == ["podman", "pull"]]
+    chk(len(pulls) == 2, "one pull per member")
+    row = tool.status_of("st")
+    chk(row.get("progress", {}).get("done") is True and row["progress"]["ok"] is True
+        and row.get("endpoints", {}).get("RETRIEVAL_URL"), "list shows progress + endpoints")
+
+    rc, res = Tool(paths, fr).remove(["st"])
+    t2 = Tool(paths, fr)
+    chk(rc == 0 and not (paths.env_dir / "st.endpoints.env").exists()
+        and "st-api" not in t2.state["components"] and "st-db" not in t2.state["components"],
+        "bundle remove drops the endpoints file and every member")
+    chk((paths.state_dir / "_secrets" / "st.env").read_text(encoding="utf-8").count(pw[0]) == 1,
+        "secrets survive remove (a re-install opens the same vault)")
+
+    # a member failing undoes the members THIS op added
+    fr3 = FakeRunner()
+    fr3.fail.add("garg-memory")
+    rc, res = Tool(paths, fr3).install(["st"])
+    t3 = Tool(paths, fr3)
+    prog = t3.status_of("st").get("progress") or {}
+    chk(rc == 1 and "st-db" not in t3.state["components"]
+        and prog.get("ok") is False and "the search service" in prog.get("error", ""),
+        "a failed member removes what this op added and says which part failed")
+
+    # a bad sha refuses the file and installs nothing
+    rows = bundle_fixture_rows()
+    rows[1]["quadlet"]["files"][0]["sha256"] = "0" * 64
+    p4 = _fixture(tmp / "badsha", rows, lic)
+    rc, res = Tool(p4, FakeRunner()).install(["st-api"])
+    chk(rc == 1 and not (p4.quadlet_dir / "awnix-st-api.container").exists(),
+        "a file whose sha256 does not match is refused; no quadlet written")
+    # not entitled -> needs-license, nothing pulled
+    p5 = _fixture(tmp / "nolic", bundle_fixture_rows(), {"state": "valid",
+                                                          "entitlements": {"packs": ["x"]}})
+    fr5 = FakeRunner()
+    rc, res = Tool(p5, fr5).install(["st"])
+    chk(rc == 3 and not any(c[:2] == ["podman", "pull"] for c in fr5.calls),
+        "an unlicensed bundle pulls nothing (exit 3)")
+    return True
 
 
 def self_test() -> int:
@@ -1269,6 +1693,10 @@ def self_test() -> int:
             "sync moves an installed pack to the new lock pin")
         chk(any("--replace" in c for c in fr5.calls if c[1:2] == ["install"]),
             "a pack re-pin passes awpack --replace")
+
+        # a bundle: one install = every member, endpoints written, undo on failure
+        bad_ok = _bundle_self_test(tmp / "bundle", chk)
+        chk(bad_ok, "bundle self-test ran")
 
         # missing lock -> 2
         empty = Paths({**{k: v for k, v in os.environ.items()},

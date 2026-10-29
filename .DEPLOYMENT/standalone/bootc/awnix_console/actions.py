@@ -59,6 +59,13 @@ ACTIONS: Dict[str, Dict[str, Any]] = {
                           "params": {"id": ("component",)}, "timeout": 1800},
     "component-remove": {"argv": ["awnix-component", "remove", "{id}", "--json"],
                          "params": {"id": ("component",)}, "timeout": 600},
+    # the same two verbs, started DETACHED (systemd-run): a bundle (memory-stack) pulls
+    # GBs and probes several services, longer than any HTTP answer should wait. The
+    # caller watches row.progress in GET /api/appliance/components.
+    "component-install-start": {"argv": ["awnix-component", "install", "{id}", "--json"],
+                                "params": {"id": ("component",)}, "detached": True},
+    "component-remove-start": {"argv": ["awnix-component", "remove", "{id}", "--json"],
+                               "params": {"id": ("component",)}, "detached": True},
     "component-rollback": {"argv": ["awnix-component", "rollback", "{id}", "--json"],
                            "params": {"id": ("component",)}, "timeout": 600},
     "endpoints-probe": {"argv": ["awnix-endpoints", "probe", "--json"], "timeout": 120},
