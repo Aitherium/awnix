@@ -33,7 +33,10 @@ IMAGE="localhost/awnix:latest"
 TYPE="iso"
 OUT="/var/tmp/awnix-iso"
 MIN_FREE_GB=40
-BIB="quay.io/centos-bootc/bootc-image-builder:latest"
+# Pinned 2026-10-30: `:latest` (pushed 10-26) failed run 41036737912 in org.osbuild.rpm --
+# rpm-sequoia rejected CentOS key 05B555B38483C65D ("SHA1 is not considered secure").
+# Same digest the arm64 lane pins. Override with AWNIX_BIB to try a newer builder.
+BIB="${AWNIX_BIB:-quay.io/centos-bootc/bootc-image-builder@sha256:2b52843ea2bfda73b0a08d97e76b734393b1d3a804681b9fabb26723bd3a2f0b}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_ISO_CONFIG="$HERE/iso/awnix-installer.toml"
 CONFIG=""          # resolved below: explicit --config, else the iso default
