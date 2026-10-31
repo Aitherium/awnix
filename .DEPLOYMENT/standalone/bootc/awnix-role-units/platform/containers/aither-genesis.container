@@ -118,6 +118,8 @@ Environment=AITHER_RUNTIME_ISOLATION_PROBE=0
 Environment=AITHER_KV_AFFINITY_ROUTING=0
 Environment=AITHER_KV_WORKSPACE_SHARING=0
 Environment=AITHER_KV_LOCAL_NODE=
+# OWNER RULING 2026-10-31: GitHub backlog triage stays LIVE; pause = answer the
+# rolling "GitHub triage" cockpit card "pause" (never unset this).
 Environment=GITHUB_TRIAGE_LIVE=1
 Environment=PYTHONFAULTHANDLER=1
 Environment=PYTHON_GIL=1
