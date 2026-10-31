@@ -18,3 +18,5 @@ aither-world-model.service        # CPU world model: arc.aitherium.com "learning
 shadowbroker-backend.service      # shadowbroker.aitherium.com backend: HMAC agent channel + InfoNet (2026-10-28: 503 after every reboot)
 shadowbroker-frontend.service     # shadowbroker.aitherium.com tunnel origin (FRG007 was blind: it read the wrong mount namespace)
 aither-community-intake.service   # contribute.aitherium.com: `adk contribute upload` intake (criticality: important; 503 after reboot)
+aither-cinema.service             # Aither Cinema Studio :8765 (camera-rig shots; awdesk + Forge 'Cinema' open it): down after the 2026-10-31 15:09 distro restart
+aither-aitherium-mediaforge.service # the Aitherium team's media-forge (ws_96ccadbf members): down after the 2026-10-31 15:09 distro restart
