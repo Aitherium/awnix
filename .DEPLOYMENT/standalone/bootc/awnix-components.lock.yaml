@@ -5,7 +5,8 @@
 schema: 1
 generated_by: AitherOS/dev/tools/gen_awnix_component_lock.py
 catalogue_sha256: 73d0a707d04c62e37c8bf859bf74ea1c1ab7a177f2633b37f9a6d0777924b682
-generated_at: '2026-10-29T20:13:44Z'
+stacks_sha256: cda5aa14e842cebc95386a581bd4d056f0f92068ec9dc792c023df57336d107c
+generated_at: '2026-11-07T07:35:15Z'
 target:
   python: '3.11'
   platform: manylinux_2_34_x86_64
@@ -19,9 +20,9 @@ wheels:
   annotated-types==0.8.0:
     url: https://files.pythonhosted.org/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl
     sha256: f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0
-  anyio==4.15.1:
-    url: https://files.pythonhosted.org/packages/12/b8/4bd346e22b28902df4d651910f5242c28d84e4a5c2435ca5c3f797ed7e2e/anyio-4.15.1-py3-none-any.whl
-    sha256: 6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101
+  anyio==4.16.0:
+    url: https://files.pythonhosted.org/packages/a9/16/7757fb84c819accc7d7e9af5291b261e4abb8627ee040f99e7d35ef2457a/anyio-4.16.0-py3-none-any.whl
+    sha256: c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026
   attrs==26.1.0:
     url: https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl
     sha256: c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309
@@ -31,90 +32,90 @@ wheels:
   awdit==0.1.0:
     url: https://files.pythonhosted.org/packages/2d/86/a2fda7a4190764d7583ae23e34067a9cdf6fe1efd666f5fcbc8b6a433604/awdit-0.1.0-py3-none-any.whl
     sha256: 896d23f20592bc7027d2ca2c6bae4e058a7b33e02865d510394fb792f0b7403d
-  awdk==3.8.48:
-    url: https://files.pythonhosted.org/packages/85/43/a596b3b597093e18c7cab08010177e266dff685df6b3211e545ccf450ebe/awdk-3.8.48-py3-none-any.whl
-    sha256: c6ab98a5286b3387ac51d92acbe0ba6fad03543089bd09d04eb5799c0170386d
-  awgit==1.12.0:
-    url: https://files.pythonhosted.org/packages/76/0c/841db2f80b7b503fbb48029a7304e36182b42a134cef174af55d5ea4cd3b/awgit-1.12.0-py3-none-any.whl
-    sha256: 0356130ee77dfae4663a6c139a7a89bfa72e7b289bfc8503024b5e5f87304320
+  awdk==3.8.97:
+    url: https://files.pythonhosted.org/packages/54/8f/865ef45bda53f444d25d89f0f97a087718ba805cf5c4bd059002e0a27f35/awdk-3.8.97-py3-none-any.whl
+    sha256: c4560ee61eeb4f8bbd828f5b7f2ac97148e6fdae8a354ed9e6f06149e90eb9c0
+  awgit==1.12.1:
+    url: https://files.pythonhosted.org/packages/01/ba/7dcec7d45e40b6680d00ba750dc7f0e0a06629698c631e6d8f892692edbf/awgit-1.12.1-py3-none-any.whl
+    sha256: a6cf6e52216656d6133a92ca78c9ae7cc8a5701bcc862a9587376b18eae9644c
   awgraph==1.4.14:
     url: https://files.pythonhosted.org/packages/99/8c/f1e98c89c05d272e96d7f77f9f6ea428375624a7d4d7a1384f35d2257827/awgraph-1.4.14-py3-none-any.whl
     sha256: d20dc3111decca873d1c4db94b86848389beb597999bbed1dad50c9037bf577e
-  awrelay==0.5.0:
-    url: https://files.pythonhosted.org/packages/29/36/2f06c763bf68ad8ddc11a725a075bfc3897838988fcfe81d6a0bac7422cf/awrelay-0.5.0-py3-none-any.whl
-    sha256: 9961b971137767fe6d9ec8da177e52758661525e95958191676b3d34ad63afef
+  awrelay==0.5.1:
+    url: https://files.pythonhosted.org/packages/01/e0/de9eef74aadc17220fe2d4e32c6e716fcadbc799a9603ccd9e73b45ba6b7/awrelay-0.5.1-py3-none-any.whl
+    sha256: ebf5d51739769c497ed387b711440f04a1b744dcf4298f2bdc6ce89ac502a3cb
   awreport==0.2.0:
     url: https://files.pythonhosted.org/packages/1d/e6/1057b99c4b7acf5b0394a59d928d1cb4ad6ef9c32f9651f2467be6251bad/awreport-0.2.0-py3-none-any.whl
     sha256: 0efab42e97405ef48e499782dae90921f1ecc3be066148a9a89f465c61c14469
-  awsettings==0.3.4:
-    url: https://files.pythonhosted.org/packages/d6/53/be3e152cc89ceeffb364ed0525494c42e0bc94d3336311d720b2b230b48f/awsettings-0.3.4-py3-none-any.whl
-    sha256: 21e069aa178ebc8945b4bca7cfad9bd582a8bfe7e99e329da237243f5e2e32a9
-  awshare==0.1.1:
-    url: https://files.pythonhosted.org/packages/e5/3a/0967f33036ba12715fd4675d184ab2aae7684d468c683fe8a5122d7013c3/awshare-0.1.1-py3-none-any.whl
-    sha256: c578151d6eb5431e9c38b30187dd710b3029e3aeb809c36b9606bfe5fd8cfc39
-  certifi==2026.7.22:
-    url: https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl
-    sha256: 62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775
+  awsettings==0.3.13:
+    url: https://files.pythonhosted.org/packages/ee/db/702bf258baee523ec7b451a2cd3321e99f26088b37cc487075a445c4f3ba/awsettings-0.3.13-py3-none-any.whl
+    sha256: 9a03eba44a149cc78c1c9b00b13051ddcf3390cc551da9de55ce6be982d7b7f4
+  awshare==0.2.3:
+    url: https://files.pythonhosted.org/packages/2c/af/735040f0064e6d36b7e98411cffee8481e5c5c4f999a45b7b0eaabcc7392/awshare-0.2.3-py3-none-any.whl
+    sha256: df1eb160be6c52b039917d53f5c123c76c9c8d24cffeafec21425f52b57441ff
+  certifi==2026.10.23:
+    url: https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl
+    sha256: e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1
   cffi==2.1.1:
     url: https://files.pythonhosted.org/packages/f7/a4/4399daaf8f7dfee9d7c3327fdb0426ee041cc63edc358b93911ceb2bfc7a/cffi-2.1.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
     sha256: 34e261f78cb6ceaaa36f42f2613f4380d94d9c759a9c73c769ee6e0247364632
   charset-normalizer==3.5.2:
     url: https://files.pythonhosted.org/packages/fc/ad/d07d7862a62ffa6d79d68074d14823243dd235a77c45262acbf6adeb28bf/charset_normalizer-3.5.2-py3-none-any.whl
     sha256: b6b751274acb69d77b3323d6b7dbaa3c7fdfc1eb829b7eb61d262f32e1af9685
-  click==8.5.0:
-    url: https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl
-    sha256: 255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360
+  click==8.5.1:
+    url: https://files.pythonhosted.org/packages/31/7d/164b7ffc8624fe9efb4221bf9af485d5c1e41b9ae118045d2b6dc5457d8b/click-8.5.1-py3-none-any.whl
+    sha256: 8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37
   cryptography==50.0.2:
     url: https://files.pythonhosted.org/packages/21/69/64cef1f702bf6657e0cc186ed1a2891d50d29fb41586b254e1c07adea261/cryptography-50.0.2-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
     sha256: 630ebfea3bf689d075f82316324ff7433dc447fe6bc1bfc76524b74b4a9567d2
-  cuda-bindings==13.4.3:
-    url: https://files.pythonhosted.org/packages/ba/c7/ff34500e11229c5487bd7c35e03d0f91832ffde50bdb3f963f7aba485357/cuda_bindings-13.4.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
-    sha256: a9ea13b9cfe711515ae83b5efc99101af4d3f8ad882f99724a839c8b5417fb7e
-  cuda-pathfinder==1.8.3:
-    url: https://files.pythonhosted.org/packages/b9/fb/f8e1890428f9f590b4beebd63b068aac1ce32a3331510c847b9f9a78f261/cuda_pathfinder-1.8.3-py3-none-any.whl
-    sha256: e29e59829c297a7a5233bd9cc71094fc5bddbd076951482670178f9eade39b1f
-  cuda-toolkit==13.0.3:
-    url: https://files.pythonhosted.org/packages/d1/c7/a79086a62c98befcdb8349656c6f114e2db3b8b2422f6e25c97a7f2a9a3c/cuda_toolkit-13.0.3.0-py2.py3-none-any.whl
-    sha256: d693caaa261214ddd7dbb60d68e71cbed884e68c2be7509778f3051da0b91c3f
-  ddgs==9.16.0:
-    url: https://files.pythonhosted.org/packages/f9/0c/b43a87e81e45caf2c30fea9a5914dfd17b83a9f3c2c59ae22b6257bcf083/ddgs-9.16.0-py3-none-any.whl
-    sha256: 175d9198c958a263f51a06a54368ba0b41294942c0cd29f4aa71be03dbcd5f4a
-  fastapi==0.142.2:
-    url: https://files.pythonhosted.org/packages/a0/b6/78aaf9141fb46742928c113f3cf6ef2259d538cb02b604b7656c1dc9883c/fastapi-0.142.2-py3-none-any.whl
-    sha256: bd5f4d81f1e93a88bcd77caf4dfe3c2dbffc3805407a0007e9a114c18b3a670b
-  filelock==4.0.9:
-    url: https://files.pythonhosted.org/packages/01/4f/83454fafd628e1e7e1726d74e44fb2332be5969d04c6182ca1fecb6c580e/filelock-4.0.9-py3-none-any.whl
-    sha256: 9287fd61b99a806e5202be29a83034c0808a1b9830e820537c2f5773981f7eeb
+  cuda-bindings==13.5.0:
+    url: https://files.pythonhosted.org/packages/f6/0d/ca24317a31118b90fd60126aec5c0a92a191a7fdd39524032d43328b49b5/cuda_bindings-13.5.0-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+    sha256: 08b7e8d674c3266facb00453a7e34ea7d3ea965c2f594bb728f269f45f39fbe2
+  cuda-pathfinder==1.8.6:
+    url: https://files.pythonhosted.org/packages/6a/9e/08555797c979322def080814686417ea93f66d38f5c48ebab6867a85a21e/cuda_pathfinder-1.8.6-py3-none-any.whl
+    sha256: bf6b3b06323cf95a11d671818392da5da23ddbbb4dfc4b77ca10622783c25980
+  cuda-toolkit==13.2.2:
+    url: https://files.pythonhosted.org/packages/3d/62/854e4a141f5e87e5425513bad2a742a6260acfe06ef148001b5362148f31/cuda_toolkit-13.2.2-py2.py3-none-any.whl
+    sha256: d12edc1aad1356236a2ee10c0d794b1aff5d3e79bfeca54867c3bb8e5afd87b0
+  ddgs==9.16.1:
+    url: https://files.pythonhosted.org/packages/60/5f/9388344fe821102459a73d2d49ab5e6769b3bab3f17ecf79fb1f736cf1d6/ddgs-9.16.1-py3-none-any.whl
+    sha256: 9ac0b3c19d865a9bfbf7bc7cc8090bd43d1e7adfb083a017bbece360a22e21b6
+  fastapi==0.162.0:
+    url: https://files.pythonhosted.org/packages/b4/4f/3f2c25c9b43970b5e9a08beb5e04776247edea684ddc0930f4f02f0bb6cb/fastapi-0.162.0-py3-none-any.whl
+    sha256: 3785963de305dd09912426cb81f2d230fce98ab3521cdfe97265c8d14983128c
+  filelock==4.2.9:
+    url: https://files.pythonhosted.org/packages/00/05/76184fe08339723d643ab47887a8e4de8f2921ca4e008617ab7490af7857/filelock-4.2.9-py3-none-any.whl
+    sha256: a379c50a729e5b68c8519a4d26489f755d9769960a236ecd838190e2a78db2e9
+  flatbuffers==25.12.19:
+    url: https://files.pythonhosted.org/packages/e8/2d/d2a548598be01649e2d46231d151a6c56d10b964d94043a335ae56ea2d92/flatbuffers-25.12.19-py2.py3-none-any.whl
+    sha256: 7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4
   fsspec==2026.9.0:
     url: https://files.pythonhosted.org/packages/6c/c0/a98505f18594f1bce828bb159cec0fcf9860562f1a2c85913409fc8f3d9e/fsspec-2026.9.0-py3-none-any.whl
     sha256: 8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f
   h11==0.16.0:
     url: https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl
     sha256: 63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86
-  hf-xet==1.6.0:
-    url: https://files.pythonhosted.org/packages/67/4e/a28359bf1c1ecf11eba22123168c138698f7cb576ac678f5a2e16cd5da08/hf_xet-1.6.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-    sha256: d62671bb130879cef0ee4c9ebe47a14af6c66ec53e6d84dc15936e5ffdfac82f
-  httpcore2==2.13.1:
-    url: https://files.pythonhosted.org/packages/09/ba/a4568248771ce81957bfb7cc600264a40fbcda092391ee1c415c50be4bea/httpcore2-2.13.1-py3-none-any.whl
-    sha256: e1e05d4f25f7d7d496bfb96748f6f4b67657b03da069b3a68c36069f3db73d0a
+  hf-xet==1.8.0:
+    url: https://files.pythonhosted.org/packages/f8/1e/1e8ecc05ef034e9a95c18ed32d2ec07905a7cd2ca611a9d88e25ee1f4850/hf_xet-1.8.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+    sha256: 29dab7c904cd1914a0439c6e1306c12c7497c8bd32290fbe563ebf51ca4b6d6d
+  httpcore2==2.16.0:
+    url: https://files.pythonhosted.org/packages/af/c2/ce417c397afa5181f0e3c6ff01a4d01639414e1adef08730d97571297151/httpcore2-2.16.0-py3-none-any.whl
+    sha256: 5c4358319f2602d984ad93182c9fee5160f22e9da7babdda870a5e7c4e2dc34f
   httpcore==1.0.9:
     url: https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl
     sha256: 2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55
-  httptools==0.8.0:
-    url: https://files.pythonhosted.org/packages/cc/d4/13025f1a56e615dcb331e0bbe2d9a1143212b58c263385fc5d2e558f5bac/httptools-0.8.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
-    sha256: 57278e6fa0424c42a8a3e454828ab4f0aff27b40cddf9679579b98c6dce6a376
-  httpx-sse==0.4.3:
-    url: https://files.pythonhosted.org/packages/d2/fd/6668e5aec43ab844de6fc74927e155a3b37bf40d7c3790e49fc0406b6578/httpx_sse-0.4.3-py3-none-any.whl
-    sha256: 0ac1c9fe3c0afad2e0ebb25a934a59f4c7823b60792691f779fad2c5568830fc
-  httpx2==2.13.1:
-    url: https://files.pythonhosted.org/packages/d8/9c/6fe8931fd9f381042a9e4c7d5a7b4cbf7016b252bec0c99a49fce42c3326/httpx2-2.13.1-py3-none-any.whl
-    sha256: 6dff50fabc270ee5fd25d845d0b078ed20564579744d6d962850975996d2f9a4
+  httptools==0.9.0:
+    url: https://files.pythonhosted.org/packages/f7/0b/6498fe8218db1ed5f785010c303bfef50516d0988e64988bb8f9f59d70ab/httptools-0.9.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
+    sha256: b68fb053b37c258a473ab67f4965c3b439500dc160fe364667035a6833eaf50a
+  httpx2==2.16.0:
+    url: https://files.pythonhosted.org/packages/7b/3d/2e4bc4fd1ef9770871669adb348d612a6e4786b303a23f9935b81c48dd60/httpx2-2.16.0-py3-none-any.whl
+    sha256: fd2c5d7909e8d86fe92d53020c310ca0e4e431b838c207c5754b9bbf0308d49a
   httpx==0.28.1:
     url: https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl
     sha256: d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
-  huggingface-hub==1.33.0:
-    url: https://files.pythonhosted.org/packages/fc/16/963096d224b80909432dc16561a615fd33d2d13beef3ce4c63fa25e40867/huggingface_hub-1.33.0-py3-none-any.whl
-    sha256: 04e434b06e100eddbce9a6e817d72693a7884b10a79bd67ab48080d5c07eb899
+  huggingface-hub==2.4.0:
+    url: https://files.pythonhosted.org/packages/d4/55/ff47f1b082ecf5f43f4bc1e3b932d68eead171dabbbd1a92666c686301d7/huggingface_hub-2.4.0-py3-none-any.whl
+    sha256: 42ecfd93ede47bdd333daebbf66a32d7bfe2e18752754fe4d2d4f98a0179d801
   idna==3.20:
     url: https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl
     sha256: ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c
@@ -136,9 +137,12 @@ wheels:
   markupsafe==3.0.4:
     url: https://files.pythonhosted.org/packages/81/a5/a513b76c139a3915b43404324e55c0b7979ae4f0d39eb6f075b0282e90a8/markupsafe-3.0.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
     sha256: 6da83a088f8ef93b2d483a8232a4dbf4d69d3d8496b568a03c56becac43e1808
-  mcp==1.30.0:
-    url: https://files.pythonhosted.org/packages/f5/f4/e58bc33317c92a0203664daaf00bf6f41166cc0149e5d6870a03f7cd004a/mcp-1.30.0-py3-none-any.whl
-    sha256: 666edb5009503e1047c9d60346a756f94b261f05cc2625f23d41c728ffc484d0
+  mcp-types==2.3.0:
+    url: https://files.pythonhosted.org/packages/ce/48/32583066b155bb5d4507e7887dc88ee23118cc4de8e2a12870c49719e2a8/mcp_types-2.3.0-py3-none-any.whl
+    sha256: 968efdbdaedfab06adae40d378a34395f1090c5921d4be3c9cde283aaf76d91d
+  mcp==2.3.0:
+    url: https://files.pythonhosted.org/packages/20/d7/4a2878f128df729db3ca04e71bfce26405cc2e0c9ebe19c592feeb4c61b9/mcp-2.3.0-py3-none-any.whl
+    sha256: dd0c44c089d16453e8ae31a3877a0054d7a2314caaa81f5e0541b9b1734b2377
   mdurl==0.1.2:
     url: https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl
     sha256: 84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8
@@ -151,87 +155,99 @@ wheels:
   numpy==2.4.6:
     url: https://files.pythonhosted.org/packages/02/03/74fe2a4cb3817d94d86402f2506554130a2f01414e299b5a843e5a8a957f/numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
     sha256: 89cd468399cfd2504718f0ba50e410dca55a170b61a02ad92bb18c8a65186e93
-  nvidia-cublas==13.1.1.3:
-    url: https://files.pythonhosted.org/packages/3b/cd/154ca20c38269e05eff77c1464e6c1da89f50a6390b565e9d82e06bc11e1/nvidia_cublas-13.1.1.3-py3-none-manylinux_2_27_x86_64.whl
-    sha256: 37936a16db8fe4ac1f065c2139360608a543a09275cb1a1af612e08cfa065436
-  nvidia-cuda-cupti==13.0.85:
-    url: https://files.pythonhosted.org/packages/33/6d/737d164b4837a9bbd202f5ae3078975f0525a55730fe871d8ed4e3b952b0/nvidia_cuda_cupti-13.0.85-py3-none-manylinux_2_25_x86_64.whl
-    sha256: 4eb01c08e859bf924d222250d2e8f8b8ff6d3db4721288cf35d14252a4d933c8
-  nvidia-cuda-nvrtc==13.0.88:
-    url: https://files.pythonhosted.org/packages/c3/68/483a78f5e8f31b08fb1bb671559968c0ca3a065ac7acabfc7cee55214fd6/nvidia_cuda_nvrtc-13.0.88-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl
-    sha256: ad9b6d2ead2435f11cbb6868809d2adeeee302e9bb94bcf0539c7a40d80e8575
-  nvidia-cuda-runtime==13.0.96:
-    url: https://files.pythonhosted.org/packages/2e/24/d1558f3b68b1d26e706813b1d10aa1d785e4698c425af8db8edc3dced472/nvidia_cuda_runtime-13.0.96-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-    sha256: 7f82250d7782aa23b6cfe765ecc7db554bd3c2870c43f3d1821f1d18aebf0548
-  nvidia-cudnn-cu13==9.24.0.43:
-    url: https://files.pythonhosted.org/packages/5c/ba/791cffd048fe5b044e620df55267e3e95c0e6e07d50b41e377c03dfc910f/nvidia_cudnn_cu13-9.24.0.43-py3-none-manylinux_2_27_x86_64.whl
-    sha256: 71f181cd810e90f9b6023b01186fe82d13d65f0ec098581ee201d39fad769e4b
-  nvidia-cufft==12.0.0.61:
-    url: https://files.pythonhosted.org/packages/a8/2f/7b57e29836ea8714f81e9898409196f47d772d5ddedddf1592eadb8ab743/nvidia_cufft-12.0.0.61-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-    sha256: 6c44f692dce8fd5ffd3e3df134b6cdb9c2f72d99cf40b62c32dde45eea9ddad3
-  nvidia-cufile==1.15.1.6:
-    url: https://files.pythonhosted.org/packages/3f/70/4f193de89a48b71714e74602ee14d04e4019ad36a5a9f20c425776e72cd6/nvidia_cufile-1.15.1.6-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-    sha256: 08a3ecefae5a01c7f5117351c64f17c7c62efa5fffdbe24fc7d298da19cd0b44
-  nvidia-curand==10.4.0.35:
-    url: https://files.pythonhosted.org/packages/a5/9f/be0a41ca4a4917abf5cb9ae0daff1a6060cc5de950aec0396de9f3b52bc5/nvidia_curand-10.4.0.35-py3-none-manylinux_2_27_x86_64.whl
-    sha256: 1aee33a5da6e1db083fe2b90082def8915f30f3248d5896bcec36a579d941bfc
-  nvidia-cusolver==12.0.4.66:
-    url: https://files.pythonhosted.org/packages/5f/67/cba3777620cdacb99102da4042883709c41c709f4b6323c10781a9c3aa34/nvidia_cusolver-12.0.4.66-py3-none-manylinux_2_27_x86_64.whl
-    sha256: 0a759da5dea5c0ea10fd307de75cdeb59e7ea4fcb8add0924859b944babf1112
-  nvidia-cusparse==12.6.3.3:
-    url: https://files.pythonhosted.org/packages/fa/18/623c77619c31d62efd55302939756966f3ecc8d724a14dab2b75f1508850/nvidia_cusparse-12.6.3.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-    sha256: 2b3c89c88d01ee0e477cb7f82ef60a11a4bcd57b6b87c33f789350b59759360b
+  nvidia-cublas==13.4.1.3:
+    url: https://files.pythonhosted.org/packages/e1/97/d483a41da34df5c88727c57319576967f6d7befba5028d70928d2999635e/nvidia_cublas-13.4.1.3-py3-none-manylinux_2_27_x86_64.whl
+    sha256: a5917cb642cfb07f4a0231ee16aec7e2e0357d8cb8b1b78a0c9c68dba3e6afc7
+  nvidia-cuda-cccl==13.3.5.0.6:
+    url: https://files.pythonhosted.org/packages/a7/7e/4aa67cca14e0558b5a151a692f5ffe609930cdfc20d16c7a584de68424d4/nvidia_cuda_cccl-13.3.5.0.6-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+    sha256: d5230098fa2df5021e1a00c0c4eee41797671a91119d31e892463e5ccf3ee326
+  nvidia-cuda-cupti==13.2.86:
+    url: https://files.pythonhosted.org/packages/b4/76/a10d9fb5d9a0e46d5f95e5520bd1b2d8ad22a9c0a09d2f8c20c5ee842a96/nvidia_cuda_cupti-13.2.86-py3-none-manylinux_2_25_x86_64.whl
+    sha256: 8fa29f15dd8336181f961764d9d95236fc6b931dd0c8fcf8cd70aab0c310b586
+  nvidia-cuda-nvrtc==13.2.86:
+    url: https://files.pythonhosted.org/packages/1e/39/c58835ec8392a91b8d7bad83760eafc3085f64788b722ec2b44a27b3ca3e/nvidia_cuda_nvrtc-13.2.86-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl
+    sha256: 8111c5130e967b78222ea2124145f8efe9ce201b752b2579a2513100a53be1c5
+  nvidia-cuda-runtime==13.2.86:
+    url: https://files.pythonhosted.org/packages/70/c6/8f8c5e893d183082ea78f973aebc7ebc845ee219d68bddac73b0f62490fe/nvidia_cuda_runtime-13.2.86-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+    sha256: 3498247680dfddce31bad102af7e3e26fc795342a3cac64722bb0fa95e7f60f0
+  nvidia-cudnn-cu13==9.26.0.51:
+    url: https://files.pythonhosted.org/packages/ac/1b/ea72dd62f26ce3e0a7870b85148b75a5987507629b712deebeb87f7cce9a/nvidia_cudnn_cu13-9.26.0.51-py3-none-manylinux_2_27_x86_64.whl
+    sha256: 9c976d539786698c71d6bcdbe2053b7485fae062ff7e1215d2f2ff67b1a2149a
+  nvidia-cufft==12.2.0.57:
+    url: https://files.pythonhosted.org/packages/41/28/868ed0c6ade5e6a75b25166b3cf191f4a2ff58ad618c1e40befb776c97c5/nvidia_cufft-12.2.0.57-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+    sha256: 34da27fadf3979b0b042c43823f0530be8408b86df31ee0108e1ca0b621d4ef6
+  nvidia-cufile==1.17.1.22:
+    url: https://files.pythonhosted.org/packages/23/c5/661a73a9042fc5f81cdd5fe6e89f4170b3b33f7962e709987e2b5e5f1381/nvidia_cufile-1.17.1.22-py3-none-manylinux_2_27_x86_64.whl
+    sha256: 87feaf8c3ad20d3d03a01933181801ff6892bace5c8f0b1e4b48f319d3e62d36
+  nvidia-cusolver==12.2.0.11:
+    url: https://files.pythonhosted.org/packages/e4/a4/90f7ade9992190788658c3c285f196fdb9bcc3a5bb93a325c245121d22fd/nvidia_cusolver-12.2.0.11-py3-none-manylinux_2_27_x86_64.whl
+    sha256: fab5778f6769947389a1a6abc07e635576825a08c0ffc68c3ae7f1392c794b42
+  nvidia-cusparse==12.7.10.12:
+    url: https://files.pythonhosted.org/packages/bc/46/3a9700cc13f30c9279af9a862363535c814fa27597199b21fd93cad66237/nvidia_cusparse-12.7.10.12-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+    sha256: 25907c75e4db1581685f06f61cc6cdecc04611765516a52373e0a18ebd69fa00
   nvidia-cusparselt-cu13==0.8.1:
     url: https://files.pythonhosted.org/packages/34/7d/2661f2fb3ac4302f3a246f5fc030213ac60c1fe0bce84f9783dbd831dbb7/nvidia_cusparselt_cu13-0.8.1-py3-none-manylinux2014_x86_64.whl
     sha256: 786ce87568c303fadb5afcc7102d454cd3040d75f6f8626f5db460d1871f4dd0
   nvidia-nccl-cu13==2.30.7:
     url: https://files.pythonhosted.org/packages/3f/34/c500f90c7ae641b8e0f98965b36b8a7ac79cc8b296e8d251fe3eb592ee54/nvidia_nccl_cu13-2.30.7-py3-none-manylinux_2_18_x86_64.whl
     sha256: cefa7fdb9710efd0f39c5f1be1d61ff6fc9a996c451265bd7fbdcf9455ed4b50
-  nvidia-nvjitlink==13.4.92:
-    url: https://files.pythonhosted.org/packages/1d/6b/eef7a9e32872b8f41e145bf10cddc9af26e153c338852811fe9a9baddf9e/nvidia_nvjitlink-13.4.92-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl
-    sha256: e0391f24ed94ec879b84e3da4d4ec320c879aff681f2c7a638462f7199284323
-  nvidia-nvshmem-cu13==3.4.5:
-    url: https://files.pythonhosted.org/packages/3c/35/a9bf80a609e74e3b000fef598933235c908fcefcef9026042b8e6dfde2a9/nvidia_nvshmem_cu13-3.4.5-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-    sha256: 290f0a2ee94c9f3687a02502f3b9299a9f9fe826e6d0287ee18482e78d495b80
-  nvidia-nvtx==13.0.85:
-    url: https://files.pythonhosted.org/packages/c2/f3/d86c845465a2723ad7e1e5c36dcd75ddb82898b3f53be47ebd429fb2fa5d/nvidia_nvtx-13.0.85-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl
-    sha256: 4936d1d6780fbe68db454f5e72a42ff64d1fd6397df9f363ae786930fd5c1cd4
-  opentelemetry-api==1.45.0:
-    url: https://files.pythonhosted.org/packages/44/b9/040d1a1c7836922828e6480cd2366bb8fe0ebf75b413d2bb51a9b0e7f78f/opentelemetry_api-1.45.0-py3-none-any.whl
-    sha256: 80e068aba7cd56c8b58512d6a36f8d25cb1dfaa0c0a4cc1c938ccf9f362d9cb3
+  nvidia-nvjitlink==13.5.37:
+    url: https://files.pythonhosted.org/packages/cc/1f/2321702b8d60b4b4dd18b957f61612dbac9cb1c07e940cf6582106b7c8b8/nvidia_nvjitlink-13.5.37-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl
+    sha256: 280d7cb9649704145f074b8dbde500de04ce02d0872e066e20a83c17bcaa93eb
+  nvidia-nvshmem-cu13==3.7.2:
+    url: https://files.pythonhosted.org/packages/4f/4a/037dfbbafc96ad1828ef62326f27970cae2c0eb271cf5b8e6922f32a7427/nvidia_nvshmem_cu13-3.7.2-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+    sha256: b9a4f843c62b5dded8ad33fd6d220e007dcd39f06cee549292f5ba14ce4c235c
+  nvidia-nvtx==13.2.86:
+    url: https://files.pythonhosted.org/packages/49/ee/16bde09927e7ffacd50b117cd7d1dc764d145f03249fc41fdf6dfba3301f/nvidia_nvtx-13.2.86-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl
+    sha256: 968ce72baee2a01791c7d3254000eac81f24677b0b91c62d21b449a1f309c245
+  onnxruntime==1.31.1:
+    url: https://files.pythonhosted.org/packages/b4/1d/0f85ee31a3d93f2243a5cc29252becf858f53ac5cfa6c9c15d9ffe107eea/onnxruntime-1.31.1-cp311-cp311-manylinux_2_28_x86_64.whl
+    sha256: 5752bd508126ae7c49894d3b9d2e83f0c3d487319246d04c444b393308d7ad7f
+  opentelemetry-api==1.45.2:
+    url: https://files.pythonhosted.org/packages/a9/2d/610db864d7513158cebb8f36cc88e67e73bd6c7aa1905ef18d89e1281c81/opentelemetry_api-1.45.2-py3-none-any.whl
+    sha256: 2cbd737377e710ee740d261c94e93fa0f08e6d037c18f17513cc0a2d94479a34
   packaging==26.3:
     url: https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl
     sha256: d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
   primp==2.0.1:
     url: https://files.pythonhosted.org/packages/59/e9/24b5f9439aa4a0209602c7a997bf6dc537ed2aa0c8b6b7e5a40e694a5633/primp-2.0.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
     sha256: 9a7be373adfded677a9092ae2743873d5c8a9573148d617a189d26715f7d8ea5
-  pycparser==3.0:
-    url: https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl
-    sha256: b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
-  pydantic-core==2.46.5:
-    url: https://files.pythonhosted.org/packages/cf/bc/3fa2d76b83162820a17da7f645b28d1cba99fc8e1e5fc6517067ec450fa1/pydantic_core-2.46.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-    sha256: 49776eab08766a08dfff7012f8b422dcd7e25e43b316eedf0477c24fcfa84b7c
-  pydantic-settings==2.15.0:
-    url: https://files.pythonhosted.org/packages/30/a4/2bffa9f8e804325a09867f0e9d30795c80ea9f8d62560bd1b6ad6220eb2f/pydantic_settings-2.15.0-py3-none-any.whl
-    sha256: 0ba092c291c94baceb5eff768aa0d56400a457585bc0175925a5a5510303da42
-  pydantic==2.13.5:
-    url: https://files.pythonhosted.org/packages/eb/47/c95ffc2009878c7aac0c5e08528022dcb885933252a88b5f170058014464/pydantic-2.13.5-py3-none-any.whl
-    sha256: 346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73
+  protobuf==7.36.2:
+    url: https://files.pythonhosted.org/packages/e4/04/d52c7016b04b6c5108f26691f9d33ec82a9b65d041f1a9c771137693d618/protobuf-7.36.2-py3-none-any.whl
+    sha256: bdb3a345d48db958e6ce1f18e508beb0cc981d64f24088427549c866cd039f1e
+  psutil==7.2.2:
+    url: https://files.pythonhosted.org/packages/b5/70/5d8df3b09e25bce090399cf48e452d25c935ab72dad19406c77f4e828045/psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl
+    sha256: 076a2d2f923fd4821644f5ba89f059523da90dc9014e85f8e45a5774ca5bc6f9
+  pycparser==3.12:
+    url: https://files.pythonhosted.org/packages/b6/ae/315bbeee126a769cbde43cf4908acb4b40408d8bf8bbf334dd7368d8dadf/pycparser-3.12-py3-none-any.whl
+    sha256: a076f3f489b39b43ed13563a1dafe42447445bec2e294154ec5c57fcdda4c85e
+  pydantic-core==2.50.4:
+    url: https://files.pythonhosted.org/packages/56/51/cbb7a1bc0196ff94d3478d265eed7449f811759988eb760d41f4edd0893b/pydantic_core-2.50.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+    sha256: 0574866e05f6adeecc520d87e87dd06210c0a51706341f6ef8421572f5a64444
+  pydantic==2.14.3:
+    url: https://files.pythonhosted.org/packages/72/b8/b864503789ef5c58597d2a7b4adbee62c26440ab1e682581fc6838df8947/pydantic-2.14.3-py3-none-any.whl
+    sha256: 3f7b347782ab7e4cf4c798496ae3a82787d9f21ec12676a9c564355eeef8daa8
   pygments==2.21.0:
     url: https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl
     sha256: 2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9
   pyjwt==2.15.1:
     url: https://files.pythonhosted.org/packages/50/ca/44de4e75f8aadc457f0634be3b542815078ded46dca30efb960edeecad6e/pyjwt-2.15.1-py3-none-any.whl
     sha256: 42d59d631f7768a1028a64c7ff581a9bf7519804daf91fc5b6c56e30eec5e193
-  pymupdf==1.28.2:
-    url: https://files.pythonhosted.org/packages/c7/06/dace3e27af26690cb20bead80dbac42941b0841eb689b8aabbd67dde16f0/pymupdf-1.28.2-cp310-abi3-manylinux_2_28_x86_64.whl
-    sha256: 397d6715c1f0df7548a92d0afd8ce370fc48fa47aeefac16be2bc04a16a8227f
+  pymupdf-layout==2.1:
+    url: https://files.pythonhosted.org/packages/e4/13/7a1edc4029348e728114cf37837dd121a7439defd668caa087d128b5df2d/pymupdf_layout-2.1-py3-none-any.whl
+    sha256: e7e00bc50ec9113d36bdbb0dd5cdafa5f4d61e22e598960fc187ee4f721f5095
+  pymupdf4llm==2.1:
+    url: https://files.pythonhosted.org/packages/38/19/21e262de4e1ddbcd552889e5f04147f83ed219dd13d1e0e0db46ab4d2347/pymupdf4llm-2.1-py3-none-any.whl
+    sha256: 2fe8bb344444c6a8ef41fd745d2d10f6da59df6e104ef20f35d51dd26914b5fb
+  pymupdf==2.1:
+    url: https://files.pythonhosted.org/packages/f4/dc/e244c162ab621a45bfe36e33fe432264ef7e40592f739474864df66a2dd8/pymupdf-2.1-cp311-abi3-manylinux_2_28_x86_64.whl
+    sha256: a9efa2e9e5f469d3b5749199329739cfef1ff1d1846538ced4885c544eecbcd9
   python-dotenv==1.2.4:
     url: https://files.pythonhosted.org/packages/60/d1/38f3a3405989a89ac18390803e70c6ad7c7760da4f9b83cbeca0c44a0c72/python_dotenv-1.2.4-py3-none-any.whl
     sha256: 42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc
-  python-multipart==0.0.32:
-    url: https://files.pythonhosted.org/packages/e1/04/e8135ebd1ad02c56ec633277529b2602ff99ff634be76cdba5744cf554fd/python_multipart-0.0.32-py3-none-any.whl
-    sha256: ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23
+  python-multipart==0.0.33:
+    url: https://files.pythonhosted.org/packages/dd/1b/6b1b4164ec734cac911460ab599bfbe46afedd42c5c9627fe4235942c314/python_multipart-0.0.33-py3-none-any.whl
+    sha256: 8f16c07b36add9da6b2ee87d3efcaf0a45a6de9c3d0a5dd94e9ccf7675a7bc45
   pyyaml==6.0.3:
     url: https://files.pythonhosted.org/packages/71/60/917329f640924b18ff085ab889a11c763e0b573da888e8404ff486657602/pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
     sha256: b8bb0864c5a28024fac8a632c443c87c5aa6f215c0b126c449ae1a150412f31d
@@ -241,63 +257,66 @@ wheels:
   referencing==0.37.0:
     url: https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl
     sha256: 381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231
-  regex==2026.9.29:
-    url: https://files.pythonhosted.org/packages/8a/70/aa08d1d2b294894b365e5f8ba5380fe3f8546acdb81f10639dfd74209c37/regex-2026.9.29-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
-    sha256: 612b709381c0355b70d89cdb51b7f670591ed5cbbc0e3b5337488019dc667b65
+  regex==2026.11.7:
+    url: https://files.pythonhosted.org/packages/93/9a/92e4a8750bf1cfe5e77cb5873af83d9b6d1af97889c89e7295d095f472c8/regex-2026.11.7-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+    sha256: 8ad28dc9261775ee59a9190d4fe909c72734b0e42755fcfb9214e2b2766e7153
   requests==2.34.2:
     url: https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl
     sha256: 2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0
   rich==15.0.0:
     url: https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl
     sha256: 33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb
-  rpds-py==2026.6.3:
-    url: https://files.pythonhosted.org/packages/5e/19/7e98f468bd50346faff5b10e5297374b443bfdddacc8e9fbc65984539597/rpds_py-2026.6.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-    sha256: 9c1255b302953c86a486b81d330d5ee1d5bd937691ce271b6be0ef0e299eaab7
+  rpds-py==2026.9.1:
+    url: https://files.pythonhosted.org/packages/2d/5c/aac3b960fd55d37b49f77c0eebbe043eaf36762ebd48e7b46951e59c1c05/rpds_py-2026.9.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+    sha256: 136a1c3fe4402b7008bc81cb62ee538481795b61a7e83df88dff3b3f02b726ff
   safetensors==0.8.0:
     url: https://files.pythonhosted.org/packages/28/50/f203ff3a3ddfe19308efc83c5a3a29ed02bf786732ec35e68bf9162f3365/safetensors-0.8.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
     sha256: fd6f3f93c9a0a7cc2788ee63fb763353d4bd2e89b0751bc78fcf7dda00bea774
-  setuptools==84.0.0:
-    url: https://files.pythonhosted.org/packages/95/9c/c510029fc6ef33a6275cd2c5d3cecd6613dfd6aa401d57c54f1c18852ccf/setuptools-84.0.0-py3-none-any.whl
-    sha256: 51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670
+  setuptools==84.2.1:
+    url: https://files.pythonhosted.org/packages/ef/55/6dc6d6bb953bdfc52519a0059592c52b6e3b8ad51cf8256dffceb55b0610/setuptools-84.2.1-py3-none-any.whl
+    sha256: ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2
   shellingham==1.5.4:
     url: https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl
     sha256: 7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686
-  sse-starlette==3.5.0:
-    url: https://files.pythonhosted.org/packages/be/e4/cdda14023c316d71493bc54fdffc3dd006631b88866145c9d3cc33e0f1df/sse_starlette-3.5.0-py3-none-any.whl
-    sha256: 3e6e1070df3f0f5d9cea81496de92dbb72f6721871d99748ece67441dd8b7997
-  starlette==1.7.0:
-    url: https://files.pythonhosted.org/packages/4e/d6/1ec1b290f9e0fb067899b61e1d37a30c923068bad260b216dbe37a7d2967/starlette-1.7.0-py3-none-any.whl
-    sha256: 67f8e99895493dd2911a03f11314af6ceebeae4e704bb9f43dfc6a9db151c93e
+  sse-starlette==3.6.0:
+    url: https://files.pythonhosted.org/packages/cf/49/35053078cdfcf639237e8bee6dc6f34f1b3a3cc8d01800a1e213e1660ff6/sse_starlette-3.6.0-py3-none-any.whl
+    sha256: e4dfa4d237d2712cb2b4d4918eda9b457cd6b44bbecdc838af75de836565bafd
+  starlette==1.10.0:
+    url: https://files.pythonhosted.org/packages/88/2e/947cfe02def9371c07cd5bf5b6b61c829e9aecb9904db02a66cfafbc1eec/starlette-1.10.0-py3-none-any.whl
+    sha256: 478c0ab3b4ced6e82719849c118fa406f0278a3499c1a898cd15cd31bdc38ce4
   sympy==1.14.0:
     url: https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl
     sha256: e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5
-  tokenizers==0.23.2:
-    url: https://files.pythonhosted.org/packages/2c/ca/ca6b93c7820df123b2662a9469e8facc826ccc94e98fdd0d615f6431e73a/tokenizers-0.23.2-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-    sha256: 41c2f84d172449b4dadb9cdc508e3e364076613c35b16e76ecfe47a60d1e3305
-  torch==2.14.1:
-    url: https://files.pythonhosted.org/packages/aa/4f/7af6fbada912b3023cc79b6ab30f89234b258a9a373880ea52ed914a2ae9/torch-2.14.1-cp311-cp311-manylinux_2_28_x86_64.whl
-    sha256: 305a61f61f35f128579f299c5bd33d475f6a01c6307336139632e30856c4854d
+  tabulate==0.10.0:
+    url: https://files.pythonhosted.org/packages/99/55/db07de81b5c630da5cbf5c7df646580ca26dfaefa593667fc6f2fe016d2e/tabulate-0.10.0-py3-none-any.whl
+    sha256: f0b0622e567335c8fabaaa659f1b33bcb6ddfe2e496071b743aa113f8774f2d3
+  tokenizers==0.23.3:
+    url: https://files.pythonhosted.org/packages/3a/40/6706b82693715581457c6d5423eaa7faae576bb0526c5738a57085eb4449/tokenizers-0.23.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+    sha256: 376851d22bcf9d650a5c3090bb83e6cf9e895fbf0595369fa4cd43c1f69b5f87
+  torch==2.15.0:
+    url: https://files.pythonhosted.org/packages/06/7d/57b7f46934e1148b436889e385693bfcb94ae047b3fe0b6015922e3b66f7/torch-2.15.0-cp311-cp311-manylinux_2_28_x86_64.whl
+    sha256: 48c2d861134c0b5697c7602cb5ffa68f62a2989fdcd1717e593356f67996ca1e
   tqdm==4.70.1:
     url: https://files.pythonhosted.org/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl
     sha256: c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73
-  transformers==5.18.0:
-    url: https://files.pythonhosted.org/packages/2d/3b/f84d7d12886147c5267216ed6c57d1163e68d24a89b2ad29d835a7089463/transformers-5.18.0-py3-none-any.whl
-    sha256: d79e5a515a572ee3deb33eb0d578be47d91e70c75d54cf21bf6eede6edef14a9
-  triton==3.8.0:
-    url: https://files.pythonhosted.org/packages/6f/9a/2c3d3823726d5ad5359f7065b02b984925158b74611c1e3987f6a37461fb/triton-3.8.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
-    sha256: 68988ac85d5e7086baeda0ddc175af9667db7529b3c5e11a5c0601b8bef2200a
-  truststore==0.10.4:
-    url: https://files.pythonhosted.org/packages/19/97/56608b2249fe206a67cd573bc93cd9896e1efb9e98bce9c163bcdc704b88/truststore-0.10.4-py3-none-any.whl
-    sha256: adaeaecf1cbb5f4de3b1959b42d41f6fab57b2b1666adb59e89cb0b53361d981
-  typer==0.27.2:
-    url: https://files.pythonhosted.org/packages/dc/bf/205d0004930ede8f542fb58f601526fccf4ae7626075ca1e6c4de5d3d652/typer-0.27.2-py3-none-any.whl
-    sha256: b3a5fc4342d5fc8fda8fc3010b1cf117e9249aab7fae800c2eff62fd3842d97d
+  transformers==5.22.2:
+    url: https://files.pythonhosted.org/packages/ff/bb/cc0b27a3000ddcf4903d3a26983c8b4c9a36050bbaf05675f353e8bcb08c/transformers-5.22.2-py3-none-any.whl
+    sha256: 829c2820aff91730b8ec45a4b8ff4be07f586a140b68a9073998b36fa35297dc
+  triton==3.9.0:
+    url: https://files.pythonhosted.org/packages/05/73/51e1466f2941ed36dbe57d1f88f772ba6afe669e5ba1e24eaf148b7ec0e1/triton-3.9.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+    sha256: 1622118a038b0c6e16fa4a0305da62c8b3c15904ee1cc4d4e65846a25969e41e
+  truststore==0.10.5:
+    url: https://files.pythonhosted.org/packages/51/e9/3a7820be2bb0fe53b6bc9c3be26d3d1158004e4c3ab953aa6840b955b1e9/truststore-0.10.5-py3-none-any.whl
+    sha256: 9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c
+  typer==0.28.0:
+    url: https://files.pythonhosted.org/packages/19/98/8ef60c7cd773dbab9d276a4c7bff505913a25b61acd8a9ef01ceeb70f554/typer-0.28.0-py3-none-any.whl
+    sha256: afd18929180b706c5e9a239f53c3c8136903553c0c2d460598bbaa924191d4ab
   typing-extensions==4.16.0:
     url: https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl
     sha256: 481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
-  typing-inspection==0.4.4:
-    url: https://files.pythonhosted.org/packages/67/81/4add07e5172b7ac40d8ed5ff580409a7801a4fe26d529bdd915401dabfbe/typing_inspection-0.4.4-py3-none-any.whl
-    sha256: 65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147
+  typing-inspection==0.4.5:
+    url: https://files.pythonhosted.org/packages/de/0c/ea2544850a7c135e15033a5c7a8e7211136184b7ae63e2239d557c2b3019/typing_inspection-0.4.5-py3-none-any.whl
+    sha256: bc210535442b39e1bf2805e0c7a17dfd6a4ace760c84c7f7d16245d23a6b1c39
   urllib3==2.8.0:
     url: https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl
     sha256: 0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3
@@ -310,10 +329,9 @@ wheels:
   watchfiles==1.3.0:
     url: https://files.pythonhosted.org/packages/8a/cf/e3ad894ed5909a7c44b0707e89bc25d19a3d78b3a7aec846119443b6ae56/watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
     sha256: b5768b49e426fd5b550b012c866db347cdf15c398ef98dc557b6e6b72fa74cd1
-  websockets==17.1:
-    url: https://files.pythonhosted.org/packages/41/63/23572870e01836a98346075b9e17a8bc24a6ddd9800a3204ceee58677f3c/websockets-17.1-py3-none-any.whl
-    sha256: f221081107b8c48184d99f7019604486376e7ef826037e70aad6b02540732c23
-stacks_sha256: cda5aa14e842cebc95386a581bd4d056f0f92068ec9dc792c023df57336d107c
+  websockets==17.4:
+    url: https://files.pythonhosted.org/packages/eb/27/9db924cb0dbf22eade78d98fbae77790f9bf6bc729e6ab29aef9d68e4156/websockets-17.4-py3-none-any.whl
+    sha256: c6bd2c9781915592b209160d0f017d4c7c82ad53075e6b0c24d2a89299e7f9e9
 components:
 - id: aitherconnect
   name: AitherConnect
@@ -325,7 +343,7 @@ components:
   requires_license: false
   entitlement: core
   available: false
-  reason: not a pip-installable brick (load unpacked — see the repo)
+  reason: not a pip-installable brick (https://chromewebstore.google.com/detail/awconnect/peeojgjhjficedkncde)
   deps: []
 - id: aitherzero
   name: AitherZero
@@ -351,35 +369,35 @@ components:
   available: true
   reason: ''
   deps:
-  - cuda-bindings==13.4.3
-  - cuda-pathfinder==1.8.3
-  - cuda-toolkit==13.0.3
-  - filelock==4.0.9
+  - cuda-bindings==13.5.0
+  - cuda-pathfinder==1.8.6
+  - cuda-toolkit==13.2.2
+  - filelock==4.2.9
   - fsspec==2026.9.0
   - jinja2==3.1.6
   - markupsafe==3.0.4
   - mpmath==1.3.0
   - networkx==3.6.1
   - numpy==2.4.6
-  - nvidia-cublas==13.1.1.3
-  - nvidia-cuda-cupti==13.0.85
-  - nvidia-cuda-nvrtc==13.0.88
-  - nvidia-cuda-runtime==13.0.96
-  - nvidia-cudnn-cu13==9.24.0.43
-  - nvidia-cufft==12.0.0.61
-  - nvidia-cufile==1.15.1.6
-  - nvidia-curand==10.4.0.35
-  - nvidia-cusolver==12.0.4.66
-  - nvidia-cusparse==12.6.3.3
+  - nvidia-cublas==13.4.1.3
+  - nvidia-cuda-cccl==13.3.5.0.6
+  - nvidia-cuda-cupti==13.2.86
+  - nvidia-cuda-nvrtc==13.2.86
+  - nvidia-cuda-runtime==13.2.86
+  - nvidia-cudnn-cu13==9.26.0.51
+  - nvidia-cufft==12.2.0.57
+  - nvidia-cufile==1.17.1.22
+  - nvidia-cusolver==12.2.0.11
+  - nvidia-cusparse==12.7.10.12
   - nvidia-cusparselt-cu13==0.8.1
   - nvidia-nccl-cu13==2.30.7
-  - nvidia-nvjitlink==13.4.92
-  - nvidia-nvshmem-cu13==3.4.5
-  - nvidia-nvtx==13.0.85
-  - setuptools==84.0.0
+  - nvidia-nvjitlink==13.5.37
+  - nvidia-nvshmem-cu13==3.7.2
+  - nvidia-nvtx==13.2.86
+  - setuptools==84.2.1
   - sympy==1.14.0
-  - torch==2.14.1
-  - triton==3.8.0
+  - torch==2.15.0
+  - triton==3.9.0
   - typing-extensions==4.16.0
   dist: aither-kvcache
 - id: aitheros
@@ -499,8 +517,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -596,8 +614,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -633,11 +651,12 @@ components:
 - id: awdk
   name: awdk
   kind: pypi
-  version: 3.8.48
-  pin: sha256:c6ab98a5286b3387ac51d92acbe0ba6fad03543089bd09d04eb5799c0170386d
-  url: https://files.pythonhosted.org/packages/85/43/a596b3b597093e18c7cab08010177e266dff685df6b3211e545ccf450ebe/awdk-3.8.48-py3-none-any.whl
+  version: 3.8.97
+  pin: sha256:c4560ee61eeb4f8bbd828f5b7f2ac97148e6fdae8a354ed9e6f06149e90eb9c0
+  url: https://files.pythonhosted.org/packages/54/8f/865ef45bda53f444d25d89f0f97a087718ba805cf5c4bd059002e0a27f35/awdk-3.8.97-py3-none-any.whl
   provides:
   - adk
+  - adk-awdelegate
   - adk-bug
   - adk-py
   - adk-serve
@@ -654,51 +673,51 @@ components:
   - aiosqlite==0.22.1
   - annotated-doc==0.0.5
   - annotated-types==0.8.0
-  - anyio==4.15.1
-  - awgit==1.12.0
+  - anyio==4.16.0
+  - awgit==1.12.1
   - awgraph==1.4.14
-  - awrelay==0.5.0
+  - awrelay==0.5.1
   - awreport==0.2.0
-  - awsettings==0.3.4
-  - certifi==2026.7.22
+  - awsettings==0.3.13
+  - certifi==2026.10.23
   - cffi==2.1.1
   - charset-normalizer==3.5.2
-  - click==8.5.0
+  - click==8.5.1
   - cryptography==50.0.2
-  - ddgs==9.16.0
-  - fastapi==0.142.2
+  - ddgs==9.16.1
+  - fastapi==0.162.0
   - h11==0.16.0
   - httpcore==1.0.9
-  - httptools==0.8.0
+  - httptools==0.9.0
   - httpx==0.28.1
   - idna==3.20
   - jinja2==3.1.6
   - lxml==6.1.3
   - markupsafe==3.0.4
-  - opentelemetry-api==1.45.0
+  - opentelemetry-api==1.45.2
   - primp==2.0.1
-  - pycparser==3.0
-  - pydantic==2.13.5
-  - pydantic-core==2.46.5
+  - pycparser==3.12
+  - pydantic==2.14.3
+  - pydantic-core==2.50.4
   - python-dotenv==1.2.4
   - pyyaml==6.0.3
   - qrcode==8.2
   - requests==2.34.2
-  - starlette==1.7.0
+  - starlette==1.10.0
   - typing-extensions==4.16.0
-  - typing-inspection==0.4.4
+  - typing-inspection==0.4.5
   - urllib3==2.8.0
   - uvicorn==0.54.0
   - uvloop==0.23.0
   - watchfiles==1.3.0
-  - websockets==17.1
+  - websockets==17.4
   dist: awdk
 - id: awembed
   name: awembed
   kind: pypi
-  version: 0.1.1
-  pin: sha256:a03a1834d6b43d42106b86ad523341b19b1ae48df07760bf54284fe9fc9d83a2
-  url: https://files.pythonhosted.org/packages/39/6a/b405a0239a6aebc37ce673d27b33701c85b27a3884e457efa0d0a90d6116/awembed-0.1.1-py3-none-any.whl
+  version: 0.1.4
+  pin: sha256:0aa1266234f549123253c589e4e436afcb3e4449f3c4fd9194af931bd0e1e81b
+  url: https://files.pythonhosted.org/packages/33/e1/8ea164cf1908d76f1fb29c6d152e16c4d5665a20323af1e6c997486072bf/awembed-0.1.4-py3-none-any.whl
   provides:
   - awembed
   requires_license: false
@@ -707,21 +726,18 @@ components:
   reason: ''
   deps:
   - annotated-doc==0.0.5
-  - anyio==4.15.1
-  - certifi==2026.7.22
-  - click==8.5.0
-  - cuda-bindings==13.4.3
-  - cuda-pathfinder==1.8.3
-  - cuda-toolkit==13.0.3
-  - filelock==4.0.9
+  - anyio==4.16.0
+  - click==8.5.1
+  - cuda-bindings==13.5.0
+  - cuda-pathfinder==1.8.6
+  - cuda-toolkit==13.2.2
+  - filelock==4.2.9
   - fsspec==2026.9.0
   - h11==0.16.0
-  - hf-xet==1.6.0
-  - httpcore==1.0.9
-  - httpcore2==2.13.1
-  - httpx==0.28.1
-  - httpx2==2.13.1
-  - huggingface-hub==1.33.0
+  - hf-xet==1.8.0
+  - httpcore2==2.16.0
+  - httpx2==2.16.0
+  - huggingface-hub==2.4.0
   - idna==3.20
   - jinja2==3.1.6
   - markdown-it-py==4.2.0
@@ -730,37 +746,37 @@ components:
   - mpmath==1.3.0
   - networkx==3.6.1
   - numpy==2.4.6
-  - nvidia-cublas==13.1.1.3
-  - nvidia-cuda-cupti==13.0.85
-  - nvidia-cuda-nvrtc==13.0.88
-  - nvidia-cuda-runtime==13.0.96
-  - nvidia-cudnn-cu13==9.24.0.43
-  - nvidia-cufft==12.0.0.61
-  - nvidia-cufile==1.15.1.6
-  - nvidia-curand==10.4.0.35
-  - nvidia-cusolver==12.0.4.66
-  - nvidia-cusparse==12.6.3.3
+  - nvidia-cublas==13.4.1.3
+  - nvidia-cuda-cccl==13.3.5.0.6
+  - nvidia-cuda-cupti==13.2.86
+  - nvidia-cuda-nvrtc==13.2.86
+  - nvidia-cuda-runtime==13.2.86
+  - nvidia-cudnn-cu13==9.26.0.51
+  - nvidia-cufft==12.2.0.57
+  - nvidia-cufile==1.17.1.22
+  - nvidia-cusolver==12.2.0.11
+  - nvidia-cusparse==12.7.10.12
   - nvidia-cusparselt-cu13==0.8.1
   - nvidia-nccl-cu13==2.30.7
-  - nvidia-nvjitlink==13.4.92
-  - nvidia-nvshmem-cu13==3.4.5
-  - nvidia-nvtx==13.0.85
+  - nvidia-nvjitlink==13.5.37
+  - nvidia-nvshmem-cu13==3.7.2
+  - nvidia-nvtx==13.2.86
   - packaging==26.3
   - pygments==2.21.0
   - pyyaml==6.0.3
-  - regex==2026.9.29
+  - regex==2026.11.7
   - rich==15.0.0
   - safetensors==0.8.0
-  - setuptools==84.0.0
+  - setuptools==84.2.1
   - shellingham==1.5.4
   - sympy==1.14.0
-  - tokenizers==0.23.2
-  - torch==2.14.1
+  - tokenizers==0.23.3
+  - torch==2.15.0
   - tqdm==4.70.1
-  - transformers==5.18.0
-  - triton==3.8.0
-  - truststore==0.10.4
-  - typer==0.27.2
+  - transformers==5.22.2
+  - triton==3.9.0
+  - truststore==0.10.5
+  - typer==0.28.0
   - typing-extensions==4.16.0
   dist: awembed
 - id: awevolve
@@ -790,8 +806,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -811,8 +827,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -848,9 +864,9 @@ components:
 - id: awgit
   name: awgit
   kind: pypi
-  version: 1.12.0
-  pin: sha256:0356130ee77dfae4663a6c139a7a89bfa72e7b289bfc8503024b5e5f87304320
-  url: https://files.pythonhosted.org/packages/76/0c/841db2f80b7b503fbb48029a7304e36182b42a134cef174af55d5ea4cd3b/awgit-1.12.0-py3-none-any.whl
+  version: 1.12.1
+  pin: sha256:a6cf6e52216656d6133a92ca78c9ae7cc8a5701bcc862a9587376b18eae9644c
+  url: https://files.pythonhosted.org/packages/01/ba/7dcec7d45e40b6680d00ba750dc7f0e0a06629698c631e6d8f892692edbf/awgit-1.12.1-py3-none-any.whl
   provides:
   - awgit
   requires_license: false
@@ -858,8 +874,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -879,8 +895,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -940,9 +956,9 @@ components:
 - id: awkno
   name: awkno
   kind: pypi
-  version: 0.2.6
-  pin: sha256:b5829d9ad41bd5ad0b14a8669d7ae551742f82b4523ac0d412f7bd30ca1c4d53
-  url: https://files.pythonhosted.org/packages/83/b5/b6477b21e909c569f59e0bb75733cd88b854049deba4063f15f7a9d762f3/awkno-0.2.6-py3-none-any.whl
+  version: 0.2.7
+  pin: sha256:0cd890bb3ba5ae51321a0ffae5e7737d3bd011eb25092d6bc48df59a5c7fec4c
+  url: https://files.pythonhosted.org/packages/fc/f8/069a63871e323e768b0e3716ce1ce1796c0c2e3cd93cbcdb6e964cf44aab/awkno-0.2.7-py3-none-any.whl
   provides:
   - awkno
   requires_license: false
@@ -991,9 +1007,9 @@ components:
 - id: awm
   name: awm
   kind: pypi
-  version: 0.6.0
-  pin: sha256:6432cbc5b8d8c7e031b01a2231f5aca3a0100d0313be6f81791307f55024f370
-  url: https://files.pythonhosted.org/packages/f4/d2/16e8dbc302a1244b777b8fee208de95b16cc0ce13ca2cb9f121a3ae952b2/awm-0.6.0-py3-none-any.whl
+  version: 0.6.1
+  pin: sha256:08911e3a4343de68fda9fc23707f4a3bf906b5b17570f4dad531b8ab0026e71f
+  url: https://files.pythonhosted.org/packages/10/7d/9a5ab1bd32566cb7a659feb2bba3ba544386a82c754b1f22c937c2f28d99/awm-0.6.1-py3-none-any.whl
   provides:
   - awm
   requires_license: false
@@ -1005,9 +1021,9 @@ components:
 - id: awmail
   name: awmail
   kind: pypi
-  version: 0.1.0
-  pin: sha256:40659610743fbb18d5232df4e9489d409fc83c74c3211d50869a17bba5101b55
-  url: https://files.pythonhosted.org/packages/25/dd/854ca166d0249a5e3c363e455e3ddb791db290eee8ee6baaa128bc88889c/awmail-0.1.0-py3-none-any.whl
+  version: 0.1.1
+  pin: sha256:5a07da9dc4d77457060dda1a4c23f3d910f348b26f448085a1003e258b899c18
+  url: https://files.pythonhosted.org/packages/55/77/b1daea7cd25b45937b2180f5eaa6f9e665bc12e41d314bcecefa7d0b848f/awmail-0.1.1-py3-none-any.whl
   provides:
   - awmail
   requires_license: false
@@ -1019,9 +1035,9 @@ components:
 - id: awmine
   name: awmine
   kind: git
-  version: 73cd1764b33a
-  pin: 73cd1764b33aec4d76d1502549fc3b048e8ecc8b
-  url: git+https://github.com/Aitherium/awmine.git@73cd1764b33aec4d76d1502549fc3b048e8ecc8b
+  version: 06e4d088edce
+  pin: 06e4d088edce0cc789dcbef2951ea16ff04439a2
+  url: git+https://github.com/Aitherium/awmine.git@06e4d088edce0cc789dcbef2951ea16ff04439a2
   provides:
   - awmine
   requires_license: false
@@ -1069,8 +1085,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -1106,9 +1122,9 @@ components:
 - id: awnode
   name: awnode
   kind: pypi
-  version: 0.3.0
-  pin: sha256:3ad221fde4dfcd6d941633a2b7d9f1d9b64cb6ef2191fb14b9af0e9666388977
-  url: https://files.pythonhosted.org/packages/ef/da/75462e63799520979e1629ae436579b6667e519bd7c7681ac219303c2b66/awnode-0.3.0-py3-none-any.whl
+  version: 0.3.6
+  pin: sha256:46fa6ca5ad30dc4f7e971e4b6ad8a62e0b3071dbb32d14b907cffad263615f54
+  url: https://files.pythonhosted.org/packages/2f/7e/f4b51760ca92df322a76cd24fb81ad7073b285f1b87e18ec1e0564087bae/awnode-0.3.6-py3-none-any.whl
   provides:
   - awnode
   - awnode-mcp
@@ -1120,63 +1136,65 @@ components:
   - aiosqlite==0.22.1
   - annotated-doc==0.0.5
   - annotated-types==0.8.0
-  - anyio==4.15.1
+  - anyio==4.16.0
   - attrs==26.1.0
-  - awdk==3.8.48
-  - awgit==1.12.0
+  - awdk==3.8.97
+  - awgit==1.12.1
   - awgraph==1.4.14
-  - awrelay==0.5.0
+  - awrelay==0.5.1
   - awreport==0.2.0
-  - awsettings==0.3.4
-  - certifi==2026.7.22
+  - awsettings==0.3.13
+  - certifi==2026.10.23
   - cffi==2.1.1
   - charset-normalizer==3.5.2
-  - click==8.5.0
+  - click==8.5.1
   - cryptography==50.0.2
-  - ddgs==9.16.0
-  - fastapi==0.142.2
+  - ddgs==9.16.1
+  - fastapi==0.162.0
   - h11==0.16.0
   - httpcore==1.0.9
-  - httptools==0.8.0
+  - httpcore2==2.16.0
+  - httptools==0.9.0
   - httpx==0.28.1
-  - httpx-sse==0.4.3
+  - httpx2==2.16.0
   - idna==3.20
   - jinja2==3.1.6
   - jsonschema==4.26.0
   - jsonschema-specifications==2025.9.1
   - lxml==6.1.3
   - markupsafe==3.0.4
-  - mcp==1.30.0
-  - opentelemetry-api==1.45.0
+  - mcp==2.3.0
+  - mcp-types==2.3.0
+  - opentelemetry-api==1.45.2
   - primp==2.0.1
-  - pycparser==3.0
-  - pydantic==2.13.5
-  - pydantic-core==2.46.5
-  - pydantic-settings==2.15.0
+  - pycparser==3.12
+  - pydantic==2.14.3
+  - pydantic-core==2.50.4
   - pyjwt==2.15.1
   - python-dotenv==1.2.4
-  - python-multipart==0.0.32
+  - python-multipart==0.0.33
   - pyyaml==6.0.3
   - qrcode==8.2
   - referencing==0.37.0
   - requests==2.34.2
-  - rpds-py==2026.6.3
-  - sse-starlette==3.5.0
-  - starlette==1.7.0
+  - rpds-py==2026.9.1
+  - sse-starlette==3.6.0
+  - starlette==1.10.0
+  - truststore==0.10.5
   - typing-extensions==4.16.0
-  - typing-inspection==0.4.4
+  - typing-inspection==0.4.5
   - urllib3==2.8.0
   - uvicorn==0.54.0
   - uvloop==0.23.0
   - watchfiles==1.3.0
-  - websockets==17.1
+  - websockets==17.4
   dist: awnode
 - id: awpack
   name: awpack
   kind: git
-  version: 08fa3814d757
-  pin: 08fa3814d75724731d71e9654200053decc69708
-  url: git+https://github.com/Aitherium/awpack.git@08fa3814d75724731d71e9654200053decc69708
+  version: 2526b88d5232
+  pin: 2526b88d52327a70ba5124aa138958436705a31e
+  url: git+https://github.com/Aitherium/awpack.git@2526b88d52327a70ba5124aa138958436705a31e
   provides:
   - awpack
   requires_license: true
@@ -1202,9 +1220,9 @@ components:
 - id: awpredict
   name: awpredict
   kind: git
-  version: f6274e8a3de6
-  pin: f6274e8a3de6ff4b7167b6a7650de1c309c623cc
-  url: git+https://github.com/Aitherium/awpredict.git@f6274e8a3de6ff4b7167b6a7650de1c309c623cc
+  version: 8580f1b1ee4c
+  pin: 8580f1b1ee4cf6f8c270bdf6d671530fa125c81d
+  url: git+https://github.com/Aitherium/awpredict.git@8580f1b1ee4cf6f8c270bdf6d671530fa125c81d
   provides:
   - awpredict
   requires_license: false
@@ -1252,8 +1270,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -1263,9 +1281,9 @@ components:
 - id: awrecover
   name: awrecover
   kind: pypi
-  version: 0.1.1
-  pin: sha256:2fab82c48a062b71e2059b768242fa5c71dac6b795a5b66b6ddfc607566e3418
-  url: https://files.pythonhosted.org/packages/60/5b/a24389030ce65291aed7ad5a1830c17c025cfc57d30304a7a63e9b26213f/awrecover-0.1.1-py3-none-any.whl
+  version: 0.3.2
+  pin: sha256:86e877272acd78a99fc3cd25121fdb20e8e8a0285cefbc4bedb2ea3668089427
+  url: https://files.pythonhosted.org/packages/12/c3/6bc92b91bb51a7d00ff694e6c2b5b9825fde3ab71027c67306f479c870cc/awrecover-0.3.2-py3-none-any.whl
   provides:
   - awrecover
   requires_license: false
@@ -1273,10 +1291,10 @@ components:
   available: true
   reason: ''
   deps:
-  - awshare==0.1.1
+  - awshare==0.2.3
   - cffi==2.1.1
   - cryptography==50.0.2
-  - pycparser==3.0
+  - pycparser==3.12
   dist: awrecover
 - id: awrecurse
   name: awrecurse
@@ -1291,8 +1309,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -1302,9 +1320,9 @@ components:
 - id: awrelay
   name: awrelay
   kind: pypi
-  version: 0.5.0
-  pin: sha256:9961b971137767fe6d9ec8da177e52758661525e95958191676b3d34ad63afef
-  url: https://files.pythonhosted.org/packages/29/36/2f06c763bf68ad8ddc11a725a075bfc3897838988fcfe81d6a0bac7422cf/awrelay-0.5.0-py3-none-any.whl
+  version: 0.5.1
+  pin: sha256:ebf5d51739769c497ed387b711440f04a1b744dcf4298f2bdc6ce89ac502a3cb
+  url: https://files.pythonhosted.org/packages/01/e0/de9eef74aadc17220fe2d4e32c6e716fcadbc799a9603ccd9e73b45ba6b7/awrelay-0.5.1-py3-none-any.whl
   provides:
   - awrelay
   requires_license: false
@@ -1312,8 +1330,8 @@ components:
   available: true
   reason: ''
   deps:
-  - anyio==4.15.1
-  - certifi==2026.7.22
+  - anyio==4.16.0
+  - certifi==2026.10.23
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -1337,9 +1355,9 @@ components:
 - id: awrepl
   name: awrepl
   kind: pypi
-  version: 0.1.0
-  pin: sha256:594aaa5b8e9e2ed803f96481c97fdacfefa72389c7df6e2094523f13f6a69f20
-  url: https://files.pythonhosted.org/packages/a5/4e/9f2e52cace3f69d7f45b67a235a65108aa5edb17fa26f3499658c6411992/awrepl-0.1.0-py3-none-any.whl
+  version: 0.1.1
+  pin: sha256:b27b19c76a565c89f3104788e612f20fd7357ab51a1a85adc37676efb2a35d09
+  url: https://files.pythonhosted.org/packages/94/0b/e16061bc3782cbbe5d1a10f80b87a885470c31d9ecd2206ed77f1e239ea1/awrepl-0.1.1-py3-none-any.whl
   provides:
   - awrepl
   requires_license: false
@@ -1361,7 +1379,7 @@ components:
   available: true
   reason: ''
   deps:
-  - certifi==2026.7.22
+  - certifi==2026.10.23
   - charset-normalizer==3.5.2
   - idna==3.20
   - requests==2.34.2
@@ -1383,45 +1401,45 @@ components:
   - aiosqlite==0.22.1
   - annotated-doc==0.0.5
   - annotated-types==0.8.0
-  - anyio==4.15.1
-  - awdk==3.8.48
-  - awgit==1.12.0
+  - anyio==4.16.0
+  - awdk==3.8.97
+  - awgit==1.12.1
   - awgraph==1.4.14
-  - awrelay==0.5.0
+  - awrelay==0.5.1
   - awreport==0.2.0
-  - awsettings==0.3.4
-  - certifi==2026.7.22
+  - awsettings==0.3.13
+  - certifi==2026.10.23
   - cffi==2.1.1
   - charset-normalizer==3.5.2
-  - click==8.5.0
+  - click==8.5.1
   - cryptography==50.0.2
-  - ddgs==9.16.0
-  - fastapi==0.142.2
+  - ddgs==9.16.1
+  - fastapi==0.162.0
   - h11==0.16.0
   - httpcore==1.0.9
-  - httptools==0.8.0
+  - httptools==0.9.0
   - httpx==0.28.1
   - idna==3.20
   - jinja2==3.1.6
   - lxml==6.1.3
   - markupsafe==3.0.4
-  - opentelemetry-api==1.45.0
+  - opentelemetry-api==1.45.2
   - primp==2.0.1
-  - pycparser==3.0
-  - pydantic==2.13.5
-  - pydantic-core==2.46.5
+  - pycparser==3.12
+  - pydantic==2.14.3
+  - pydantic-core==2.50.4
   - python-dotenv==1.2.4
   - pyyaml==6.0.3
   - qrcode==8.2
   - requests==2.34.2
-  - starlette==1.7.0
+  - starlette==1.10.0
   - typing-extensions==4.16.0
-  - typing-inspection==0.4.4
+  - typing-inspection==0.4.5
   - urllib3==2.8.0
   - uvicorn==0.54.0
   - uvloop==0.23.0
   - watchfiles==1.3.0
-  - websockets==17.1
+  - websockets==17.4
   dist: awresearch
 - id: awresume
   name: awresume
@@ -1438,9 +1456,9 @@ components:
 - id: awrise
   name: awrise
   kind: pypi
-  version: 0.4.0
-  pin: sha256:684f901ed3fc455e5701e7ae888da1f09ebb9f53bcae51f25243a58878968c28
-  url: https://files.pythonhosted.org/packages/a0/24/eaf983e2189491c4f24e861704852629592b44b06b62e14a1e96831d39ad/awrise-0.4.0-py3-none-any.whl
+  version: 0.4.1
+  pin: sha256:1a66ce29e8a437b25178976ef6c42527d869ddcbd0ac8a28f4d42c81835c564a
+  url: https://files.pythonhosted.org/packages/e7/55/29a204566caee13b91b6ee458491bdf004af8430bf4d0a0012c8158d5f69/awrise-0.4.1-py3-none-any.whl
   provides:
   - awrise
   requires_license: false
@@ -1466,9 +1484,9 @@ components:
 - id: awrtifact
   name: awrtifact
   kind: pypi
-  version: 0.2.3
-  pin: sha256:bc86d5eaa31cf622e59e89174b9bbb3cf0840148cc856b08f6f3e65006f0f1b2
-  url: https://files.pythonhosted.org/packages/b3/23/454f59891a6ff74167551d85ca5433846559f47ccc81e350f1f7b19608db/awrtifact-0.2.3-py3-none-any.whl
+  version: 0.4.0
+  pin: sha256:8fb92eef72ec97b26186c156503dc410304f969f977707acb21abad6980d83fe
+  url: https://files.pythonhosted.org/packages/ca/08/ecb4808b396c4194c1c161777aa7a3262f90ac5dac6721084a73661789c6/awrtifact-0.4.0-py3-none-any.whl
   provides:
   - awrtifact
   requires_license: false
@@ -1480,9 +1498,9 @@ components:
 - id: awrun
   name: awrun
   kind: pypi
-  version: 0.2.4
-  pin: sha256:4c3a736577f8556cd67fbe7494d582ce534d9615176b0a0dc30e335635f63b4d
-  url: https://files.pythonhosted.org/packages/c5/87/96bcd83ae62b23db6746abfe88dca660ca4dabb36a3c405806619c2337c6/awrun-0.2.4-py3-none-any.whl
+  version: 0.2.5
+  pin: sha256:7eb1928337ffc59471429cc79f23bd2a346df3472cd8eccb34a8e2fe7ad93f6c
+  url: https://files.pythonhosted.org/packages/69/0f/6b5b7fa4a9af87e25f573682961bf15311ebb36b4baac0f21c9f3e98d57a/awrun-0.2.5-py3-none-any.whl
   provides:
   - awrun
   requires_license: false
@@ -1522,9 +1540,9 @@ components:
 - id: awseal
   name: awseal
   kind: pypi
-  version: 0.1.1
-  pin: sha256:9b040c2fcd0f5e7c2a955df271c746f81f0acaa27952c28d10bf61dc22c2c812
-  url: https://files.pythonhosted.org/packages/31/15/4862b056a21accb4e8722f7d5195c7c3345141cb10a5d75d7e6c25d82ece/awseal-0.1.1-py3-none-any.whl
+  version: 0.1.2
+  pin: sha256:3d16e23a916ee9f051ed4889e018c8e1871c6eb40b154404f777a9efdc1e7379
+  url: https://files.pythonhosted.org/packages/35/51/7eb46dc0f9e9c13e8231f70e9e495acf966e64dc429c97cc42569a7bdac2/awseal-0.1.2-py3-none-any.whl
   provides:
   - awseal
   requires_license: false
@@ -1534,14 +1552,14 @@ components:
   deps:
   - cffi==2.1.1
   - cryptography==50.0.2
-  - pycparser==3.0
+  - pycparser==3.12
   dist: awseal
 - id: awsettings
   name: awsettings
   kind: pypi
-  version: 0.3.4
-  pin: sha256:21e069aa178ebc8945b4bca7cfad9bd582a8bfe7e99e329da237243f5e2e32a9
-  url: https://files.pythonhosted.org/packages/d6/53/be3e152cc89ceeffb364ed0525494c42e0bc94d3336311d720b2b230b48f/awsettings-0.3.4-py3-none-any.whl
+  version: 0.3.13
+  pin: sha256:9a03eba44a149cc78c1c9b00b13051ddcf3390cc551da9de55ce6be982d7b7f4
+  url: https://files.pythonhosted.org/packages/ee/db/702bf258baee523ec7b451a2cd3321e99f26088b37cc487075a445c4f3ba/awsettings-0.3.13-py3-none-any.whl
   provides:
   - awsettings
   requires_license: false
@@ -1565,9 +1583,9 @@ components:
 - id: awshare
   name: awshare
   kind: pypi
-  version: 0.1.1
-  pin: sha256:c578151d6eb5431e9c38b30187dd710b3029e3aeb809c36b9606bfe5fd8cfc39
-  url: https://files.pythonhosted.org/packages/e5/3a/0967f33036ba12715fd4675d184ab2aae7684d468c683fe8a5122d7013c3/awshare-0.1.1-py3-none-any.whl
+  version: 0.2.3
+  pin: sha256:df1eb160be6c52b039917d53f5c123c76c9c8d24cffeafec21425f52b57441ff
+  url: https://files.pythonhosted.org/packages/2c/af/735040f0064e6d36b7e98411cffee8481e5c5c4f999a45b7b0eaabcc7392/awshare-0.2.3-py3-none-any.whl
   provides:
   - awshare
   requires_license: false
@@ -1617,9 +1635,9 @@ components:
 - id: awstorage
   name: awstorage
   kind: pypi
-  version: 0.5.1
-  pin: sha256:7a4cbf2f39830eff80c051868eb86b6ceb2ad849e9697fb97456b5785b3e6c5d
-  url: https://files.pythonhosted.org/packages/b0/0a/395ef6e6685b4e5be72f3225573030185245433eda49d9446e77c94fb230/awstorage-0.5.1-py3-none-any.whl
+  version: 0.5.4
+  pin: sha256:3cde5e45e2486d2c4ee4957c0d4f5bf6cafc34133601ed20cc2646645eee031d
+  url: https://files.pythonhosted.org/packages/80/ed/6a19878871ff3550a029b6de9642ec85b6b6e3f3d61dc18f970f19d2b36e/awstorage-0.5.4-py3-none-any.whl
   provides:
   - awstorage
   requires_license: false
@@ -1668,7 +1686,18 @@ components:
   available: true
   reason: ''
   deps:
-  - pymupdf==1.28.2
+  - flatbuffers==25.12.19
+  - networkx==3.6.1
+  - numpy==2.4.6
+  - onnxruntime==1.31.1
+  - packaging==26.3
+  - protobuf==7.36.2
+  - psutil==7.2.2
+  - pymupdf==2.1
+  - pymupdf-layout==2.1
+  - pymupdf4llm==2.1
+  - pyyaml==6.0.3
+  - tabulate==0.10.0
   dist: awtax
 - id: awtoll
   name: awtoll
@@ -1715,9 +1744,9 @@ components:
 - id: awvoice
   name: awvoice
   kind: pypi
-  version: 0.2.0
-  pin: sha256:331bcbe2a00c331c0927da3e3d281bbedcbf5edfd72400c56d942a11396036ed
-  url: https://files.pythonhosted.org/packages/dd/ef/ba56609be4b2f7d6a8522954b19fd037a4d20e101f0a3e4abc70ec81d5ac/awvoice-0.2.0-py3-none-any.whl
+  version: 0.3.0
+  pin: sha256:59fc3db263bc815c18237d2ca107a1f2589fba99cdab0e81367250a3be89c479
+  url: https://files.pythonhosted.org/packages/80/b0/d47a04ba5dfe960cd14f4c9826d4b8a28b35d35967aa3d57e1d346b2aea7/awvoice-0.3.0-py3-none-any.whl
   provides:
   - awvoice
   requires_license: false
@@ -1805,8 +1834,8 @@ components:
 - id: aitherbrain
   name: AitherBrain
   kind: container
-  version: latest@427b0fbe4711
-  pin: sha256:427b0fbe47113920637d6fd1d5977b94f5455e37cc0cd77b9dae8324fd09abe3
+  version: latest@9b125871971a
+  pin: sha256:9b125871971a43184d890f28dbcdf346be52918994dfdb25c122a0af8cf1f332
   url: ghcr.io/aitherium/aitheros-brain
   provides: []
   requires_license: true
@@ -1945,8 +1974,8 @@ components:
 - id: autoresearch
   name: AutoResearch
   kind: container
-  version: latest@ecbfcd5d9da1
-  pin: sha256:ecbfcd5d9da1ceccf8a12c1c121e7f0eb63d21d2bcdcc14bbcc7b646b9df7825
+  version: latest@6fab48484722
+  pin: sha256:6fab48484722c35b8e12e6eae435d32762dd1f5f52f0f6573474223b50a314f2
   url: ghcr.io/aitherium/aitheros-autoresearch
   provides: []
   requires_license: true
@@ -2073,8 +2102,8 @@ components:
 - id: chaosagent
   name: ChaosAgent
   kind: container
-  version: latest@78e5e2b57801
-  pin: sha256:78e5e2b578013e959355f8e3030fd7efe523110927cf1bc73b744ba6ff6afc97
+  version: latest@9c6a01e6234c
+  pin: sha256:9c6a01e6234c6043c743e820201d0a72e375d3058533b2f985e94836317917c8
   url: ghcr.io/aitherium/aitheros-chaos-agent
   provides: []
   requires_license: true
@@ -2165,8 +2194,8 @@ components:
 - id: cognitioncore
   name: CognitionCore
   kind: container
-  version: latest@427b0fbe4711
-  pin: sha256:427b0fbe47113920637d6fd1d5977b94f5455e37cc0cd77b9dae8324fd09abe3
+  version: latest@9b125871971a
+  pin: sha256:9b125871971a43184d890f28dbcdf346be52918994dfdb25c122a0af8cf1f332
   url: ghcr.io/aitherium/aitheros-cognition-core
   provides: []
   requires_license: true
@@ -2185,15 +2214,23 @@ components:
 - id: comfyui3d
   name: ComfyUI3D
   kind: container
-  version: ''
-  pin: ''
+  version: latest@f3f00807409e
+  pin: sha256:f3f00807409e816e35c1a1dcaa6d087cc10d5f44842b8f4aefacd7ce80ffd316
   url: ghcr.io/aitherium/aitheros-comfyui-3d
   provides: []
   requires_license: true
   entitlement: addon:creative
-  available: false
-  reason: no published image ghcr.io/aitherium/aitheros-comfyui-3d:latest
+  available: true
+  reason: ''
   deps: []
+  quadlet:
+    ports:
+    - host: 8289
+      container: 8289
+    volumes:
+    - dest: /data
+    env: []
+    health: http://127.0.0.1:8289/health
 - id: compute
   name: Compute
   kind: container
@@ -2317,15 +2354,23 @@ components:
 - id: evolutioncore
   name: EvolutionCore
   kind: container
-  version: ''
-  pin: ''
+  version: latest@c0471b6ed842
+  pin: sha256:c0471b6ed842c65e789c0982b4f95a263e889e7eaca1addcd833ad231db58f2d
   url: ghcr.io/aitherium/aitheros-evolution-core
   provides: []
   requires_license: true
   entitlement: addon:training
-  available: false
-  reason: no published image ghcr.io/aitherium/aitheros-evolution-core:latest
+  available: true
+  reason: ''
   deps: []
+  quadlet:
+    ports:
+    - host: 8211
+      container: 8211
+    volumes:
+    - dest: /data
+    env: []
+    health: http://127.0.0.1:8211/health
 - id: exo
   name: Exo
   kind: container
@@ -2389,8 +2434,8 @@ components:
 - id: forgeidebackend
   name: ForgeIDEBackend
   kind: container
-  version: latest@250c91e1f081
-  pin: sha256:250c91e1f081755753e1f208b36e479e75f2f072f3ca0a4b0e5dfe4591e52ca1
+  version: latest@66dff974b3a1
+  pin: sha256:66dff974b3a1084175891d44d03a974c6184e29dcd8371b5856c691f9250aba2
   url: ghcr.io/aitherium/aitheros-forge-ide
   provides: []
   requires_license: true
@@ -2433,8 +2478,8 @@ components:
 - id: genesis
   name: Genesis
   kind: container
-  version: latest@fcccfaec7725
-  pin: sha256:fcccfaec7725e2b81374b6652ad737ab3f12727597a484109474a0f88bb5f134
+  version: latest@f1f3acf5cc6c
+  pin: sha256:f1f3acf5cc6caa4042a468f5b43a158d65b0d8c73df6b14ce3467d8cbfb29c23
   url: ghcr.io/aitherium/aitheros-genesis
   provides: []
   requires_license: true
@@ -2537,8 +2582,8 @@ components:
 - id: knowledgegraph
   name: KnowledgeGraph
   kind: container
-  version: latest@d353195cf0b9
-  pin: sha256:d353195cf0b922556f300bd2c2ce1229fbc09cb5518e4b56a9010d4aa6f23053
+  version: latest@84158fde9eb7
+  pin: sha256:84158fde9eb783af38d322fae8af4ca8aad07115c5d5d26acd6b86bce9e9b969
   url: ghcr.io/aitherium/aitheros-knowledgegraph
   provides: []
   requires_license: true
@@ -2601,8 +2646,8 @@ components:
 - id: lyrawiki
   name: LyraWiki
   kind: container
-  version: latest@4aa3a18e274a
-  pin: sha256:4aa3a18e274a0496f261706be8590718bb4abdfa95e0f06a6131b9990099203b
+  version: latest@682db49d7b81
+  pin: sha256:682db49d7b81942c27a891d008e06ef717be0e53570fbc0f993ad10eaa13b7e5
   url: ghcr.io/aitherium/aitheros-lyra
   provides: []
   requires_license: true
@@ -2669,8 +2714,8 @@ components:
 - id: microscheduler
   name: MicroScheduler
   kind: container
-  version: latest@af7df677ace1
-  pin: sha256:af7df677ace11755648108809f95eaf7793bcd212974e67550fe21daa481d964
+  version: latest@0caebdf454bd
+  pin: sha256:0caebdf454bd406b39be66c4980b1d0342bacdd211120b39b45b1e45bad67c13
   url: ghcr.io/aitherium/aitheros-microscheduler
   provides: []
   requires_license: true
@@ -2701,8 +2746,8 @@ components:
 - id: omninodesettlementreconciler
   name: OmniNodeSettlementReconciler
   kind: container
-  version: latest@250c91e1f081
-  pin: sha256:250c91e1f081755753e1f208b36e479e75f2f072f3ca0a4b0e5dfe4591e52ca1
+  version: latest@66dff974b3a1
+  pin: sha256:66dff974b3a1084175891d44d03a974c6184e29dcd8371b5856c691f9250aba2
   url: ghcr.io/aitherium/aitheros-omninode-settlement
   provides: []
   requires_license: true
@@ -2733,8 +2778,8 @@ components:
 - id: perceptioncore
   name: PerceptionCore
   kind: container
-  version: latest@863b428af6b8
-  pin: sha256:863b428af6b8502be96230f2f47a7aed8f9e3b64db74462871ffb3302de07a00
+  version: latest@ccc8372852ef
+  pin: sha256:ccc8372852ef3ea8f425d44396161a6da66dd27b1978ea4c08c1dca1e781a4b8
   url: ghcr.io/aitherium/aitheros-perception-core
   provides: []
   requires_license: true
@@ -2765,8 +2810,8 @@ components:
 - id: portalgateway
   name: PortalGateway
   kind: container
-  version: latest@541167c686f0
-  pin: sha256:541167c686f00f0a689dd609684ae7712fa1b349fbec42818a7c91c2aa38031c
+  version: latest@1116db697f18
+  pin: sha256:1116db697f1865e09272147d9df3413fd75b8c1eae4e631f1dd9b9f883169d8a
   url: ghcr.io/aitherium/aitheros-portal-gateway
   provides: []
   requires_license: true
@@ -2785,15 +2830,23 @@ components:
 - id: prometheus
   name: Prometheus
   kind: container
-  version: ''
-  pin: ''
-  url: ''
+  version: latest@9b125871971a
+  pin: sha256:9b125871971a43184d890f28dbcdf346be52918994dfdb25c122a0af8cf1f332
+  url: ghcr.io/aitherium/aitheros-worldengine
   provides: []
   requires_license: true
   entitlement: addon:creative
-  available: false
-  reason: no container image declared in services.yaml
+  available: true
+  reason: ''
   deps: []
+  quadlet:
+    ports:
+    - host: 8178
+      container: 8178
+    volumes:
+    - dest: /data
+    env: []
+    health: http://127.0.0.1:8178/health
 - id: prometheusagent
   name: PrometheusAgent
   kind: container
@@ -2857,8 +2910,8 @@ components:
 - id: remotionrenderer
   name: RemotionRenderer
   kind: container
-  version: latest@230f034c55b1
-  pin: sha256:230f034c55b1b84287db82258d3da49fb7ea09b4824230a446adb50cac0ea4c9
+  version: latest@3b961984e55d
+  pin: sha256:3b961984e55ddf4b815d48ebe2e0b3b72eba8c155635caf0a8f82391526b3741
   url: ghcr.io/aitherium/aitheros-remotion-renderer
   provides: []
   requires_license: true
@@ -2937,8 +2990,8 @@ components:
 - id: securitycore
   name: SecurityCore
   kind: container
-  version: latest@250c91e1f081
-  pin: sha256:250c91e1f081755753e1f208b36e479e75f2f072f3ca0a4b0e5dfe4591e52ca1
+  version: latest@66dff974b3a1
+  pin: sha256:66dff974b3a1084175891d44d03a974c6184e29dcd8371b5856c691f9250aba2
   url: ghcr.io/aitherium/aitheros-security-core
   provides: []
   requires_license: true
@@ -2957,8 +3010,8 @@ components:
 - id: securitydefense
   name: SecurityDefense
   kind: container
-  version: latest@ddc22c695394
-  pin: sha256:ddc22c69539455a8e5c47647ea4c512614af1709abdc76602d09eedd76db1cfd
+  version: latest@60bd274cab4b
+  pin: sha256:60bd274cab4bef9367140296909de361aae4d0e9c5c99eeeda805b914999cd80
   url: ghcr.io/aitherium/aitheros-security-defense
   provides: []
   requires_license: true
@@ -3025,8 +3078,8 @@ components:
 - id: sovereignnode
   name: SovereignNode
   kind: container
-  version: latest@c8ff13e86792
-  pin: sha256:c8ff13e86792da3a98ac68d18aa14cb5c0b91dc84681c4411ec039611c51cfa0
+  version: latest@b6deb360955f
+  pin: sha256:b6deb360955f8ba6eeb38b617b7ae5333d25fc14beeafe083d5d6db4dfdf4b6a
   url: ghcr.io/aitherium/aitheros-sovereign-node
   provides: []
   requires_license: true
@@ -3069,8 +3122,8 @@ components:
 - id: stratameshreplicationtrigger
   name: StrataMeshReplicationTrigger
   kind: container
-  version: latest@250c91e1f081
-  pin: sha256:250c91e1f081755753e1f208b36e479e75f2f072f3ca0a4b0e5dfe4591e52ca1
+  version: latest@66dff974b3a1
+  pin: sha256:66dff974b3a1084175891d44d03a974c6184e29dcd8371b5856c691f9250aba2
   url: ghcr.io/aitherium/aitheros-strata-mesh-repl
   provides: []
   requires_license: true
@@ -3185,8 +3238,8 @@ components:
 - id: tunnel
   name: Tunnel
   kind: container
-  version: latest@c8ff13e86792
-  pin: sha256:c8ff13e86792da3a98ac68d18aa14cb5c0b91dc84681c4411ec039611c51cfa0
+  version: latest@b6deb360955f
+  pin: sha256:b6deb360955f8ba6eeb38b617b7ae5333d25fc14beeafe083d5d6db4dfdf4b6a
   url: ghcr.io/aitherium/aitheros-tunnel-service
   provides: []
   requires_license: true
@@ -3217,8 +3270,8 @@ components:
 - id: veil
   name: Veil
   kind: container
-  version: latest@e316bc06ade1
-  pin: sha256:e316bc06ade1a8ef36a11c28eae055c1ff99f21653fdedaf69b7500ce2a54018
+  version: latest@7746a2464649
+  pin: sha256:7746a2464649f61211e966a03de99fede9649ea94f1d5ad008aa52c13a6429b4
   url: ghcr.io/aitherium/aitheros-veil
   provides: []
   requires_license: true
@@ -3237,8 +3290,8 @@ components:
 - id: voicecloner
   name: VoiceCloner
   kind: container
-  version: latest@eba4aa3bf6d5
-  pin: sha256:eba4aa3bf6d52d0125cd13139b90f91025b7c6cc000d91a9a2a376ee5e6581b5
+  version: latest@83d200f4812a
+  pin: sha256:83d200f4812ab3a96211e317c3f6bf73ca60364b04095f83aeebf053c7a1bfc3
   url: ghcr.io/aitherium/aitheros-voice-cloner
   provides: []
   requires_license: true
@@ -3281,8 +3334,8 @@ components:
 - id: workflowhub
   name: WorkflowHub
   kind: container
-  version: latest@541167c686f0
-  pin: sha256:541167c686f00f0a689dd609684ae7712fa1b349fbec42818a7c91c2aa38031c
+  version: latest@1116db697f18
+  pin: sha256:1116db697f1865e09272147d9df3413fd75b8c1eae4e631f1dd9b9f883169d8a
   url: ghcr.io/aitherium/aitheros-workflow-hub
   provides: []
   requires_license: true
@@ -3301,8 +3354,8 @@ components:
 - id: workingmemory
   name: WorkingMemory
   kind: container
-  version: latest@d353195cf0b9
-  pin: sha256:d353195cf0b922556f300bd2c2ce1229fbc09cb5518e4b56a9010d4aa6f23053
+  version: latest@84158fde9eb7
+  pin: sha256:84158fde9eb783af38d322fae8af4ca8aad07115c5d5d26acd6b86bce9e9b969
   url: ghcr.io/aitherium/aitheros-workingmemory
   provides: []
   requires_license: true
@@ -3330,11 +3383,35 @@ components:
   available: false
   reason: no container image declared in services.yaml
   deps: []
+- id: aitherbrowser
+  name: aitherbrowser
+  kind: pack
+  version: 0.1.0
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  url: awpack://aitherbrowser
+  provides: []
+  requires_license: true
+  entitlement: pack:aitherbrowser
+  available: true
+  reason: ''
+  deps: []
+- id: awconnect
+  name: awconnect
+  kind: pack
+  version: 0.1.0
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  url: awpack://awconnect
+  provides: []
+  requires_license: true
+  entitlement: pack:awconnect
+  available: true
+  reason: ''
+  deps: []
 - id: bead-space
   name: bead-space
   kind: pack
   version: 0.2.0
-  pin: 2f5d62ddc883cf699c59278be92cfb319222950c
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
   url: awpack://bead-space
   provides: []
   requires_license: true
@@ -3346,7 +3423,7 @@ components:
   name: dgg-research
   kind: pack
   version: 0.1.0
-  pin: 429da6d6297657336cf93beb8c1cf1a7623ba42a
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
   url: awpack://dgg-research
   provides: []
   requires_license: true
@@ -3354,11 +3431,23 @@ components:
   available: true
   reason: ''
   deps: []
+- id: free-cloud
+  name: free-cloud
+  kind: pack
+  version: 0.1.0
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  url: awpack://free-cloud
+  provides: []
+  requires_license: true
+  entitlement: pack:free-cloud
+  available: true
+  reason: ''
+  deps: []
 - id: gobbonet
   name: gobbonet
   kind: pack
-  version: 0.1.0
-  pin: 4c5c432f78388b6cadf0e4bfe6bab2eab55ccca1
+  version: 0.2.0
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
   url: awpack://gobbonet
   provides: []
   requires_license: true
@@ -3370,7 +3459,7 @@ components:
   name: persona
   kind: pack
   version: 0.1.0
-  pin: 1726e0fe6330b17fbe6c66bbccb3361312666966
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
   url: awpack://persona
   provides: []
   requires_license: true
@@ -3378,11 +3467,47 @@ components:
   available: true
   reason: ''
   deps: []
+- id: ps5-bridge
+  name: ps5-bridge
+  kind: pack
+  version: 0.1.0
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  url: awpack://ps5-bridge
+  provides: []
+  requires_license: true
+  entitlement: pack:ps5-bridge
+  available: true
+  reason: ''
+  deps: []
+- id: salescompel
+  name: salescompel
+  kind: pack
+  version: 0.1.0
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  url: awpack://salescompel
+  provides: []
+  requires_license: true
+  entitlement: pack:salescompel
+  available: true
+  reason: ''
+  deps: []
+- id: zeroauthy
+  name: zeroauthy
+  kind: pack
+  version: 0.1.0
+  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  url: awpack://zeroauthy
+  provides: []
+  requires_license: true
+  entitlement: pack:zeroauthy
+  available: true
+  reason: ''
+  deps: []
 - id: memory-postgres
   name: memory-postgres
   kind: container
-  version: 16-alpine@0cefaabd882e
-  pin: sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+  version: 16-alpine@aa6cb33cf4c1
+  pin: sha256:aa6cb33cf4c19c765cefcf48d96176258800870a9a1e930ad126200f9d825139
   url: docker.io/library/postgres
   provides: []
   requires_license: true
@@ -3430,8 +3555,8 @@ components:
 - id: memory-embedder
   name: memory-embedder
   kind: container
-  version: server@01c2bc28d512
-  pin: sha256:01c2bc28d51291536df2ccebe5c6af1cdec9ea9b2bd98ac59556408caf96d3f8
+  version: server@41988e510b6f
+  pin: sha256:41988e510b6fe0a0b5b9be00a9dbf91d9f0fa691da173d7b06d97d370329fe84
   url: ghcr.io/ggml-org/llama.cpp
   provides: []
   requires_license: true
@@ -3778,8 +3903,8 @@ components:
 - id: memory-stack
   name: memory-stack
   kind: bundle
-  version: stack@f391503e62ba
-  pin: sha256:f391503e62baa7fc4c0e03253783f00b5825a363b6f627a6e425b3b81225e3f7
+  version: stack@dbdd12e7d457
+  pin: sha256:dbdd12e7d45774f3780f6cd7c2c0b6309ddce5291faea725d9cd3297d822abf4
   url: ''
   provides: []
   requires_license: true
