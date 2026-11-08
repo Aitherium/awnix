@@ -14,6 +14,13 @@ aither-aitherwhisperptt.service   # Discord/desk voice STT, generated quadlet (m
 aither-aither-directory.service   # directory plane
 aither-worker.service             # runs every routine (embed migration, backups, probes)
 aither-awdiscord.service         # official Discord bot: reads the owner's DM replies (card answers + chat)
+aither-awdiscord@atlas.service            # per-agent Discord bot (install_agent_bot.py); parked by the 11-08 05:28 sweep
+aither-awdiscord@demiurge.service         # per-agent Discord bot (install_agent_bot.py); parked by the 11-08 05:28 sweep
+aither-awdiscord@hera.service             # per-agent Discord bot (install_agent_bot.py); parked by the 11-08 05:28 sweep
+aither-awdiscord@iris.service             # per-agent Discord bot (install_agent_bot.py); parked by the 11-08 05:28 sweep
+aither-awdiscord@lyra.service             # per-agent Discord bot (install_agent_bot.py); parked by the 11-08 05:28 sweep
+aither-awdiscord@saga.service             # per-agent Discord bot (install_agent_bot.py); parked by the 11-08 05:28 sweep
+aither-awdiscord@vera.service             # per-agent Discord bot (install_agent_bot.py); parked by the 11-08 05:28 sweep
 aither-cns.service                # system world model (/wm/system/*): arc.aitherium.com + universe forecasts read it
 aither-world-model.service        # CPU world model: arc.aitherium.com "learning" pulse reads its /health (down after every reboot, 2026-10-23)
 shadowbroker-backend.service      # shadowbroker.aitherium.com backend: HMAC agent channel + InfoNet (2026-10-28: 503 after every reboot)
