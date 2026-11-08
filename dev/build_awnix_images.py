@@ -534,7 +534,10 @@ LAYERS: tuple[Layer, ...] = (
         # devtools: fleet_runtime_agent.py, the one host-units.manifest source outside
         # .DEPLOYMENT (Containerfile.aitheros-fleet section 7).
         contexts=(("deploy", "../.."), ("awstorage", "../../../AitherOS/packages/awstorage"),
-                  ("devtools", "../../../AitherOS/dev/tools")),
+                  ("devtools", "../../../AitherOS/dev/tools"),
+                  # routines: image_store_reclaim.py, stdlib-only, run by the
+                  # aither-image-store-reclaim host unit (the worker has no engine).
+                  ("routines", "../../../AitherOS/lib/routines")),
         verify_cmd=("command -v nvidia-ctk docker podman-compose wg >/dev/null "
                     "&& systemctl is-enabled podman-ghcr-auth.service aither-nvidia-cdi.service "
                     "aither-gpu-boot.service fleet-pulse-beat.timer >/dev/null "
@@ -906,7 +909,8 @@ def build_layer(layer: Layer, *, force: bool, verbose: bool = True,
     return passed
 
 
-_CARRY_CONTEXTS = {"deploy": ".DEPLOYMENT/", "devtools": "AitherOS/dev/tools/"}
+_CARRY_CONTEXTS = {"deploy": ".DEPLOYMENT/", "devtools": "AitherOS/dev/tools/",
+                   "routines": "AitherOS/lib/routines/"}
 
 
 def fleet_carry_gaps() -> "list[str] | None":
