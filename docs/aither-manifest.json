@@ -33,5 +33,15 @@
     "awnode",
     "awtunnel",
     "awdit"
-  ]
+  ],
+  "metrics": {
+    "files": {
+      "value": 20,
+      "as_of": "2026-11-08T07:57:01-08:00"
+    },
+    "tests": {
+      "value": 0,
+      "as_of": "2026-11-08T07:57:01-08:00"
+    }
+  }
 }
