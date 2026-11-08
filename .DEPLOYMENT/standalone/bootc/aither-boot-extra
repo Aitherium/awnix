@@ -9,7 +9,8 @@
 # check_fleet_rings.py FRG008 fails when a unit `on` in model-postures.yaml's active posture
 # is not booted; FRG006 when a `requires:` dependency is not.
 aither-orchestrator.service       # the brain (model-postures: on)
-aither-code-embed-gguf.service    # platform embedder, 1024-d, ~1.5 GB VRAM (model-postures: on)
+aither-llamacpp-bonsai.service    # Bonsai vision lane, chelle pins it (model-postures: on)
+aither-aitherwhisperptt.service   # Discord/desk voice STT, generated quadlet (model-postures: on)
 aither-aither-directory.service   # directory plane
 aither-worker.service             # runs every routine (embed migration, backups, probes)
 aither-awdiscord.service         # official Discord bot: reads the owner's DM replies (card answers + chat)
