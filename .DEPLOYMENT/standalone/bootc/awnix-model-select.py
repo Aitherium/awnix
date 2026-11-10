@@ -225,6 +225,10 @@ def self_test() -> int:
     ladder = (cfg.get("defaults") or {}).get("ladder") or []
     chk(all(m.startswith(("bonsai-", "bonsai2-")) for m in ladder),
         "the default ladder is Bonsai only")
+    # A rung that needs a newer engine than the images pin is a first boot that loads
+    # nothing (2026-11-09: Bonsai 2 small sizes, Hadamard v2, refused by prism-b10687).
+    chk(not [m for m in ladder if cfg["models"][m].get("min_engine")],
+        "no default rung needs a newer engine than the images pin (min_engine)")
     chk(ladder and ladder[-1] == "bonsai2-27b",
         "the top rung is Bonsai 2, not the superseded Bonsai 1 27B")
     chk(all((cfg["models"][m].get("opt_in") is not True) for m in ladder),

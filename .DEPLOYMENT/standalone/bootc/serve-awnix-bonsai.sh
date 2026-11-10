@@ -98,7 +98,7 @@ if [ -n "$MODEL_ID" ]; then
   PLAN=$("$SELECT" --model "$MODEL_ID" --plan) || die "no such model: $MODEL_ID"
 else
   PLAN=$("$SELECT" --plan) || die "no catalogued model fits this machine.
-  Set AWNIX_MODEL=bonsai-1.7b to try the smallest anyway, or run inference elsewhere
+  Set AWNIX_MODEL=bonsai2-2b to try the smallest anyway, or run inference elsewhere
   and point this box at it."
   MODEL_ID=$(echo "$PLAN" | jq -r .id)
   echo "serve-awnix-bonsai: selected $MODEL_ID for this machine"
@@ -109,7 +109,7 @@ MODEL_FILE=$(echo "$PLAN" | jq -r .file)
 # AWNIX_OFFLINE=1 (awnix-ai-offline): never download. When the model this machine could
 # fit is not baked, serve the largest baked rung of the ladder that is no bigger.
 if [ "${AWNIX_OFFLINE:-0}" = "1" ] && [ ! -s "$(model_path "$MODEL_FILE")" ]; then
-  for _cand in bonsai2-27b bonsai-8b bonsai-4b bonsai-1.7b; do
+  for _cand in bonsai2-27b bonsai2-9b bonsai-8b bonsai2-4b bonsai-4b bonsai2-2b bonsai-1.7b; do
     _p=$("$SELECT" --model "$_cand" --plan 2>/dev/null) || continue
     _f=$(echo "$_p" | jq -r .file)
     [ -s "$(model_path "$_f")" ] || continue

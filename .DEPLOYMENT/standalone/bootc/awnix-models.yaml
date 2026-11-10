@@ -53,6 +53,12 @@ defaults:
   # The top rung is Bonsai 2 27B (PTQ1_0): smaller than Bonsai 1 27B (5671 vs 6833 MB)
   # and it scored 0.9165 against Bonsai 1's 0.7821 on AitherBench. Every image that
   # reads this catalogue pins a PrismML llama.cpp build that serves it.
+  #
+  # 2026-11-09: the Bonsai 2 small sizes (2B / 4B / 9B) are catalogued below but NOT on
+  # the ladder yet. Measured that day: the pinned engine (prism-b10687) refuses them --
+  # "unsupported prism.hadamard.version: 2" -- because they use Hadamard v2, which the
+  # 27B does not. They carry `min_engine`; the selector self-test refuses any default rung
+  # that has one. Promote them only together with the engine bump.
   ladder: [bonsai-1.7b, bonsai-4b, bonsai-8b, bonsai2-27b]
   # A deliberate floor: below this, refuse and say so rather than thrashing swap.
   min_budget_mb: 900
@@ -101,6 +107,47 @@ models:
     note: >-
       Bonsai 1. Off the default ladder since 2026-09-26 (bonsai2-27b replaces it);
       still fetchable with --model bonsai-27b.
+
+  # ── Bonsai 2 small sizes (2026-11-09) ──────────────────────────────────────────
+  # size_bytes and sha256 are the Hugging Face LFS records (API ?blobs=true, read
+  # 2026-11-09) -- LFS content-addresses by sha256, so it is the upstream's own digest
+  # of these bytes. size_mb = floor(size_bytes / MiB), the rule bonsai2-27b follows.
+  # All three are vision-language models; the ladder serves text only (no mmproj).
+  bonsai2-2b:
+    source: huggingface
+    path: "Ternary-Bonsai-2-2B-gguf/resolve/main/Ternary-Bonsai-2-2B-PTQ1_0.gguf"
+    file: "Ternary-Bonsai-2-2B-PTQ1_0.gguf"
+    min_engine: "prism-b12128"   # Hadamard v2; b10687 refuses it (measured 2026-11-09)
+    size_mb: 409
+    size_bytes: 429183456
+    sha256: "36061ad406df8a4903a6db005be350c50fabfaf717f9ef0acf4b76adcd9929fa"
+    quant: PTQ1_0
+    requires: prism-llama.cpp
+    note: "Bonsai 2 2B (Qwen3.5-2B base). Phone-class GPU or plain CPU. The ladder floor."
+
+  bonsai2-4b:
+    source: huggingface
+    path: "Ternary-Bonsai-2-4B-gguf/resolve/main/Ternary-Bonsai-2-4B-PTQ1_0.gguf"
+    file: "Ternary-Bonsai-2-4B-PTQ1_0.gguf"
+    min_engine: "prism-b12128"   # Hadamard v2; b10687 refuses it (measured 2026-11-09)
+    size_mb: 905
+    size_bytes: 949549920
+    sha256: "56711263ec9a9ffeaa74a3a0e58dece8127cf9268404746c721113ca76994d60"
+    quant: PTQ1_0
+    requires: prism-llama.cpp
+    note: "Bonsai 2 4B (Qwen3.5-4B base). Replaces bonsai-4b on the ladder."
+
+  bonsai2-9b:
+    source: huggingface
+    path: "Ternary-Bonsai-2-9B-gguf/resolve/main/Ternary-Bonsai-2-9B-PTQ1_0.gguf"
+    file: "Ternary-Bonsai-2-9B-PTQ1_0.gguf"
+    min_engine: "prism-b12128"   # Hadamard v2; b10687 refuses it (measured 2026-11-09)
+    size_mb: 1904
+    size_bytes: 1997486976
+    sha256: "3561df7ac7d26a71ffa991ac2db740b10841c3a350aa2676ccd3ff5d428b4e8b"
+    quant: PTQ1_0
+    requires: prism-llama.cpp
+    note: "Bonsai 2 9B (Qwen3.5-9B base). Replaces bonsai-8b on the ladder, and is smaller."
 
   bonsai2-27b:
     source: huggingface
