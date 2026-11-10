@@ -305,10 +305,22 @@ RUN python3.11 -m pip install --no-cache-dir \
 # (engines). The old image installed it and never ran it, so nothing noticed; the
 # build-time `awnix-awsh --self-test` / `awsh --version` then died on an ESM loader
 # stack (run 36495471093). Pin the module stream and assert the major.
-RUN dnf module -y reset nodejs \
-    && dnf module -y enable nodejs:20 \
-    && dnf install -y --setopt=install_weak_deps=False nodejs npm \
-    && node -e 'if (+process.versions.node.split(".")[0] < 18) { console.error("node " + process.version + " < 18"); process.exit(1) }' \
+# The node is the OFFICIAL nodejs.org build, version- and sha256-pinned in
+# awnix-node.sh, NOT EL9's nodejs:20 module. Measured 2026-11-09: the module's 20.20.2
+# segfaults (exit 139) on `new Intl.Segmenter('en')` under a WSL2 kernel, and awsh lays
+# out every line through Intl.Segmenter, so it died on every prompt; official 20.19.2
+# (bundled ICU) does not. The installer runs that Segmenter probe and fails the build on
+# a bad node; aither-node-check.service runs it again at boot (the crash is kernel-
+# dependent). npm's global prefix is /usr/local, so the bins below land on PATH.
+COPY awnix-node.sh /usr/libexec/aither/awnix-node.sh
+COPY aither-node-check.service /etc/systemd/system/aither-node-check.service
+RUN sed -i 's/\r$//' /usr/libexec/aither/awnix-node.sh /etc/systemd/system/aither-node-check.service \
+    && chmod 0755 /usr/libexec/aither/awnix-node.sh \
+    && sh /usr/libexec/aither/awnix-node.sh --self-test \
+    && dnf install -y --setopt=install_weak_deps=False tar xz \
+    && sh /usr/libexec/aither/awnix-node.sh install \
+    && node -e 'if (+process.versions.node.split(".")[0] < 20) { console.error("node " + process.version + " < 20"); process.exit(1) }' \
+    && systemctl enable aither-node-check.service \
     && dnf clean all
 
 RUN python3.11 -m pip install --no-cache-dir \

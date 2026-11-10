@@ -441,8 +441,7 @@ def demote_service_accounts(host: Host, names: tuple = SERVICE_ACCOUNTS,
         restart = stop_units_of(host, acct)
         rc, out = host.run(["usermod", "-u", str(new), acct.name])
         if rc != 0:
-            for unit in restart:
-                host.run(["systemctl", "start", unit])
+            start_units_again(host, acct.name, restart)
             skip(acct.name, f"usermod -u {new} refused: {out.strip()[:200]}")
             continue
         own_group = groups.get(acct.name) == acct.gid
@@ -460,8 +459,7 @@ def demote_service_accounts(host: Host, names: tuple = SERVICE_ACCOUNTS,
                     host.run(["find", d, "-xdev", "-gid", str(acct.gid),
                               "-exec", "chgrp", "-h", str(new), "{}", "+"])
         moved.append((acct.name, acct.uid, new))
-        for unit in restart:
-            host.run(["systemctl", "start", unit])
+        start_units_again(host, acct.name, restart)
     return moved
 
 
@@ -487,10 +485,28 @@ def stop_units_of(host: Host, acct: Account) -> list[str]:
         return []
     user_mgr = f"user@{acct.uid}.service"
     restart = [u for u in units if u.endswith(".service") and u != user_mgr]
-    for u in units:
-        host.run(["systemctl", "stop", u])
+    # One line per unit: a host running dozens of services as this account went silent
+    # for minutes here, which read as a hang (2026-11-09).
+    say(f"aither-setup: stopping {len(units)} unit(s) owned by {acct.name} "
+        f"(uid {acct.uid}) so its uid can move")
+    for i, u in enumerate(units, 1):
+        say(f"  [{i}/{len(units)}] stopping {u}")
+        rc, out = host.run(["systemctl", "stop", u])
+        if rc != 0:
+            say(f"    ! stop {u} failed (rc {rc}): {out.strip()[:160]}")
     host.run(["systemctl", "stop", user_mgr])
     return restart
+
+
+def start_units_again(host: Host, acct_name: str, units: list[str]) -> None:
+    """Start the services `stop_units_of` stopped, one progress line per unit."""
+    if units:
+        say(f"aither-setup: starting {len(units)} service(s) owned by {acct_name} again")
+    for i, u in enumerate(units, 1):
+        say(f"  [{i}/{len(units)}] starting {u}")
+        rc, out = host.run(["systemctl", "start", u])
+        if rc != 0:
+            say(f"    ! start {u} failed (rc {rc}): {out.strip()[:160]}")
 
 
 def migrated_homes(host: Host) -> list[tuple[str, int, int, str]]:

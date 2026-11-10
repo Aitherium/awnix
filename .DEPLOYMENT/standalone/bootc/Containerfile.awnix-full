@@ -79,10 +79,22 @@ RUN python3.11 -m pip install --no-cache-dir \
 # artifact is the leading guess), but a bare `npm install -g` is not supposed
 # to need a pre-existing target gone, so making it idempotent is correct
 # regardless of why the file was there.
-RUN dnf module reset -y nodejs \
-    && dnf module enable -y nodejs:20 \
-    && dnf install -y nodejs npm \
-    && node --version | grep -qE '^v(2[0-9]|[3-9][0-9])\.' \
+# The node is the OFFICIAL nodejs.org build, version- and sha256-pinned in
+# awnix-node.sh, NOT EL9's nodejs:20 module. Measured 2026-11-09: the module's 20.20.2
+# segfaults (exit 139) on `new Intl.Segmenter('en')` under a WSL2 kernel, and awsh lays
+# out every line through Intl.Segmenter, so it died on every prompt; official 20.19.2
+# (bundled ICU) does not. The installer runs that Segmenter probe and fails the build on
+# a bad node; aither-node-check.service runs it again at boot (the crash is kernel-
+# dependent). npm's global prefix is /usr/local, so the bins below land on PATH.
+COPY awnix-node.sh /usr/libexec/aither/awnix-node.sh
+COPY aither-node-check.service /etc/systemd/system/aither-node-check.service
+RUN sed -i 's/\r$//' /usr/libexec/aither/awnix-node.sh /etc/systemd/system/aither-node-check.service \
+    && chmod 0755 /usr/libexec/aither/awnix-node.sh \
+    && sh /usr/libexec/aither/awnix-node.sh --self-test \
+    && dnf install -y --setopt=install_weak_deps=False tar xz \
+    && sh /usr/libexec/aither/awnix-node.sh install \
+    && node -e 'if (+process.versions.node.split(".")[0] < 20) { console.error("node " + process.version + " < 20"); process.exit(1) }' \
+    && systemctl enable aither-node-check.service \
     && rm -f /usr/local/bin/aither /usr/local/bin/aither-shell /usr/local/bin/awsh \
     && npm install -g @aitherium/awsh@1.19.0 \
     && dnf clean all \

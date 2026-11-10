@@ -1,0 +1,20 @@
+# Boot-time half of the awnix-node assertion (awnix-node.sh). The build already
+# refused a node whose Intl.Segmenter crashes, but the crash that motivated it was
+# KERNEL-dependent (a WSL2 guest, 2026-11-09): an image built on one kernel and booted
+# on another can pass the build check and still segfault here. A failed oneshot shows
+# up in `systemctl --failed` and the boot health summary, which is the loud failure we
+# want instead of awsh dying silently on the user's first prompt.
+[Unit]
+Description=Assert the node runtime can use Intl.Segmenter (awsh text layout)
+After=local-fs.target
+ConditionPathExists=/usr/libexec/aither/awnix-node.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/aither/awnix-node.sh --check
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
