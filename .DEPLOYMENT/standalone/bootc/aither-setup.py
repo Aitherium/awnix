@@ -149,6 +149,59 @@ def detect_wsl() -> bool:
         return False
 
 
+# ── the live fleet host is never a first-boot machine ───────────────────────────────
+#: 2026-11-09: `wsl` into the LIVE fleet distro as root ran this wizard from the profile
+#: hook, which tried to renumber the fleet's `bonsai` service account and died on
+#: "usermod: UID '999' already exists". The fleet host has no person to set up; its
+#: accounts belong to running containers. Every wizard entry refuses there.
+FORCE_ENV = "AITHER_SETUP_FORCE"
+#: Same order as lib/core/fleet_distro.py rung 1, then its default (rung 3). This script
+#: carries no AitherOS tree, so it cannot import the resolver.
+FLEET_DISTRO_ENVS = ("AITHER_FLEET_DISTRO", "AITHER_WSL_DISTRO", "FLEET_DISTRO",
+                     "AWDESK_FLEET_DISTRO")
+FLEET_DISTRO_DEFAULT = "awnix"
+#: Files only a fleet host carries: the cutover config (the workflows' own fleet test)
+#: and the data-attach script baked ONLY by Containerfile.aitheros-fleet-wsl.
+FLEET_MARKERS = ("/etc/aither/awnix-migration.env",
+                 "/usr/libexec/aither/aither-attach-fleet-data.sh")
+#: The fleet's quadlets; no first-boot image bakes an aitheros-* one.
+FLEET_QUADLET_DIR = "/etc/containers/systemd"
+
+
+def fleet_distro_name(env: Any) -> str:
+    """The fleet's WSL distro name: first non-empty override, else ``awnix``."""
+    for k in FLEET_DISTRO_ENVS:
+        v = str(env.get(k) or "").strip()
+        if v:
+            return v
+    return FLEET_DISTRO_DEFAULT
+
+
+def fleet_host_reason(host: "Host") -> str:
+    """Why this machine is the live fleet host ('' = it is not).
+
+    Args:
+        host: the machine; ``host.env`` is its environment (empty in a sandbox).
+    Returns:
+        One human-readable reason, or '' when no fleet signal is present.
+    """
+    env = host.env
+    wsl_name = str(env.get("WSL_DISTRO_NAME") or "").strip()
+    fleet = fleet_distro_name(env)
+    if wsl_name and wsl_name.lower() == fleet.lower():
+        return f"WSL distro {wsl_name!r} is the fleet distro"
+    for m in FLEET_MARKERS:
+        if host.p(m).exists():
+            return f"{m} exists (fleet host)"
+    try:
+        quadlets = sorted(host.p(FLEET_QUADLET_DIR).glob("aitheros-*.container"))
+    except OSError:
+        quadlets = []
+    if quadlets:
+        return f"{FLEET_QUADLET_DIR}/{quadlets[0].name} is a fleet quadlet"
+    return ""
+
+
 def windows_explorers(mounts: str | None = None) -> list:
     """explorer.exe under each Windows drive WSL mounted (drvfs / 9p in /proc/mounts).
 
@@ -190,9 +243,13 @@ class Host:
     a sandbox in which commands go to `runner` and ownership changes are recorded."""
 
     def __init__(self, root: str | Path = "/", runner: Runner | None = None,
-                 is_wsl: bool | None = None, hostname: str | None = None) -> None:
+                 is_wsl: bool | None = None, hostname: str | None = None,
+                 env: dict | None = None) -> None:
         self.root = Path(root)
         self.real = str(root) == "/"
+        #: The environment fleet detection and the force switch read: the process env
+        #: on the real machine, nothing in a sandbox unless a test hands one in.
+        self.env: Any = env if env is not None else (os.environ if self.real else {})
         self._runner = runner or _real_run
         self.is_wsl = detect_wsl() if is_wsl is None else is_wsl
         self.hostname = hostname or socket.gethostname()
@@ -326,29 +383,75 @@ def free_system_id(taken: set, lo: int = 201, hi: int = 999) -> int:
     raise SetupError("no free system uid/gid in 201..999")
 
 
-def demote_service_accounts(host: Host, names: tuple = SERVICE_ACCOUNTS) -> list[tuple]:
+#: bootc/ostree images resolve users through nss-altfiles too: an id listed only in
+#: /usr/lib/passwd is invisible in /etc/passwd but `usermod` still refuses it (the
+#: 2026-11-09 "UID '999' already exists").
+ALTFILES = ("/usr/lib/passwd", "/usr/lib/group")
+
+
+def taken_ids(host: Host) -> set:
+    """Every uid and gid in use: /etc/passwd, /etc/group and the altfiles tables."""
+    taken = {a.uid for a in read_passwd(host)} | set(read_groups(host).values())
+    for path in ALTFILES:
+        try:
+            lines = host.p(path).read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for ln in lines:
+            f = ln.split(":")
+            if len(f) >= 3 and f[2].isdigit():
+                taken.add(int(f[2]))
+    return taken
+
+
+def demote_service_accounts(host: Host, names: tuple = SERVICE_ACCOUNTS,
+                            skipped: list | None = None) -> list[tuple]:
     """Renumber known SERVICE accounts out of the human range. Never deletes one.
 
-    Returns [(name, old_uid, new_uid)]. Files the account owns in its home, /opt/<name>
-    and /var/lib/<name> follow it (usermod -u moves the home; the rest by find).
+    An account that is already a system user (uid < 1000) is never renumbered, the
+    target id is picked free of every passwd/group table (altfiles included), and a
+    move `usermod` refuses is SKIPPED with a logged reason, never raised half-way.
+
+    Args:
+        host: the machine.
+        names: account names that may be moved.
+        skipped: if given, receives (name, reason) for every account left in place.
+    Returns:
+        [(name, old_uid, new_uid)]. Files the account owns in its home, /opt/<name> and
+        /var/lib/<name> follow it (usermod -u moves the home; the rest by find).
     """
     moved = []
     groups = read_groups(host)
-    taken = {a.uid for a in read_passwd(host)} | set(groups.values())
+    taken = taken_ids(host)
+
+    def skip(name: str, reason: str) -> None:
+        say(f"aither-setup: not renumbering {name}: {reason}")
+        if skipped is not None:
+            skipped.append((name, reason))
+
     for acct in read_passwd(host):
-        if acct.name not in names or not (HUMAN_UID_MIN <= acct.uid < HUMAN_UID_MAX):
+        if acct.name not in names or acct.uid >= HUMAN_UID_MAX:
+            continue
+        if acct.uid < HUMAN_UID_MIN:
+            skip(acct.name, f"already a system user (uid {acct.uid}); existing system "
+                            "users are never renumbered")
             continue
         new = free_system_id(taken)
         taken.add(new)
         restart = stop_units_of(host, acct)
         rc, out = host.run(["usermod", "-u", str(new), acct.name])
         if rc != 0:
-            raise SetupError(f"usermod -u {new} {acct.name} failed: {out.strip()[:200]}")
+            for unit in restart:
+                host.run(["systemctl", "start", unit])
+            skip(acct.name, f"usermod -u {new} refused: {out.strip()[:200]}")
+            continue
         own_group = groups.get(acct.name) == acct.gid
         if own_group:
             rc, out = host.run(["groupmod", "-g", str(new), acct.name])
             if rc != 0:
-                raise SetupError(f"groupmod -g {new} {acct.name} failed: {out.strip()[:200]}")
+                say(f"aither-setup: {acct.name}: uid moved to {new} but groupmod -g {new} "
+                    f"was refused ({out.strip()[:200]}); its group keeps gid {acct.gid}")
+                own_group = False
         for d in (acct.home, f"/opt/{acct.name}", f"/var/lib/{acct.name}"):
             if d and d != "/" and host.p(d).exists():
                 host.run(["find", d, "-xdev", "-uid", str(acct.uid),
@@ -550,8 +653,13 @@ def create_or_adopt_user(host: Host, plan: UserPlan) -> tuple[Account, list[str]
                 raise SetupError(
                     f"uid {plan.uid} already belongs to {holder.name!r}. Choose another uid, "
                     f"or adopt that account instead of creating {plan.name!r}.")
-            for n, old, new in demote_service_accounts(host, (holder.name,)):
+            skipped: list = []
+            for n, old, new in demote_service_accounts(host, (holder.name,), skipped):
                 notes.append(f"moved service account {n} from uid {old} to {new}")
+            if skipped:
+                raise SetupError(
+                    f"uid {plan.uid} belongs to service account {holder.name!r}, which was "
+                    f"left in place ({skipped[0][1]}). Choose another uid.")
         groups = read_groups(host)
         gid = plan.adopt_gid if plan.adopt_gid is not None else plan.uid
         if plan.name not in groups:
@@ -1633,6 +1741,15 @@ def main(argv: list | None = None, host: Host | None = None,
         except SetupError as exc:
             print(json.dumps({"error": str(exc), "caps": list(CAPS)}))
             return 2
+        return 0
+    # Every wizard entry (bare, --firstboot, --oobe, --seed, --reconfigure) refuses on the
+    # live fleet host; --renew-token and the read-only verbs above stay available.
+    fleet_why = "" if a.renew_token else fleet_host_reason(host)
+    if fleet_why and str(host.env.get(FORCE_ENV) or "") != "1":
+        _Progress.on = bool(a.json_progress)
+        say(f"aither-setup: not running on the fleet host ({fleet_why}); it has no person "
+            f"to set up and its service accounts are live. Force: {FORCE_ENV}=1 aither-setup")
+        _Progress.emit("skipped", reason=f"fleet host: {fleet_why}")
         return 0
     if host.real and hasattr(os, "geteuid") and os.geteuid() != 0 and (
             a.renew_token or a.seed or a.reconfigure or not marker.exists()):

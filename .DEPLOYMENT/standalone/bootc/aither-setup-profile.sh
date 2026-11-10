@@ -3,7 +3,8 @@
 # AitherOS first-boot setup (SSH, a `wsl --import`ed distro whose OOBE never ran, a console).
 # Sourced, not executed: everything lives in a function so `return` is legal and no
 # variable leaks into the login shell. Silent once /var/lib/aither/setup.done exists.
-# AITHER_SETUP_SKIP=1 suppresses it for one login.
+# AITHER_SETUP_SKIP=1 suppresses it for one login. Never offered on the live fleet host
+# (AITHER_SETUP_FORCE=1 overrides).
 #
 # Every login (bare metal, VM and WSL) offers to run the setup right here. On WSL the
 # device-code sign-in opens in the Windows browser; the desk's "Set up Aither" window
@@ -14,6 +15,31 @@ _aither_setup_offer() {
     [ -t 0 ] && [ -t 1 ] || return 0
     [ -n "${AITHER_SETUP_SKIP:-}" ] && return 0
     [ -x /usr/bin/aither-setup ] || return 0
+    # The LIVE fleet host is never set up here (2026-11-09: a root `wsl` into the fleet
+    # distro ran the wizard, which tried to renumber the fleet's service accounts).
+    # Same signals as aither-setup's own guard: distro name, fleet marker files, quadlets.
+    if [ "${AITHER_SETUP_FORCE:-}" != 1 ]; then
+        _aither_fleet=""
+        _aither_name=${AITHER_FLEET_DISTRO:-${AITHER_WSL_DISTRO:-${FLEET_DISTRO:-${AWDESK_FLEET_DISTRO:-awnix}}}}
+        if [ -n "${WSL_DISTRO_NAME:-}" ] && [ "$WSL_DISTRO_NAME" = "$_aither_name" ]; then
+            _aither_fleet="WSL distro $WSL_DISTRO_NAME is the fleet distro"
+        elif [ -e /etc/aither/awnix-migration.env ] ||
+            [ -e /usr/libexec/aither/aither-attach-fleet-data.sh ]; then
+            _aither_fleet="fleet marker file present"
+        else
+            for _aither_q in /etc/containers/systemd/aitheros-*.container; do
+                [ -e "$_aither_q" ] && _aither_fleet="fleet quadlets present"
+                break
+            done
+        fi
+        if [ -n "$_aither_fleet" ]; then
+            printf 'aither-setup: skipped on the fleet host (%s); force: %s\n' \
+                "$_aither_fleet" 'AITHER_SETUP_FORCE=1 aither-setup'
+            unset _aither_fleet _aither_name _aither_q
+            return 0
+        fi
+        unset _aither_fleet _aither_name _aither_q
+    fi
     # WSL gets the SAME in-place offer as bare metal (owner, 2026-09-29: "why could this not
     # be done directly from awnix/wsl?"). The sign-in is a device code, and aither-setup
     # opens its URL in the Windows browser through interop, so nothing forces a detour
