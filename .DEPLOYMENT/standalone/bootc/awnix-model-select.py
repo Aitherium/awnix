@@ -210,12 +210,14 @@ def self_test() -> int:
 
     # Selection, against the measured ladder.
     for budget, want in ((1024, "bonsai-1.7b"), (4096, "bonsai-4b"),
-                         (8192, "bonsai-8b"), (24576, "bonsai2-27b")):
+                         (8192, "bonsai-4b"), (24576, "bonsai2-27b")):
         got = select(cfg, budget)
         chk(got == want, f"{budget}MB -> {want} (got {got})")
     chk(select(cfg, 512) is None, "below the floor, nothing is chosen rather than a guess")
-    chk(select(cfg, 11264) == "bonsai-8b",
-        "11GB picks 8B, not 27B — headroom is honoured, not just weight size")
+    chk(select(cfg, 11264) == "bonsai-4b",
+        "11GB picks the 4B, not 27B — headroom is honoured, not just weight size")
+    chk("bonsai-8b" not in (cfg.get("defaults") or {}).get("ladder", []),
+        "Bonsai 8B is not a ladder rung: it scores below the 4B (AitherBench 0.43 vs 0.53)")
     chk(select(cfg, 12288) == "bonsai2-27b",
         "12GB reaches Bonsai 2 27B (5671 MB fits half the budget)")
 

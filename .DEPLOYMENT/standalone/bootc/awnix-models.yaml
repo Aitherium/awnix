@@ -59,7 +59,11 @@ defaults:
   # "unsupported prism.hadamard.version: 2" -- because they use Hadamard v2, which the
   # 27B does not. They carry `min_engine`; the selector self-test refuses any default rung
   # that has one. Promote them only together with the engine bump.
-  ladder: [bonsai-1.7b, bonsai-4b, bonsai-8b, bonsai2-27b]
+  #
+  # 2026-11-10: Bonsai 8B is off the ladder. It scores below Bonsai 4B on AitherBench
+  # (0.43 vs 0.53) at twice the download, so a budget that fits it gets the 4B instead.
+  # It stays catalogued and fetchable with --model bonsai-8b.
+  ladder: [bonsai-1.7b, bonsai-4b, bonsai2-27b]
   # A deliberate floor: below this, refuse and say so rather than thrashing swap.
   min_budget_mb: 900
   # Weights must fit within budget/headroom_divisor. Lives HERE, not in a constant in
