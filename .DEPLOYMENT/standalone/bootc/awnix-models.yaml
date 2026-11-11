@@ -63,7 +63,13 @@ defaults:
   # 2026-11-10: Bonsai 8B is off the ladder. It scores below Bonsai 4B on AitherBench
   # (0.43 vs 0.53) at twice the download, so a budget that fits it gets the 4B instead.
   # It stays catalogued and fetchable with --model bonsai-8b.
-  ladder: [bonsai-1.7b, bonsai-4b, bonsai2-27b]
+  #
+  # 2026-11-10: every image pins prism-b12128 (`engine` below), which loads Hadamard v2, so
+  # Bonsai 2 replaces Bonsai 1 at every size (2B 409 MB < Bonsai 1.7B 441 MB; 4B 905 MB <
+  # Bonsai 4B 1025 MB). Bonsai 2 4B was proven serving on prism-b12128 (bench run
+  # 42817684661: Serve + Sanity). Bonsai 1 sizes stay fetchable with --model.
+  engine: prism-b12128-d7b2896
+  ladder: [bonsai2-2b, bonsai2-4b, bonsai2-9b, bonsai2-27b]
   # A deliberate floor: below this, refuse and say so rather than thrashing swap.
   min_budget_mb: 900
   # Weights must fit within budget/headroom_divisor. Lives HERE, not in a constant in

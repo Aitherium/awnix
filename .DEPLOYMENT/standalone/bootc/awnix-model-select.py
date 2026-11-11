@@ -196,6 +196,12 @@ def plan(cfg: dict, model_id: str) -> dict:
     }
 
 
+
+def _engine_build(tag):
+    """prism-b12128-d7b2896 -> 12128; None for a missing or unreadable tag."""
+    m = re.match(r"prism-b(\d+)", str(tag or ""))
+    return int(m.group(1)) if m else None
+
 def self_test() -> int:
     fails = 0
 
@@ -209,13 +215,13 @@ def self_test() -> int:
     chk(bool(cfg.get("models")), "the real catalogue parses and defines models")
 
     # Selection, against the measured ladder.
-    for budget, want in ((1024, "bonsai-1.7b"), (4096, "bonsai-4b"),
-                         (8192, "bonsai-4b"), (24576, "bonsai2-27b")):
+    for budget, want in ((1024, "bonsai2-2b"), (2048, "bonsai2-4b"), (4096, "bonsai2-9b"),
+                         (8192, "bonsai2-9b"), (24576, "bonsai2-27b")):
         got = select(cfg, budget)
         chk(got == want, f"{budget}MB -> {want} (got {got})")
     chk(select(cfg, 512) is None, "below the floor, nothing is chosen rather than a guess")
-    chk(select(cfg, 11264) == "bonsai-4b",
-        "11GB picks the 4B, not 27B — headroom is honoured, not just weight size")
+    chk(select(cfg, 11264) == "bonsai2-9b",
+        "11GB picks the 9B, not 27B — headroom is honoured, not just weight size")
     chk("bonsai-8b" not in (cfg.get("defaults") or {}).get("ladder", []),
         "Bonsai 8B is not a ladder rung: it scores below the 4B (AitherBench 0.43 vs 0.53)")
     chk(select(cfg, 12288) == "bonsai2-27b",
@@ -229,7 +235,10 @@ def self_test() -> int:
         "the default ladder is Bonsai only")
     # A rung that needs a newer engine than the images pin is a first boot that loads
     # nothing (2026-11-09: Bonsai 2 small sizes, Hadamard v2, refused by prism-b10687).
-    chk(not [m for m in ladder if cfg["models"][m].get("min_engine")],
+    pinned = _engine_build((cfg.get("defaults") or {}).get("engine"))
+    chk(pinned is not None, "the catalogue names the engine the images pin (defaults.engine)")
+    chk(not [m for m in ladder if (_engine_build(cfg["models"][m].get("min_engine")) or 0)
+             > (pinned or 0)],
         "no default rung needs a newer engine than the images pin (min_engine)")
     chk(ladder and ladder[-1] == "bonsai2-27b",
         "the top rung is Bonsai 2, not the superseded Bonsai 1 27B")

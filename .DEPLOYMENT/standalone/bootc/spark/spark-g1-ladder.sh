@@ -3,7 +3,7 @@
 # ARM64 row:
 # offline CPU inference on the DGX Spark, in a --network=none container.
 #
-#   server  PrismML llama.cpp (prism-b10685 ubuntu-arm64 CPU build, the pin every awnix
+#   server  PrismML llama.cpp (prism-b12128 ubuntu-arm64 CPU build, the pin every awnix
 #           image carries) in ubuntu:24.04, --network=none, -ngl 0, --cpus 8 --memory 4g,
 #           bound to 127.0.0.1 inside its own empty namespace
 #   client  python:3.12-slim joined to the SAME namespace (--network=container:srv): it can
