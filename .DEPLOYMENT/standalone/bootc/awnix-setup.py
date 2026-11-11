@@ -4,6 +4,8 @@
     awnix-setup [--tty]                  interactive, on tty1 (the default)
     awnix-setup --status [--json]        what was chosen (never echoes a secret)
     awnix-setup --apply-seed [PATH]      non-interactive: /etc/awnix/seed.json (+ seed.d/)
+    awnix-setup --link [--json]          link this box to an Aitherium account (device code);
+                                         --json is one event per line, for the Windows installer
     awnix-setup --validate-steps DIR     exit 1 on any bad steps.d file
     awnix-setup --reset --yes            remove /etc/awnix/setup.json; setup runs again
     awnix-setup --self-test              offline, stubbed; proves the rules
@@ -48,6 +50,7 @@ VERBS = [
     "--tty",
     "--status",
     "--apply-seed",
+    "--link",
     "--validate-steps",
     "--reset",
     "--self-test",
@@ -101,6 +104,82 @@ def cmd_validate(directory: str, check_path: bool) -> int:
         print(f"  FAIL {p}")
     print(f"awnix-setup: {len(files)} step file(s) in {d}, {len(probs)} problem(s)")
     return 1 if probs else 0
+
+
+def cmd_link(as_json: bool, timeout_s: int = 900, sleep=None, now=None) -> int:
+    """Link this box to an Aitherium account in one blocking call (RFC 8628).
+
+    The SAME flow the tty and the web console run (core.start_device_flow /
+    core.poll_once / core.write_link_token): a code is shown, a person approves it on the
+    Aitherium sign-in page, the bearer lands in /etc/awnix/link.token (0600) and is never
+    printed. Unlike api.apply_status("link") it also runs on a box whose setup is
+    already complete, because the Windows installer links a freshly imported WSL distro
+    that never shows a tty.
+
+    --json: one JSON object per line on stdout, flushed --
+      {"event": "code", "verification_uri", "user_code", "expires_in"}
+      {"event": "waiting"}                          (every poll that is still pending)
+      {"event": "linked"} | {"event": "already_linked"} | {"event": "failed", "error"}
+
+    Exit: 0 linked (or already linked), 1 declined/expired/failed, 2 could not start.
+    """
+    import time as _time
+
+    sleep = sleep or _time.sleep
+    now = now or _time.monotonic
+
+    def emit(event: str, text: str, **fields) -> None:
+        if as_json:
+            print(json.dumps({"event": event, **fields}, sort_keys=True), flush=True)
+        else:
+            print(text, flush=True)
+
+    if core.link_token_file().exists():
+        emit("already_linked", "awnix-setup: this box is already linked to an Aitherium account")
+        return 0
+    try:
+        d = core.start_device_flow()
+    except Exception as e:  # noqa: BLE001 -- network, DNS, TLS: all mean "could not start"
+        emit("failed", f"awnix-setup: could not reach the sign-in service ({e})",
+             error=f"could not reach the sign-in service: {e}")
+        return 2
+    uri = d.get("verification_uri_complete") or d.get("verification_uri") or ""
+    code = str(d.get("user_code") or "")
+    device_code = str(d.get("device_code") or "")
+    if not (uri and code and device_code):
+        emit("failed", "awnix-setup: the sign-in service answered without a code",
+             error="the sign-in service answered without a code")
+        return 2
+    expires = int(d.get("expires_in") or 900)
+    emit("code", f"  Go to:  {uri}\n  Code :  {code}", verification_uri=uri,
+         user_code=code, expires_in=expires)
+    deadline = now() + max(30, min(expires, timeout_s))
+    wait = max(1, int(d.get("interval") or 5))
+    while now() < deadline:
+        sleep(wait)
+        st, val = core.poll_once(device_code)
+        if st == "linked":
+            core.write_link_token(val)
+            if not core.detect_admin():
+                # The WSL lane has no wheel admin; its default user is root (wsl.conf), so
+                # root's agents get the platform sign-in. Never raises past the link.
+                with contextlib.suppress(Exception):
+                    core.provision_platform_client(val.strip(), user="root")
+            with contextlib.suppress(Exception):
+                core.mark_step("link", "done", linked=True)
+            emit("linked", "awnix-setup: linked -- this box is connected to your account")
+            return 0
+        if st == "slow_down":
+            wait += 5
+            continue
+        if st == "pending":
+            emit("waiting", "  waiting for approval...")
+            continue
+        emit("failed", f"awnix-setup: the link did not complete ({val})", error=val)
+        return 1
+    emit("failed", "awnix-setup: the code expired before it was approved",
+         error="the code expired before it was approved")
+    return 1
 
 
 # ── self-test ────────────────────────────────────────────────────────────────────────────
@@ -540,6 +619,51 @@ def self_test() -> int:  # noqa: C901 - one linear list of assertions
             "link: the bearer lands in link.token",
         )
 
+        # --link (the Windows installer's verb): code event, then linked; bearer never printed
+        core.link_token_file().unlink(missing_ok=True)
+        seq[:] = [
+            {"device_code": "dc", "user_code": "ABCD-1234", "interval": 1, "expires_in": 600,
+             "verification_uri_complete": "https://idp.example/device?code=ABCD-1234"},
+            {"error": "authorization_pending"},
+            {"access_token": "bearer-link"},
+        ]
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = cmd_link(True, sleep=lambda s: None, now=_now)
+        evs = [json.loads(ln) for ln in buf.getvalue().splitlines() if ln.strip()]
+        chk(rc == 0 and [e["event"] for e in evs] == ["code", "waiting", "linked"],
+            "--link --json: code, waiting, linked -- one event per line")
+        chk(evs[0].get("user_code") == "ABCD-1234" and "device_code" not in evs[0]
+            and "bearer-link" not in buf.getvalue(),
+            "--link: the code is shown; the device code and the bearer never are")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = cmd_link(True, sleep=lambda s: None, now=_now)
+        chk(rc == 0 and json.loads(buf.getvalue())["event"] == "already_linked",
+            "--link: an already-linked box is not linked twice")
+        core.link_token_file().unlink()
+        seq[:] = [{"device_code": "dc", "user_code": "X", "interval": 1, "expires_in": 600,
+                   "verification_uri": "https://idp.example/device"},
+                  {"error": "access_denied"}]
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = cmd_link(True, sleep=lambda s: None, now=_now)
+        chk(rc == 1 and json.loads(buf.getvalue().splitlines()[-1])["event"] == "failed"
+            and not core.link_token_file().exists(),
+            "--link: a decline exits 1 and writes no token")
+
+        def _boom(url, payload=None, timeout=20.0):
+            raise OSError("no route")
+
+        core.GET_JSON = _boom
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = cmd_link(True, sleep=lambda s: None, now=_now)
+        chk(rc == 2 and "no route" in buf.getvalue(), "--link: an unreachable service exits 2")
+        core.GET_JSON = lambda url, payload=None, timeout=20.0: seq.pop(0)
+        # leave the box linked as the steps below expect (they read link.token)
+        core.link_token_file().write_text("bearer-xyz", encoding="utf-8")
+
         # parse_selection
         offered = [{"value": "a"}, {"value": "B"}]
         chk(core.parse_selection("", offered) == [], "selection: empty means none")
@@ -732,6 +856,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--status", action="store_true")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--apply-seed", nargs="?", const="", default=None, metavar="PATH")
+    ap.add_argument("--link", action="store_true",
+                    help="link this box to an Aitherium account (device code)")
     ap.add_argument("--validate-steps", metavar="DIR")
     ap.add_argument(
         "--no-path-check",
@@ -752,6 +878,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_validate(a.validate_steps, not a.no_path_check)
     if a.status:
         return cmd_status(a.json)
+    if a.link:
+        return cmd_link(a.json)
     if a.apply_seed is not None:
         rc, rep = core.apply_seed(Path(a.apply_seed) if a.apply_seed else None)
         print(
