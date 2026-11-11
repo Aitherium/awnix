@@ -18,6 +18,7 @@ verb_sources:
   renewal: awnix-renewal.py
   offline-update: awnix-offline-update.py
   mesh: awnix-mesh.py
+  fleet: awnix-fleet.py
   backup: awnix-backup.py
   restore: awnix-restore.sh
   reset: awnix-reset.sh
@@ -71,6 +72,9 @@ Every verb follows the same conventions: `--json` on status-like commands, `--se
 
 `mesh`
 : join this box to your workspace mesh as a client-only node, show it, and leave it. See awnix-mesh(8).
+
+`fleet`
+: offer this machine to the placement controller of a fleet you run, show what was offered, and withdraw it. `awnix fleet join <controller-url> <token>` measures the machine before it asks the controller anything, and refuses it, leaving it untouched, when there is no quadlet-capable podman (4.4 or newer, its systemd generator, systemd as PID 1) or when less than 4 GiB of memory would remain after 6 GiB of headroom. A joined machine is pending until the fleet's operator approves it on the controller, and its agent runs in observe mode: it reports capacity and starts, stops and installs nothing. `awnix fleet status` shows whether the box is joined, the measured capacity and any reason it would be refused. `awnix fleet leave` stops the agent and removes the join; `--purge` also removes the node key.
 
 `backup`
 : create, list, verify and drop verified backups. See awnix-backup(8).

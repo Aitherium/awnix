@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "fleet",
+  "title": "Join a fleet",
+  "why": "Offer this machine to a fleet you run. Paste one line: the placement controller's address, a space, and the enrollment token the fleet operator minted for this machine (a self-signed controller also needs a further field, sha256:<its certificate fingerprint>, and a machine whose fleet node id is not its hostname needs node=<the id the operator gave you>). The machine is measured first and is refused if it has no podman with quadlet or too little free memory. Joining only reports this machine's capacity: it waits as pending until the operator approves it, and nothing is started here. Skip this if the machine stands alone; join later with `sudo awnix fleet join <controller-url> <token>` and undo it with `sudo awnix fleet leave`.",
+  "kind": "secret",
+  "secret_dest": "/etc/aither/placement/join.request",
+  "apply_cmd": ["awnix", "fleet", "join", "--request-file", "/etc/aither/placement/join.request"],
+  "required": false,
+  "timeout_s": 240,
+  "after": ["license"]
+}

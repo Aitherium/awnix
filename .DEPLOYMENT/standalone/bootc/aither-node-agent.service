@@ -1,0 +1,44 @@
+# aither-node-agent.service -- the fleet placement agent of a machine that joined a fleet.
+#
+# INERT until `awnix fleet join` has written /etc/aither/placement/agent.env: the
+# condition below is unmet on every machine that has not joined, so the unit is skipped
+# (not failed) and the image's default behaviour is unchanged. `awnix fleet leave` removes
+# that file and the agent stays down from the next start on.
+#
+# The agent is the single stdlib file /usr/libexec/aither/aither-node-agent, a
+# byte-identical twin of AitherOS/lib/cluster/dgx_node_agent.py (kept so by
+# check_awnix_fleet_agent.py). It runs on the system python3 (3.9 on this base), so the
+# same file serves plain Linux through node-install.sh. This unit carries the same
+# directives as AitherOS/lib/cluster/aither-node-agent.service; only the agent's path
+# differs.
+#
+# The mode comes from agent.env (AITHER_PLACEMENT_MODE). A join always writes `observe`:
+# the agent reads its manifest and reports, and starts, stops or installs nothing.
+#
+# Where /etc/aither sits on a disk that is attached late, the condition is only true
+# after the unit that attaches it. After= orders this unit behind it when it exists and
+# is ignored when it does not; a host that needs the hard dependency adds Requires= in a
+# drop-in.
+[Unit]
+Description=Aither node agent (heartbeat + placement converge)
+Documentation=man:awnix(8)
+ConditionPathExists=/etc/aither/placement/agent.env
+Wants=network-online.target
+After=network-online.target aither-attach-fleet-data.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/aither/placement/agent.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /usr/libexec/aither/aither-node-agent
+Restart=on-failure
+RestartSec=15
+# The agent holds one HMAC key and talks to systemd and the container runtime. It needs
+# root for `systemctl stop/start` and /etc/containers/systemd, so the hardening here is
+# limited to what does not break those.
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -515,6 +515,12 @@ COPY awnix-mesh.timer /usr/lib/systemd/system/
 COPY awnix-mesh.tmpfiles.conf /usr/lib/tmpfiles.d/awnix-mesh.conf
 COPY awnix-mesh.nm-dispatcher /usr/lib/NetworkManager/dispatcher.d/90-awnix-mesh
 COPY awnix-mesh-zone.xml /usr/lib/firewalld/zones/awnix-mesh.xml
+# Fleet placement: `awnix fleet join|status|leave`, the node agent and its unit. The
+# first-boot question is setup-steps/common/60-fleet.json (COPYed with the common steps
+# above). Proven by its own RUN below, after the plane's.
+COPY awnix-fleet.py /usr/libexec/awnix/awnix-fleet
+COPY aither-node-agent.py /usr/libexec/aither/aither-node-agent
+COPY aither-node-agent.service /usr/lib/systemd/system/aither-node-agent.service
 COPY awnix-backup.py /usr/libexec/awnix/awnix-backup
 COPY awnix-restore.sh /usr/libexec/awnix/awnix-restore
 COPY awnix-reset.sh /usr/libexec/awnix/awnix-reset
@@ -648,6 +654,45 @@ RUN set -eu; \
     systemctl enable chronyd.service logrotate.timer awnix-secureboot.service; \
     systemctl --global enable awsh-harness.service awsh-agent.service; \
     awsh --version >/dev/null
+
+# ── FLEET PLACEMENT: the join path (`awnix fleet join|status|leave`) ──────────
+#
+# PUBLIC by owner ruling (2026-11-10): the verb, the agent, its unit and the first-boot
+# step ship in this base, so every awnix image can offer itself to a fleet its owner
+# runs, and the fleet host image inherits them through its FROM instead of carrying a
+# second copy. The three COPYs are beside awnix-mesh above and the step is
+# setup-steps/common/60-fleet.json; the appliance plane's RUN has already CR-stripped
+# and chmod'ed the verb and validated the step with the rest. This RUN proves the set.
+#
+# The agent is one standard-library file (check_awnix_fleet_agent.py AFA001 keeps it
+# byte-identical to the agent a fleet's existing nodes run). Its unit is enabled here
+# and is INERT on a machine that has not joined:
+# ConditionPathExists=/etc/aither/placement/agent.env, a file only `awnix fleet join`
+# writes. A join measures the machine, enrolls it as pending and runs the agent in
+# observe mode; it starts no service and installs no unit. The step is the first-boot
+# question (kind `secret`: the enrollment token goes to a 0600 file, never to argv) and
+# is skippable. The verb runs on python3.11 (its shebang) AND is self-tested on the
+# system python3 (3.9), the interpreter the agent's unit uses and the one plain Linux
+# nodes have. The image ships UNJOINED, and the last assertions say so.
+RUN set -eu; \
+    sed -i 's/\r$//' /usr/libexec/awnix/awnix-fleet /usr/libexec/aither/aither-node-agent \
+        /usr/lib/systemd/system/aither-node-agent.service \
+        /usr/share/awnix-setup/steps.d/60-fleet.json; \
+    chmod 0755 /usr/libexec/awnix/awnix-fleet /usr/libexec/aither/aither-node-agent; \
+    chmod 0644 /usr/lib/systemd/system/aither-node-agent.service \
+        /usr/share/awnix-setup/steps.d/60-fleet.json; \
+    head -1 /usr/libexec/awnix/awnix-fleet | grep -qx '#!/usr/bin/python3.11' \
+        || { echo "FATAL: /usr/libexec/awnix/awnix-fleet does not start with #!/usr/bin/python3.11" >&2; exit 1; }; \
+    /usr/libexec/awnix/awnix-fleet --self-test >/dev/null; \
+    /usr/bin/python3 /usr/libexec/awnix/awnix-fleet --self-test >/dev/null; \
+    /usr/bin/python3 -c 'import ast, sys; ast.parse(open(sys.argv[1], encoding="utf-8").read())' /usr/libexec/aither/aither-node-agent; \
+    /usr/bin/awnix-setup --validate-steps /usr/share/awnix-setup/steps.d; \
+    awnix --list-verbs | grep -qx fleet \
+        || { echo "FATAL: awnix verb fleet is not offered by the dispatcher" >&2; exit 1; }; \
+    systemctl enable aither-node-agent.service; \
+    test -L /etc/systemd/system/multi-user.target.wants/aither-node-agent.service; \
+    test ! -e /etc/aither/placement/agent.env; \
+    echo AWNIX_FLEET_JOIN_OK
 
 # ── identity ────────────────────────────────────────────────────────────────────────
 # Booted in WSL2 on 2026-08-21 and it said `PRETTY_NAME="CentOS Stream 9"`. True about
