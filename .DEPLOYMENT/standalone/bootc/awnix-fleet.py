@@ -54,7 +54,14 @@ anchor for OpenSSL on the node's Python 3.9, so the saved controller.pem alone w
 fail every report); with --ca-file the bundle is saved as controller.pem and named as
 AITHER_PLACEMENT_CA_FILE. Either way the agent accepts that controller and no other.
 
-`leave` stops the agent and removes agent.env (and controller.pem). node.key is kept
+`leave` stops the agent, then asks it to remove the edge forwarders it built
+(`edge-clear`: the relays that route fleet names to and from this machine; best effort,
+the result is printed), then removes agent.env (and controller.pem). The order is what
+makes it hold: a running agent rebuilds a forwarder on its next cycle, and the agent is
+found by the ExecStart= of its own unit, so an install at `/opt/aitheros` is cleared as
+well as the image's. It ALWAYS
+removes <dir>/secrets, the certificates and keys the fleet delivered for services placed
+here: they were given to a member, and this machine no longer is one. node.key is kept
 until `leave --purge`.
 desired.json, absent.units and state.json are never removed by this verb: the boot path
 reads absent.units to keep services that were moved elsewhere from starting here again.
@@ -102,6 +109,15 @@ ENROLL_PATH = "/api/placement/enroll"
 NODE_PATH = "/api/placement/nodes/%s"  # the agent posts to <this>/report
 ENROLL_SCHEMA = "aither-placement-enroll/v1"
 AGENT_UNIT = "aither-node-agent.service"
+#: Where the image installs the agent (aither-node-agent.service runs this file).
+AGENT_BIN = "usr/libexec/aither/aither-node-agent"
+#: Where node-install.sh installs it (its line 129): a box that was not imaged has the
+#: agent here, and that script tells the operator to leave with this verb.
+NODE_AGENT_BIN = "opt/aitheros/dgx_node_agent.py"
+#: Where that unit can be. node-install.sh writes /etc/systemd/system/<unit> with its
+#: own ExecStart, so the unit is the first thing asked where the agent is.
+UNIT_DIRS = ("etc/systemd/system", "usr/lib/systemd/system", "lib/systemd/system",
+             "run/systemd/system")
 MODE = "observe"
 
 #: The admission floor. A machine is offered only when FLOOR_GIB is still free after
@@ -165,7 +181,9 @@ class Paths:
         self.controller_pem = os.path.join(self.dir, "controller.pem")
         self.request = os.path.join(self.dir, "join.request")
         self.state = os.path.join(self.dir, "state.json")
+        self.secrets = os.path.join(self.dir, "secrets")
         self.lock = os.path.join(self.dir, ".join.lock")
+        self.agent_bin = self._j(AGENT_BIN)
         self.meminfo = self._j("proc/meminfo")
         self.cpuinfo = self._j("proc/cpuinfo")
         self.pid1 = self._j("proc/1/comm")
@@ -177,6 +195,12 @@ class Paths:
 
     def generators(self) -> List[str]:
         return [self._j(g) for g in QUADLET_GENERATORS]
+
+    def units(self) -> List[str]:
+        return [self._j(d + "/" + AGENT_UNIT) for d in UNIT_DIRS]
+
+    def node_agent(self) -> str:
+        return self._j(NODE_AGENT_BIN)
 
     def docker_bins(self) -> List[str]:
         return [self._j(g) for g in DOCKER_BINS]
@@ -767,24 +791,122 @@ def cmd_join(ctx: Ctx, a: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+_EXEC_START_RE = re.compile(r"(?m)^\s*ExecStart\s*=\s*(.+?)\s*$")
+
+
+def _rooted(root: str, path: str) -> str:
+    """An absolute path named by a unit file, resolved under `root` (the image root)."""
+    return os.path.join(root, *path.lstrip("/").split("/"))
+
+
+def _exec_agent(argv: List[str]) -> Optional[str]:
+    """The agent file one ExecStart line runs, or None when it runs something else.
+    The image's unit runs the agent directly; node-install.sh's runs `python3 <script>`."""
+    if not argv:
+        return None
+    first = argv[0].lstrip("-@+!")
+    if os.path.isabs(first) and not os.path.basename(first).startswith("python"):
+        return first
+    for arg in argv[1:]:
+        if os.path.isabs(arg) and (arg.endswith(".py") or "agent" in os.path.basename(arg)):
+            return arg
+    return None
+
+
+def unit_agent_bin(ctx: Ctx) -> Optional[str]:
+    """The agent this machine's own unit runs, read from its ExecStart=. The unit is
+    the only thing that knows where the agent was installed, so a machine whose agent
+    is not at AGENT_BIN is still found. None when no unit file is here or names one."""
+    for unit in ctx.paths.units():
+        text = _read(unit)
+        if text is None:
+            continue
+        for found in _EXEC_START_RE.finditer(text):
+            script = _exec_agent(found.group(1).split())
+            if script is not None:
+                return _rooted(ctx.paths.root, script)
+    return None
+
+
+def agent_bins(ctx: Ctx) -> List[str]:
+    """Every place the agent can be on this machine: the file its unit runs first, then
+    node-install.sh's location, then the image's. agent.env is still on disk: it is what
+    tells the agent where its directories are."""
+    bins = [unit_agent_bin(ctx), ctx.paths.node_agent(), ctx.paths.agent_bin]
+    out = []
+    for b in bins:
+        if b and b not in out:
+            out.append(b)
+    return out
+
+
+def clear_edge(ctx: Ctx) -> str:
+    """Ask the node agent to stop and remove the edge forwarders it built, and say what
+    came of it. Best effort: a machine that leaves must not go on relaying the fleet's
+    names, but a failure here does not keep it joined. It runs while agent.env still
+    exists, because the agent reads its directories from that file — and only after the
+    unit is stopped, because an agent still on its cycle rebuilds what was cleared."""
+    p = ctx.paths
+    bins = agent_bins(ctx)
+    found = next((b for b in bins if os.path.exists(b)), None)
+    if found is None:
+        return "no node agent at any of %s; no edge forwarder was removed" % ", ".join(bins)
+    rc, out = ctx.run([sys.executable or "python3", found, "edge-clear",
+                       "--env-file", p.agent_env], 180.0)
+    said = out.strip().splitlines()[-1].strip() if out.strip() else ""
+    if rc == 0:
+        return "edge forwarders cleared" + (" (%s)" % said if said else "")
+    return ("edge forwarders NOT all cleared (the agent's edge-clear exited %d%s); run "
+            "`%s edge-clear` to remove them" % (rc, ": " + said if said else "", found))
+
+
+def remove_secrets(ctx: Ctx) -> str:
+    """Remove every delivered secret (<dir>/secrets) and say what came of it. The
+    directory itself is never followed when it is a link: the link is removed, what it
+    points at is left alone. Nothing about a file's content is printed."""
+    path = ctx.paths.secrets
+    if not os.path.lexists(path):
+        return ""
+    try:
+        if os.path.islink(path) or not os.path.isdir(path):
+            os.unlink(path)
+        else:
+            shutil.rmtree(path)
+    except OSError as exc:
+        return ("delivered secrets NOT removed (%s); remove %s by hand"
+                % (exc.__class__.__name__, path))
+    return "delivered secrets removed (%s)" % path
+
+
 def cmd_leave(ctx: Ctx, a: argparse.Namespace) -> int:
     p = ctx.paths
     had_env = os.path.exists(p.agent_env)
     had_key = os.path.exists(p.node_key)
     if not had_env and not (a.purge and had_key):
+        if os.path.lexists(p.secrets):
+            _need_root(ctx)
+            ctx.out("awnix fleet: " + remove_secrets(ctx))
         _unlink(p.request)
         ctx.out("awnix fleet: not joined; nothing to do" + (
             " (the node key is kept; `awnix fleet leave --purge` removes it)" if had_key else ""))
         return EXIT_OK
     _need_root(ctx)
-    rc, _ = ctx.run(["systemctl", "stop", AGENT_UNIT], 60.0)
-    if rc not in (0, 127) and agent_active(ctx):
-        ctx.out("awnix fleet: %s did not stop (systemctl exited %d); nothing was removed"
-                % (AGENT_UNIT, rc))
-        return EXIT_OFFLINE
+    if had_env:
+        rc, _ = ctx.run(["systemctl", "stop", AGENT_UNIT], 60.0)
+        if rc not in (0, 127) and agent_active(ctx):
+            ctx.out("awnix fleet: %s did not stop (systemctl exited %d); nothing was removed"
+                    % (AGENT_UNIT, rc))
+            return EXIT_OFFLINE
+        # Only now: an agent still on its cycle rebuilds a forwarder as soon as it is
+        # cleared. agent.env is still here, so the agent can read its directories.
+        ctx.out("awnix fleet: " + clear_edge(ctx))
     _unlink(p.agent_env)
     _unlink(p.controller_pem)
     _unlink(p.request)
+    # After the agent has stopped, so nothing fetches them again.
+    said = remove_secrets(ctx)
+    if said:
+        ctx.out("awnix fleet: " + said)
     if a.purge:
         _unlink(p.node_key)
         ctx.out("awnix fleet: left; the agent is stopped, agent.env and the node key are removed")
@@ -934,9 +1056,12 @@ class FakeRunner:
         self.podman, self.overlay, self.systemctl_rc = podman, overlay, systemctl_rc
         self.calls: List[List[str]] = []
         self.active = False
+        self.edge_clear_rc = 0
 
     def __call__(self, argv: List[str], timeout: float = 10.0) -> Tuple[int, str]:
         self.calls.append(list(argv))
+        if "edge-clear" in argv:
+            return self.edge_clear_rc, "[dgx-agent] edge-clear: removed 2 unit(s)\n"
         if argv[0] == "podman":
             return (0, self.podman + "\n") if self.podman else (127, "")
         if argv[0] == "tailscale":
@@ -1052,13 +1177,47 @@ def self_test() -> int:
         chk(st["joined"] and st["agent_active"] and st["mode"] == "observe"
             and StubController.NODE_KEY not in text, "status reports the join without the key")
 
-        rc, _t = go(ok, ["leave"], r)
+        os.makedirs(os.path.dirname(p.agent_bin), exist_ok=True)
+        write_file(p.agent_bin, "# the node agent\n", 0o755)
+        delivered = os.path.join(p.secrets, "tls", "room", "key.pem")
+        write_file(delivered, "not a key: a self-test placeholder\n", 0o600)
+        rc, text = go(ok, ["leave"], r)
         chk(rc == EXIT_OK and not os.path.exists(p.agent_env) and os.path.exists(p.node_key),
             "leave removes agent.env and keeps the key")
+        chk(not os.path.lexists(p.secrets) and "delivered secrets removed" in text
+            and "placeholder" not in text,
+            "leave removes the delivered secrets without --purge and prints no content")
+        clear = [c for c in r.calls if "edge-clear" in c]
+        chk(len(clear) == 1 and clear[0][1:] == [p.agent_bin, "edge-clear", "--env-file",
+                                                p.agent_env]
+            and r.calls.index(["systemctl", "stop", AGENT_UNIT]) < r.calls.index(clear[0])
+            and "edge forwarders cleared (" in text and "removed 2 unit(s)" in text,
+            "leave stops the agent, then has it clear its edge forwarders")
         rc2, _t = go(ok, ["leave"], r)
         chk(rc2 == EXIT_OK, "leave is idempotent")
+        write_file(delivered, "not a key: a self-test placeholder\n", 0o600)
+        rc2, _t = go(ok, ["leave"], r)
+        chk(rc2 == EXIT_OK and not os.path.lexists(p.secrets),
+            "leave on a box that is no longer joined still removes delivered secrets")
         rc, _t = go(ok, ["leave", "--purge"], r)
         chk(rc == EXIT_OK and not os.path.exists(p.node_key), "leave --purge removes the key")
+
+        # A node-install.sh box: the agent is not where the image puts it, and only the
+        # unit's ExecStart= says where it is.
+        os.unlink(p.agent_bin)
+        write_file(os.path.join(ok, "etc", "systemd", "system", AGENT_UNIT),
+                   "[Service]\nExecStart=/usr/bin/python3 /opt/aitheros/dgx_node_agent.py\n",
+                   0o644)
+        node_agent = os.path.join(ok, "opt", "aitheros", "dgx_node_agent.py")
+        write_file(node_agent, "# the node agent, installed by node-install.sh\n", 0o755)
+        r2 = FakeRunner()
+        chk(go(ok, ["join", ctl.url, StubController.TOKEN], r2)[0] == EXIT_OK,
+            "a node-install.sh box joins")
+        rc, text = go(ok, ["leave"], r2)
+        clear = [c for c in r2.calls if "edge-clear" in c]
+        chk(rc == EXIT_OK and len(clear) == 1 and clear[0][1] == node_agent
+            and r2.calls.index(["systemctl", "stop", AGENT_UNIT]) < r2.calls.index(clear[0]),
+            "leave runs the agent its unit's ExecStart names, after stopping the unit")
 
         # the request-file path (first-boot step): consumed on success
         req = os.path.join(tmp, "req")

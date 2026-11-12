@@ -46,6 +46,10 @@ PLACEMENT (aither-placement/v1), same loop, off unless the node was joined:
                    <unit>-ondemand.socket), write absent.units, and unmask a unit
                    it masked itself once a manifest lists it present again. Never
                    starts or installs anything.
+    enforce-edge   everything enforce-absent may do, plus the edge forwarders
+                   described under EDGE: unit files this agent itself creates
+                   under the `aither-edge-` prefix, carrying its marker line.
+                   It still never starts or installs a unit of present[].
     enforce        also installs / reloads / starts present[], one start per
                    cycle, behind a memory admission check and a health gate. A
                    start needs the unit's quadlet to carry exactly the manifest's
@@ -94,11 +98,98 @@ PLACEMENT (aither-placement/v1), same loop, off unless the node was joined:
   is null, never true.
 
   EDGE. A manifest's edge.egress / edge.ingress entries say which names and ports
-  must be routed between nodes once a service runs away from home. THIS AGENT DOES
-  NOT APPLY THEM: it configures no name, no proxy and no firewall rule. Every
-  report says so (`edge: {applied: false, egress: N, ingress: N}`, the counts being
-  what the accepted manifest carries), and the placer refuses to open or advance a
-  move off the home node while a node involved reports that.
+  must be routed between nodes once a service runs on another node. In mode
+  enforce-edge or enforce the agent applies them, after the converge step, as
+  plain TCP relays (TLS passes through untouched; the relay is this file run as
+  `edge-relay`):
+    egress   a quadlet <quadlet dir>/aither-edge-out-<name>-<port>.container: a
+             container that carries the routed service's container NAME on the
+             network the manifest names (edge.network), runs the image the
+             manifest pins by digest (edge.image) with this file mounted
+             read-only, listens on the service's port and relays to
+             target_ip:target_port. `host_port` also publishes it on 127.0.0.1.
+    ingress  via "relay": a systemd unit <systemd dir>/aither-edge-in-<port>.service
+             that binds listen_ip:port, relays to 127.0.0.1:port and closes any
+             peer that is not in the entry's allow list before a byte is relayed.
+             via "published": nothing is created (the unit already publishes on
+             that address) and the allow list is NOT enforced here; the report
+             says `allow_enforced: false`. Because nothing is created, such an
+             entry is reported `published` only when this node sees the port
+             answering on listen_ip: the agent verifies, never takes the
+             manifest's word. On a node whose manifest declares a workspace it is
+             `refused` outright: the unit publishes on the fleet address, nothing
+             here filters it, and the flat overlay would admit every other node
+             to the service.
+  The rules that bound it:
+    * Nothing is built unless the manifest pins the image by digest, podman is
+      here, the image is present or pulls, and one `podman run --network none`
+      proved its python3 can import what the relay needs. A manifest with an
+      egress entry also needs the network's quadlet to exist here (it arrives
+      with the first unit a bundle installs, so a node that hosts nothing yet
+      and is asked for no forwarder is not held to it). Otherwise
+      `applied: false`, a reason, and nothing written.
+    * Every file it writes starts with `# X-Aither-EdgeManaged=1`. A file under
+      the prefix WITHOUT that line is not this agent's: it is never written,
+      stopped or removed, the entry is `blocked`, and the file is listed in
+      `foreign`.
+    * An egress forwarder is not started while another container this node's
+      runtime knows about holds the name (`blocked`) — running or not, because
+      `podman ps` alone hides a crashed service whose container still exists —
+      not while a local quadlet declares that `ContainerName`, and not while a
+      local unit name implies it (`aither-<svc>.service` runs the container
+      `aitheros-<svc>`), because a crashed unit is what would start it again. The
+      one proof that the name went with a move is the same manifest listing that
+      unit `absent`, with its container down.
+    * An entry whose values are not a plain container name, ports 1-65535 and IP
+      addresses is `refused` and nothing is written for it.
+    * Same entry and unit active: no command is run. A changed entry is
+      rewritten and restarted; an entry the manifest dropped is stopped and its
+      file removed. A start is tried at most 3 times per entry and generation.
+    * Below enforce-edge, or with no accepted manifest, NOTHING is written or
+      removed: forwarders already running keep running. Lowering a mode never
+      tears routing down; `edge-clear` (below) and `awnix fleet leave` do.
+  The report's `edge` block says what is (`applied`, `ready`, one row per entry
+  with its `state`: active | published | blocked | refused | failed | pending,
+  and for egress whether the target accepted a TCP connection, `reachable`).
+  `ready` is reported on every cycle, entries or none: `image`, `network` (the
+  network's `.network` quadlet is on this node) and `runtime`. That is what tells
+  a placer, before it moves anything, whether this node could carry the egress
+  entry the move would hand it. The placer opens no move while a node involved
+  reports `applied: false`, and completes none until the rows it needs say
+  active and reachable. A generation that would take a name off this node is not
+  acted on while no forwarder can be built here: the local unit is kept serving
+  (its absence is `hold`, with the reason) instead of the name going dark.
+
+  `<this file> edge-relay --listen IP:PORT --target IP:PORT [--allow ip,ip]`
+  runs one relay in the foreground. `<this file> edge-clear [--env-file FILE]`
+  stops and removes every edge unit this agent owns and exits 0, or 1 when one
+  could not be removed.
+
+  SECRETS. One kind of secret can be delivered to this node: a TLS certificate
+  and key the controller's side minted for ONE service on THIS node. A manifest
+  that needs any says so: `secrets: {generation, units: {unit: [paths]}}`.
+    * They are fetched from <url>/secrets (signed like every other request) ONLY
+      when the controller URL is https AND the controller is verified by
+      AITHER_PLACEMENT_CONTROLLER_SHA256 or AITHER_PLACEMENT_CA_FILE. A plain
+      http join, or an https one that trusts the system store alone, fetches
+      nothing and the report says why: an endpoint behind a public CA may be a
+      proxy that ends TLS.
+    * Nothing is written unless the answer's HMAC verifies under the node key,
+      it names this node, its generation is exactly the one the accepted
+      manifest names (an older answer is a replay), and every file in it is one
+      the manifest names for a unit. One failure refuses the whole answer.
+    * Files land in <dir>/secrets/<path>, 0600, in 0700 directories, written
+      atomically. Nothing is fetched again while the files on disk are the ones
+      last delivered for that generation.
+    * A file under <dir>/secrets that the accepted manifest no longer names is
+      removed. In observe nothing is fetched, written or removed.
+    * A unit whose manifest names secrets that are not on disk is never
+      started: `hold: secrets for this unit are not delivered`.
+    * When a delivery changes the files of a unit that is running, enforce
+      restarts it (`systemctl try-restart`, one unit per cycle).
+  What this does not protect: root or a stolen disk on this node (the files are
+  plaintext at rest), and whoever holds node.key. The report's `secrets` block
+  carries unit names and paths, never a value, a hash or a size.
 
   The report is POSTed to <url>/report as JSON with three headers the controller
   verifies (lib/orchestration/placement_store.py):
@@ -110,10 +201,12 @@ PLACEMENT (aither-placement/v1), same loop, off unless the node was joined:
 
   AITHER_PLACEMENT_URL         controller base for this node, e.g.
                                https://<controller>/api/placement/nodes/<id>;
-                               <url>/manifest and <url>/bundle are fetched,
-                               the report goes to <url>/report
+                               <url>/manifest, <url>/bundle and (see
+                               SECRETS) <url>/secrets are fetched, the
+                               report goes to <url>/report
   AITHER_PLACEMENT_KEY_FILE    default /etc/aither/placement/node.key (0600)
-  AITHER_PLACEMENT_MODE        observe | enforce-absent | enforce (default observe)
+  AITHER_PLACEMENT_MODE        observe | enforce-absent | enforce-edge | enforce
+                               (default observe)
   AITHER_PLACEMENT_DIR         default /etc/aither/placement
   AITHER_PLACEMENT_CAP_FILE    default <dir>/mode.cap (one mode word; lowers the mode)
   AITHER_PLACEMENT_BUNDLE      default <dir>/bundle.tar (unit files; sha256 must
@@ -133,20 +226,30 @@ PLACEMENT (aither-placement/v1), same loop, off unless the node was joined:
                                issued by a private CA is not a trust anchor for
                                OpenSSL on Python < 3.13.
   AITHER_QUADLET_DIR           default /etc/containers/systemd
+  AITHER_SYSTEMD_DIR           default /etc/systemd/system (ingress relay units)
+  AITHER_PLACEMENT_EDGE_HOOK   a local executable run (no arguments, 60 s) after
+                               any edge unit changed, e.g. one that refreshes a
+                               host's name map. Unset = none. A non-zero exit
+                               makes the report say `applied: false`.
 """
+import base64
 import hashlib
 import hmac
 import http.client
 import io
+import ipaddress
 import json
 import os
 import platform
 import re
+import selectors
 import shutil
 import socket
 import ssl
 import subprocess
+import sys
 import tarfile
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -178,6 +281,8 @@ PLACEMENT_CA_FILE = os.getenv("AITHER_PLACEMENT_CA_FILE", "")
 PLACEMENT_CONTROLLER_SHA256 = os.getenv(
     "AITHER_PLACEMENT_CONTROLLER_SHA256", "").replace(":", "").strip().lower()
 QUADLET_DIR = os.getenv("AITHER_QUADLET_DIR", "/etc/containers/systemd")
+SYSTEMD_DIR = os.getenv("AITHER_SYSTEMD_DIR", "/etc/systemd/system")
+PLACEMENT_EDGE_HOOK = os.getenv("AITHER_PLACEMENT_EDGE_HOOK", "")
 
 _CTX = ssl.create_default_context()  # public Cloudflare cert — verify normally
 # Cloudflare bot-protection 403s the default python-urllib UA.
@@ -293,6 +398,14 @@ class Runner:
         except Exception:
             return False
 
+    def tcp_ok(self, host, port, timeout=3.0):
+        """True when host:port accepts a TCP connection. Nothing is sent."""
+        try:
+            with socket.create_connection((host, int(port)), timeout=timeout):
+                return True
+        except (OSError, ValueError):
+            return False
+
     def now(self):
         return time.time()
 
@@ -389,33 +502,84 @@ def _docker_rows(text):
     return rows
 
 
-def inventory(runner=None):
-    """(rows, runtimes): running containers from podman and/or docker, one `ps`
-    per runtime that is installed. rows is None when no runtime answered."""
+_QUADLET_NAME_RE = re.compile(r"(?m)^\s*ContainerName\s*=\s*(\S+)\s*$")
+
+
+def _row_running(row) -> bool:
+    """True when a `podman ps -a` / `docker ps -a` row is a container that is up."""
+    word = str(row.get("status") or "").strip().lower()
+    return word.startswith("up") or word.startswith("running")
+
+
+def _quadlet_names(folder):
+    """{container name: owning unit} for every `ContainerName=` a `.container` file in
+    `folder` declares. Read-only. None when a file there cannot be read: a name is only
+    free when the whole directory says so."""
+    try:
+        names = sorted(os.listdir(folder))
+    except OSError:
+        return {} if not os.path.exists(folder) else None
+    out = {}
+    for fname in names:
+        if not fname.endswith(".container"):
+            continue
+        raw = _read_bytes(os.path.join(folder, fname), _MAX_UNIT_FILE_BYTES)
+        if raw is None:
+            return None
+        for found in _QUADLET_NAME_RE.finditer(raw.decode("utf-8", "replace")):
+            out.setdefault(found.group(1), fname[:-len(".container")] + ".service")
+    return out
+
+
+def _implied_container(unit: str):
+    """The container name a fleet unit name implies: `aither-<service>.service` is the
+    unit that runs the container `aitheros-<service>`. None for a name that is not one
+    of the fleet's. A unit is evidence a name belongs to this node even when its
+    container is gone: the unit is what will start it again."""
+    stem = unit[:-len(".service")] if unit.endswith(".service") else unit
+    if stem.startswith("aitheros-"):
+        return stem
+    if stem.startswith("aither-"):
+        return "aitheros-" + stem[len("aither-"):]
+    return None
+
+
+def inventory(runner=None, all_containers=False, strict=False):
+    """(rows, runtimes): containers from podman and/or docker, one `ps` per runtime
+    that is installed. ``all_containers`` lists stopped ones too (``ps -a``), which
+    is what a name guard needs: a crashed service still owns its container name.
+    rows is None when no runtime answered -- or, with ``strict``, when a runtime
+    that IS installed did not answer either: one silent runtime proves nothing."""
     runner = runner or _RUNNER
-    rows, seen, answered, found = [], set(), False, []
+    rows, seen, answered, found, silent = [], set(), False, [], False
     for rt in _RUNTIMES:
         if not runner.which(rt):
             continue
         found.append(rt)
         try:
             if rt == "podman":
-                rc, out, _ = runner.run(["podman", "ps", "--format", "json"], timeout=20)
+                rc, out, _ = runner.run(
+                    ["podman", "ps"] + (["-a"] if all_containers else [])
+                    + ["--format", "json"], timeout=20)
                 got = _podman_rows(out) if rc == 0 else None
             else:
                 rc, out, _ = runner.run(
-                    ["docker", "ps", "--format", "{{.Names}}|{{.Status}}|{{.Image}}"], timeout=8)
+                    ["docker", "ps"] + (["-a"] if all_containers else [])
+                    + ["--format", "{{.Names}}|{{.Status}}|{{.Image}}"], timeout=8)
                 got = _docker_rows(out) if rc == 0 else None
         except Exception:
             got = None
         if got is None:
+            silent = True
             continue
         answered = True
         for row in got:  # `docker` may be the podman shim: one row per name
             if row["name"] not in seen:
                 seen.add(row["name"])
                 rows.append(row)
-    return (rows if answered else None), found
+    if not answered or (strict and silent):
+        return None, found
+    return rows, found
 
 
 def _containers(runner=None):
@@ -518,7 +682,12 @@ def registry_cycle(node_key, containers):
 
 MANIFEST_SCHEMA = "aither-placement/v1"
 REPORT_SCHEMA = "aither-placement-report/v1"
-MODES = ("observe", "enforce-absent", "enforce")  # weakest first
+MODES = ("observe", "enforce-absent", "enforce-edge", "enforce")  # weakest first
+# What a mode may do is asked by NAME, never by a bare number: a mode added to the
+# tuple above must not silently move the line between "stops" and "starts".
+R_ABSENT = MODES.index("enforce-absent")  # may stop, mask and record absent[]
+R_EDGE = MODES.index("enforce-edge")      # may also build the edge forwarders it owns
+R_ENFORCE = MODES.index("enforce")        # may also install and start present[]
 _UNIT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9@_.:\\-]*\.service$")
 _RUNNING = ("active", "reloading", "activating")
 # Anything not definitively down counts as live when the placer asks "is the source
@@ -674,6 +843,388 @@ def unit_bundle_files(unit: str, files: dict) -> dict:
     return out
 
 
+# ── delivered secrets ──
+
+SECRETS_SCHEMA = "aither-placement-secrets/v1"
+_SECRET_KINDS = ("tls-cert",)
+_SECRET_PATH_RE = re.compile(r"^tls(/[A-Za-z0-9][A-Za-z0-9._-]{0,63}){1,4}$")
+_MAX_SECRETS_BYTES = 8 * 1024 * 1024
+_MAX_SECRET_FILE_BYTES = 64 * 1024
+_MAX_SECRET_ITEMS = 256
+
+
+def manifest_secrets(man):
+    """(generation, {unit: [paths]}, problem) of a manifest's `secrets` block.
+    A manifest without one names none: (None, {}, None). A block that is not
+    exactly what the controller writes is a problem, and names nothing."""
+    if man is None or "secrets" not in man:
+        return None, {}, None
+    block = man["secrets"]
+    gen = block.get("generation") if isinstance(block, dict) else None
+    units = block.get("units") if isinstance(block, dict) else None
+    if (isinstance(gen, bool) or not isinstance(gen, int) or gen < 1
+            or not isinstance(units, dict) or not units):
+        return None, {}, "the manifest's secrets block is malformed"
+    listed = {e.get("unit") for e in man.get("present", []) if isinstance(e, dict)}
+    out = {}
+    for unit, paths in units.items():
+        if unit not in listed:
+            return None, {}, "the manifest names secrets for a unit it does not list present"
+        if (not isinstance(paths, list) or not paths or not all(
+                isinstance(p, str) and _SECRET_PATH_RE.match(p) for p in paths)):
+            return None, {}, "the manifest names a secret path that is not under tls/"
+        out[unit] = sorted(set(paths))
+    return gen, out, None
+
+
+def _write_private(path: str, data: bytes) -> None:
+    """Atomic write of a file that never exists with a mode wider than 0600."""
+    tmp = f"{path}.tmp.{os.getpid()}"
+    if os.path.lexists(tmp):
+        os.remove(tmp)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.lexists(tmp):
+            os.remove(tmp)
+        raise
+
+
+# ── edge forwarders ──
+EDGE_MARKER = "# X-Aither-EdgeManaged=1"
+_EDGE_OUT = "aither-edge-out-"
+_EDGE_IN = "aither-edge-in-"
+_EDGE_KINDS = ((_EDGE_OUT, ".container"), (_EDGE_IN, ".service"))
+_EDGE_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,62}$")
+_EDGE_IMAGE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/:-]*@sha256:[0-9a-f]{64}$")
+_EDGE_RELAY_PATH = "/opt/aither-edge-relay.py"  # where the forwarder container sees this file
+# Every module this file imports at the top: the forwarder runs THIS file, so the
+# image is proven able to load all of it, not only the two the relay loop uses.
+_EDGE_PROBE = ("import base64,hashlib,hmac,http.client,io,ipaddress,json,os,platform,re,"
+               "selectors,shutil,socket,ssl,subprocess,sys,tarfile,threading,time,"
+               "urllib.parse,urllib.request")
+_EDGE_HOOK_TIMEOUT = 60
+_MAX_EDGE_ENTRIES = 256
+_MAX_EDGE_ALLOW = 64
+_RELAY_BUFFER = 64 * 1024
+_RELAY_MAX_CONNECTIONS = 512
+_RELAY_CONNECT_TIMEOUT = 10.0
+
+
+def _port(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 65535
+
+
+def _ip(value) -> bool:
+    """True for one IP address written in its canonical form."""
+    if not isinstance(value, str):
+        return False
+    try:
+        return str(ipaddress.ip_address(value)) == value
+    except ValueError:
+        return False
+
+
+def edge_egress_problem(ent):
+    """Why an egress entry may not become a unit file, or None. Everything that is
+    written into the file is checked here first: a name is a plain container
+    name, a port is 1-65535, an address parses as one IP."""
+    if not isinstance(ent, dict):
+        return "entry is not an object"
+    name = ent.get("name")
+    if not isinstance(name, str) or not _EDGE_NAME_RE.match(name):
+        return "name is not a plain container name"
+    if not _port(ent.get("listen_port")) or not _port(ent.get("target_port")):
+        return "listen_port / target_port is not an integer 1-65535"
+    if not _ip(ent.get("target_ip")):
+        return "target_ip is not an IP address"
+    if "host_port" in ent and not _port(ent["host_port"]):
+        return "host_port is not an integer 1-65535"
+    return None
+
+
+def edge_ingress_problem(ent):
+    """Why an ingress entry may not be applied, or None."""
+    if not isinstance(ent, dict):
+        return "entry is not an object"
+    if not _port(ent.get("port")):
+        return "port is not an integer 1-65535"
+    if ent.get("via") not in ("relay", "published"):
+        return "via is neither relay nor published"
+    allow = ent.get("allow")
+    if (not isinstance(allow, list) or len(allow) > _MAX_EDGE_ALLOW
+            or not all(_ip(a) for a in allow)):
+        return "allow is not a short list of IP addresses"
+    if ent["via"] == "relay":
+        if not allow:
+            return "a relay with an empty allow list would admit nobody"
+        if not _ip(ent.get("listen_ip")):
+            return "listen_ip is not an IP address"
+    return None
+
+
+def edge_spec(entry: dict, image, network) -> str:
+    """The identity of one applied entry: what it says, and what it would run."""
+    return hashlib.sha256(canonical({"entry": entry, "image": image,
+                                     "network": network})).hexdigest()
+
+
+def edge_egress_unit(ent: dict, image: str, network: str, relay_file: str):
+    """(file name, unit name, quadlet text, spec) of one VALID egress entry."""
+    name, listen, tip, tport = (ent["name"], ent["listen_port"], ent["target_ip"],
+                                ent["target_port"])
+    entry = {k: ent[k] for k in ("name", "listen_port", "target_ip", "target_port",
+                                 "host_port") if k in ent}
+    spec = edge_spec(entry, image, network)
+    stem = f"{_EDGE_OUT}{name}-{listen}"
+    lines = [
+        f"{EDGE_MARKER} spec={spec}",
+        "# Written by the Aither node agent from a signed placement manifest.",
+        "# Not to be edited: it is rewritten, and removed when the manifest drops it.",
+        "[Unit]",
+        f"Description=Aither edge forwarder {name}:{listen} -> {tip}:{tport}",
+        "",
+        "[Container]",
+        f"ContainerName={name}",
+        f"Image={image}",
+        f"Network={network}.network",
+    ]
+    if "host_port" in ent:
+        lines.append(f"PublishPort=127.0.0.1:{ent['host_port']}:{listen}")
+    lines += [
+        f"Volume={relay_file}:{_EDGE_RELAY_PATH}:ro",
+        "PodmanArgs=--entrypoint=python3",
+        f"Exec={_EDGE_RELAY_PATH} edge-relay --listen 0.0.0.0:{listen} --target {tip}:{tport}",
+        "",
+        "[Service]",
+        "Restart=always",
+        "",
+        "[Install]",
+        "WantedBy=multi-user.target default.target",
+        "",
+    ]
+    return stem + ".container", stem + ".service", "\n".join(lines), spec
+
+
+def edge_ingress_unit(ent: dict, image, network, python: str, agent_file: str):
+    """(file name, unit name, unit text, spec) of one VALID `via: relay` entry."""
+    port, listen_ip = ent["port"], ent["listen_ip"]
+    allow = sorted(set(ent["allow"]))
+    entry = {"port": port, "listen_ip": listen_ip, "allow": allow, "via": "relay"}
+    spec = edge_spec(entry, image, network)
+    unit = f"{_EDGE_IN}{port}.service"
+    lines = [
+        f"{EDGE_MARKER} spec={spec}",
+        "# Written by the Aither node agent from a signed placement manifest.",
+        "# Not to be edited: it is rewritten, and removed when the manifest drops it.",
+        "[Unit]",
+        f"Description=Aither edge ingress relay {listen_ip}:{port} -> 127.0.0.1:{port}",
+        "After=network-online.target",
+        "Wants=network-online.target",
+        "StartLimitIntervalSec=0",
+        "",
+        "[Service]",
+        f"ExecStart={python} {agent_file} edge-relay --listen {listen_ip}:{port} "
+        f"--target 127.0.0.1:{port} --allow {','.join(allow)}",
+        "DynamicUser=yes",
+        "AmbientCapabilities=CAP_NET_BIND_SERVICE",
+        "NoNewPrivileges=yes",
+        "Restart=always",
+        "RestartSec=2",
+        "",
+    ]
+    return unit, unit, "\n".join(lines), spec
+
+
+def edge_owned(path: str) -> bool:
+    """True when the file's first line is this agent's marker."""
+    raw = _read_bytes(path, _MAX_UNIT_FILE_BYTES)
+    if raw is None:
+        return False
+    first = raw.decode("utf-8", "replace").splitlines()[:1]
+    return bool(first) and first[0].startswith(EDGE_MARKER)
+
+
+def _relay_pump(a, b, bufsize=_RELAY_BUFFER) -> None:
+    """Copy bytes both ways between two connected sockets until both directions
+    have ended. Non-blocking with a bounded queue per direction, so one side
+    that stops reading cannot stall the other direction or grow memory. A half
+    close (one side finished sending) is passed on once its bytes are delivered.
+    Raises OSError when either connection breaks."""
+    peer = {a: b, b: a}
+    queue = {a: b"", b: b""}        # bytes waiting to be written TO that socket
+    reading = {a: True, b: True}    # that socket may still send us bytes
+    finish = {a: False, b: False}   # half-close that socket once its queue is empty
+    registered = {}
+    sel = selectors.DefaultSelector()
+    try:
+        a.setblocking(False)
+        b.setblocking(False)
+        while True:
+            busy = False
+            for s in (a, b):
+                if finish[s] and not queue[s]:
+                    finish[s] = False
+                    s.shutdown(socket.SHUT_WR)
+                mask = 0
+                if reading[s] and len(queue[peer[s]]) < bufsize:
+                    mask |= selectors.EVENT_READ
+                if queue[s]:
+                    mask |= selectors.EVENT_WRITE
+                if mask != registered.get(s, 0):
+                    if s in registered:
+                        sel.unregister(s)
+                        del registered[s]
+                    if mask:
+                        sel.register(s, mask)
+                        registered[s] = mask
+                busy = busy or bool(mask)
+            if not busy:
+                return
+            for key, mask in sel.select(timeout=60):
+                s = key.fileobj
+                if mask & selectors.EVENT_READ:
+                    try:
+                        data = s.recv(bufsize)
+                    except (BlockingIOError, InterruptedError):
+                        data = None
+                    if data:
+                        queue[peer[s]] += data
+                    elif data is not None:
+                        reading[s] = False
+                        finish[peer[s]] = True
+                if mask & selectors.EVENT_WRITE and queue[s]:
+                    try:
+                        sent = s.send(queue[s])
+                    except (BlockingIOError, InterruptedError):
+                        sent = 0
+                    queue[s] = queue[s][sent:]
+    finally:
+        sel.close()
+
+
+class EdgeRelay:
+    """A TCP relay: each connection accepted on `listen` is piped to `target`.
+
+    One thread per connection, at most `max_connections` at a time (one more is
+    closed at once). With a non-empty `allow`, a peer whose address is not in it
+    is closed before the target is dialled and before any byte is relayed. It
+    reads no key, no manifest and no file: its whole input is its arguments."""
+
+    def __init__(self, listen, target, allow=(), max_connections=_RELAY_MAX_CONNECTIONS,
+                 connect_timeout=_RELAY_CONNECT_TIMEOUT, log=None):
+        self.target = (str(target[0]), int(target[1]))
+        self.allow = frozenset(str(ipaddress.ip_address(x)) for x in allow)
+        self.connect_timeout = connect_timeout
+        self.log = log or (lambda msg: print(f"[edge-relay] {msg}", flush=True))
+        self.refused = 0      # peers outside the allow list
+        self.unreachable = 0  # connections whose target did not answer
+        self._closed = False
+        self._slots = threading.BoundedSemaphore(max_connections)
+        family = socket.AF_INET6 if ":" in str(listen[0]) else socket.AF_INET
+        self.sock = socket.socket(family, socket.SOCK_STREAM)
+        try:
+            if os.name == "posix":
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.sock.bind((str(listen[0]), int(listen[1])))
+            self.sock.listen(128)
+            self.sock.settimeout(0.5)  # so close() is noticed by the accept loop
+        except OSError:
+            self.sock.close()
+            raise
+        self.address = self.sock.getsockname()[:2]
+
+    def serve_forever(self) -> None:
+        while not self._closed:
+            try:
+                conn, peer = self.sock.accept()
+            except socket.timeout:
+                continue
+            except OSError:
+                if self._closed:
+                    return
+                time.sleep(0.05)  # out of descriptors: let some connections end
+                continue
+            if self.allow and str(peer[0]) not in self.allow:
+                self.refused += 1
+                conn.close()
+                continue
+            if not self._slots.acquire(blocking=False):
+                conn.close()
+                continue
+            threading.Thread(target=self._serve, args=(conn,), daemon=True).start()
+
+    def _serve(self, conn) -> None:
+        upstream = None
+        try:
+            try:
+                upstream = socket.create_connection(self.target, timeout=self.connect_timeout)
+            except OSError as exc:
+                self.unreachable += 1
+                if self.unreachable == 1 or self.unreachable % 100 == 0:
+                    self.log(f"target {self.target[0]}:{self.target[1]} did not answer "
+                             f"({exc.__class__.__name__}); {self.unreachable} so far")
+                return
+            try:
+                _relay_pump(conn, upstream)
+            except OSError:
+                return  # one side reset: this connection is over, the relay is not
+        finally:
+            conn.close()
+            if upstream is not None:
+                upstream.close()
+            self._slots.release()
+
+    def close(self) -> None:
+        self._closed = True
+        self.sock.close()
+
+
+def _endpoint(text: str):
+    """("ip", port) from IP:PORT. The host must be an IP address: a relay that
+    resolved names would depend on the very naming it stands in for."""
+    host, _, port = str(text).rpartition(":")
+    host = host.strip("[]")
+    if not port.isdigit() or not 1 <= int(port) <= 65535:
+        raise ValueError(f"{text!r} is not IP:PORT")
+    return str(ipaddress.ip_address(host)), int(port)
+
+
+def edge_relay_main(argv) -> int:
+    """`edge-relay --listen IP:PORT --target IP:PORT [--allow ip,ip]`. Exit 2 = bad
+    arguments, 1 = the listen address could not be bound."""
+    opts = {"--listen": "", "--target": "", "--allow": ""}
+    args = list(argv)
+    try:
+        while args:
+            flag = args.pop(0)
+            if flag not in opts or not args:
+                raise ValueError(f"unexpected argument {flag!r}")
+            opts[flag] = args.pop(0)
+        listen, target = _endpoint(opts["--listen"]), _endpoint(opts["--target"])
+        allow = [str(ipaddress.ip_address(a)) for a in opts["--allow"].split(",") if a]
+    except ValueError as exc:
+        print(f"[edge-relay] {exc}; usage: edge-relay --listen IP:PORT --target IP:PORT "
+              "[--allow ip,ip]", flush=True)
+        return 2
+    try:
+        relay = EdgeRelay(listen, target, allow)
+    except OSError as exc:
+        print(f"[edge-relay] cannot listen on {listen[0]}:{listen[1]}: {exc}", flush=True)
+        return 1
+    print(f"[edge-relay] {listen[0]}:{listen[1]} -> {target[0]}:{target[1]} "
+          f"allow={','.join(sorted(allow)) or 'any'}", flush=True)
+    try:
+        relay.serve_forever()
+    except KeyboardInterrupt:
+        relay.close()
+    return 0
+
+
 def _masked(state: dict) -> list:
     """The units this agent masked, as recorded in state.json."""
     got = state.get("masked")
@@ -685,7 +1236,8 @@ class PlacementAgent:
 
     def __init__(self, runner=None, root=None, node_id=None, mode=None, url=None,
                  key_file=None, cap_file=None, bundle=None, quadlet_dir=None,
-                 headroom_mb=None, health_wait=None, log=None, stable_checks=None):
+                 headroom_mb=None, health_wait=None, log=None, stable_checks=None,
+                 systemd_dir=None, edge_hook=None, agent_file=None, pin=None, ca_file=None):
         self.runner = runner or _RUNNER
         self.root = root or PLACEMENT_DIR
         self.node_id = node_id or NODE_ID
@@ -699,6 +1251,18 @@ class PlacementAgent:
         self.absent_units = os.path.join(self.root, "absent.units")
         self.state_file = os.path.join(self.root, "state.json")
         self.staging = os.path.join(self.root, "staging")
+        self.systemd_dir = systemd_dir or SYSTEMD_DIR
+        self.edge_hook = PLACEMENT_EDGE_HOOK if edge_hook is None else edge_hook
+        # The file an ingress relay runs and a forwarder container mounts: this one.
+        self.agent_file = agent_file or os.path.abspath(__file__)
+        self.edge_dir = os.path.join(self.root, "edge")
+        self.relay_file = os.path.join(self.edge_dir, "relay.py")
+        # How this node verifies its controller; secrets are fetched under these
+        # two and nothing weaker.
+        self.pin = PLACEMENT_CONTROLLER_SHA256 if pin is None else pin
+        self.ca_file = PLACEMENT_CA_FILE if ca_file is None else ca_file
+        self.secrets_dir = os.path.join(self.root, "secrets")
+        self._secrets_line = None
         if stable_checks is None:
             raw = PLACEMENT_STABLE_CHECKS.strip()
             stable_checks = int(raw) if raw.isdigit() else DEFAULT_STABLE_CHECKS
@@ -1026,11 +1590,18 @@ class PlacementAgent:
 
     # ── verdicts and actions ────────────────────────────────────────────
 
-    def converge(self, man: dict, mode: str, states, state: dict) -> list:
+    def converge(self, man: dict, mode: str, states, state: dict, hold_absent=None) -> list:
+        """Verdicts for this manifest, acting as far as `mode` allows. `hold_absent`
+        is a reason: when set, no unit in `absent` is stopped or masked — the caller
+        has proved this node cannot yet route the name somewhere else, and the local
+        copy is what is still answering."""
         rank = MODES.index(mode)
         verdicts = []
         ours = _masked(state)
-        before = (list(ours), dict(state.get("starts") or {}))
+        # Units whose delivered secrets changed while they ran (pull_secrets).
+        rotate = [u for u in (state.get("secrets_restart") or []) if isinstance(u, str)]
+        restarted = False
+        before = (list(ours), dict(state.get("starts") or {}), sorted(rotate))
 
         def verdict(ent, lst, st, word, reason="", action="none", healthy=None, masked=None,
                     known=True):
@@ -1057,7 +1628,7 @@ class PlacementAgent:
                         "unit load state unknown (systemctl did not answer)", known=False)
                 continue
             masked = load == "masked"
-            if rank < 1:
+            if rank < R_ABSENT:
                 if st in _RUNNING:
                     verdict(ent, "absent", st, "would-stop", f"mode {mode} stops nothing",
                             masked=masked)
@@ -1068,6 +1639,9 @@ class PlacementAgent:
                             "masks nothing)", masked=False)
                 continue
             problems, actions = [], []
+            if hold_absent:
+                verdict(ent, "absent", st, "hold", hold_absent, masked=masked)
+                continue
             # The on-demand socket first: while it listens, the first client byte
             # starts the container again.
             stem = unit[:-len(".service")]
@@ -1107,7 +1681,7 @@ class PlacementAgent:
             else:
                 verdict(ent, "absent", st, "ok", " and ".join(actions),
                         "+".join(actions) or "none", masked=masked)
-        if rank >= 1:
+        if rank >= R_ABSENT and not hold_absent:
             self._write_absent_units(man)
 
         attempted = False
@@ -1125,7 +1699,7 @@ class PlacementAgent:
                     verdict(ent, "present", st, "hold", "masked on this node by something "
                             "other than this agent; left alone", masked=True)
                     continue
-                if rank < 1:
+                if rank < R_ABSENT:
                     verdict(ent, "present", st, "would-start",
                             f"masked by this agent; mode {mode} unmasks nothing", masked=True)
                     continue
@@ -1141,6 +1715,20 @@ class PlacementAgent:
                 st = "inactive"
             if st != "active":
                 self._stable.pop(unit, None)
+            if st not in _LIVE and unit in rotate:
+                rotate.remove(unit)  # down: its next start reads the new files
+            if st == "active" and unit in rotate and rank >= R_ENFORCE and not restarted:
+                restarted = True
+                self._stable.pop(unit, None)
+                rc, _, err = self.runner.run(["systemctl", "try-restart", unit], timeout=300)
+                if rc == 0:
+                    rotate.remove(unit)
+                    verdict(ent, "present", st, "ok", "restarted (secrets rotated)",
+                            "restarted (secrets rotated)", masked=False)
+                else:
+                    verdict(ent, "present", st, "hold", "restart after a secrets rotation "
+                            f"failed: {err.strip()[:120]}", masked=False)
+                continue
             if st == "active":
                 url = ent.get("health_url")
                 note = ""
@@ -1158,7 +1746,7 @@ class PlacementAgent:
                     verdict(ent, "present", st, "ok", note, healthy=healthy, masked=False)
             elif st in ("activating", "reloading", "deactivating"):
                 verdict(ent, "present", st, "hold", f"unit is {st}", masked=False)
-            elif rank < 2:
+            elif rank < R_ENFORCE:
                 verdict(ent, "present", st, "would-start", f"mode {mode} starts nothing",
                         masked=False)
             elif attempted:
@@ -1169,10 +1757,16 @@ class PlacementAgent:
                 attempted = attempted or tried
                 verdict(ent, "present", "active" if word == "ok" or action == "started" else st,
                         word, reason, action, healthy, masked=False)
-        if rank >= 1:
+        if rank >= R_ABSENT:
             state["masked"] = sorted(set(ours))
-            if (state["masked"], dict(state.get("starts") or {})) != (sorted(set(before[0])),
-                                                                      before[1]):
+            listed = {ent["unit"] for ent in man.get("present", [])}
+            rotate = sorted(u for u in set(rotate) if u in listed)
+            if rotate:
+                state["secrets_restart"] = rotate
+            else:
+                state.pop("secrets_restart", None)
+            if (state["masked"], dict(state.get("starts") or {}), rotate) != (
+                    sorted(set(before[0])), before[1], before[2]):
                 self._save_state(state)
         return verdicts
 
@@ -1254,6 +1848,8 @@ class PlacementAgent:
         Returns (verdict, reason, action, healthy, systemctl_start_was_called)."""
         unit = ent["unit"]
         starts = state.setdefault("starts", {})
+        if self._secrets_missing(man, unit, state):
+            return "hold", "secrets for this unit are not delivered", "none", None, False
         if starts.get(unit, 0) >= MAX_START_ATTEMPTS:
             return ("hold", f"start already tried {MAX_START_ATTEMPTS} times for this generation",
                     "none", None, False)
@@ -1313,6 +1909,631 @@ class PlacementAgent:
         return ("hold", f"started but not healthy after {self.health_wait}s "
                         "(left running, reported)", "started", False, True)
 
+    # ── delivered secrets ───────────────────────────────────────────────
+
+    def _secret_file(self, path: str) -> str:
+        return os.path.join(self.secrets_dir, *path.split("/"))
+
+    def _secret_on_disk(self, path: str) -> bool:
+        target = self._secret_file(path)
+        return os.path.isfile(target) and not os.path.islink(target)
+
+    def _secrets_missing(self, man, unit: str, state: dict) -> bool:
+        """True when the manifest names secrets for `unit` that this node does not
+        hold for the manifest's generation. A unit it names none for: False."""
+        gen, units, problem = manifest_secrets(man)
+        if problem:
+            return True
+        paths = units.get(unit)
+        if not paths:
+            return False
+        held = state.get("secrets") if isinstance(state.get("secrets"), dict) else {}
+        return held.get("generation") != gen or not all(
+            self._secret_on_disk(p) for p in paths)
+
+    def _secrets_refusal(self, mode: str):
+        """Why this node may not receive a secret right now, or None."""
+        if not self.url:
+            return "this node does not pull from a controller (no AITHER_PLACEMENT_URL)"
+        if urllib.parse.urlsplit(self.url).scheme != "https":
+            return "the controller URL is not https: no secret is fetched over it"
+        if self.pin:
+            if not _HEX64_RE.match(self.pin):
+                return "AITHER_PLACEMENT_CONTROLLER_SHA256 is not 64 hex digits"
+        elif not self.ca_file:
+            return ("the controller is verified through the system trust store only: "
+                    "secrets need AITHER_PLACEMENT_CONTROLLER_SHA256 or "
+                    "AITHER_PLACEMENT_CA_FILE")
+        if MODES.index(mode) < R_ABSENT:
+            return f"mode {mode} writes no secret"
+        return None
+
+    def _secrets_current(self, gen, wanted, state: dict) -> bool:
+        """True when the files on disk are exactly the ones last delivered for
+        this generation: nothing needs fetching."""
+        held = state.get("secrets") if isinstance(state.get("secrets"), dict) else {}
+        files = held.get("files") if isinstance(held.get("files"), dict) else {}
+        if held.get("generation") != gen or set(files) != set(wanted):
+            return False
+        for path in wanted:
+            data = _read_bytes(self._secret_file(path), _MAX_SECRET_FILE_BYTES)
+            if (data is None or os.path.islink(self._secret_file(path))
+                    or hashlib.sha256(data).hexdigest() != files[path]):
+                return False
+        return True
+
+    def _parse_secrets(self, raw: bytes, key: bytes, gen, units: dict):
+        """({path: bytes}, None) for an answer that may be written, else (None,
+        reason). The signature is checked before any field is believed, and one
+        bad item refuses the whole answer."""
+        try:
+            doc = json.loads(raw.decode("utf-8"))
+        except ValueError:
+            return None, "secrets answer is not JSON"
+        if not isinstance(doc, dict):
+            return None, "secrets answer is not an object"
+        sig = doc.get("sig")
+        try:
+            want = sign(doc, key)
+        except (TypeError, ValueError):
+            return None, "secrets answer cannot be canonicalised"
+        if not isinstance(sig, str) or not hmac.compare_digest(sig.lower().encode(), want.encode()):
+            return None, "bad signature on the secrets answer"
+        if doc.get("schema") != SECRETS_SCHEMA:
+            return None, "unknown secrets schema"
+        if doc.get("node") != self.node_id:
+            return None, "the secrets answer is for another node"
+        got = doc.get("generation")
+        if isinstance(got, bool) or not isinstance(got, int) or got != gen:
+            return None, (f"secrets generation {str(got)[:20]} is not the manifest's {gen} "
+                          "(a replay, or the controller is ahead of this manifest)")
+        items = doc.get("items")
+        if not isinstance(items, list) or not items or len(items) > _MAX_SECRET_ITEMS:
+            return None, "the secrets answer carries no usable item list"
+        now = self.runner.now()
+        files = {}
+        for item in items:
+            item = item if isinstance(item, dict) else {}
+            unit, path = item.get("unit"), item.get("path")
+            if (not isinstance(unit, str) or not isinstance(path, str)
+                    or not _SECRET_PATH_RE.match(path) or path not in units.get(unit, [])):
+                return None, "the secrets answer carries a file the manifest does not name"
+            if item.get("kind") not in _SECRET_KINDS:
+                return None, f"{path}: not a kind of secret this agent writes"
+            expires = item.get("expires_at")
+            if isinstance(expires, bool) or not isinstance(expires, int) or expires <= now:
+                return None, f"{path}: already expired, or no expiry"
+            try:
+                data = base64.b64decode(str(item.get("data_b64") or ""), validate=True)
+            except ValueError:
+                return None, f"{path}: not base64"
+            if not data or len(data) > _MAX_SECRET_FILE_BYTES:
+                return None, f"{path}: empty or over the size cap"
+            if files.get(path, data) != data:
+                return None, f"{path}: two items disagree on its content"
+            files[path] = data
+        return files, None
+
+    def _write_secrets(self, files: dict):
+        """Write the verified files: (paths whose content changed, None), or
+        (None, why) when the secrets directory cannot be trusted or written."""
+        base = self.secrets_dir
+        changed = []
+        try:
+            if os.path.islink(base):
+                return None, "the secrets directory is a symbolic link; nothing was written"
+            os.makedirs(base, mode=0o700, exist_ok=True)
+            os.chmod(base, 0o700)
+            for path in sorted(files):
+                parts = path.split("/")
+                folder = base
+                for seg in parts[:-1]:
+                    folder = os.path.join(folder, seg)
+                    if os.path.islink(folder):
+                        return None, ("a directory under the secrets directory is a "
+                                      "symbolic link; nothing more was written")
+                    if not os.path.isdir(folder):
+                        os.mkdir(folder, 0o700)
+                    os.chmod(folder, 0o700)
+                target = os.path.join(folder, parts[-1])
+                if os.path.islink(target):
+                    os.remove(target)  # never write through a link someone left here
+                if _read_bytes(target, _MAX_SECRET_FILE_BYTES) != files[path]:
+                    _write_private(target, files[path])
+                    changed.append(path)
+                else:
+                    os.chmod(target, 0o600)
+        except OSError as exc:
+            return None, f"the secrets could not be written ({exc.__class__.__name__})"
+        return changed, None
+
+    def prune_secrets(self, man, mode: str, state: dict) -> list:
+        """Remove every file under the secrets directory that the accepted
+        manifest does not name. Returns the removed paths. Below enforce-absent,
+        or without an accepted manifest, nothing is removed."""
+        if man is None or MODES.index(mode) < R_ABSENT:
+            return []
+        if os.path.islink(self.secrets_dir) or not os.path.isdir(self.secrets_dir):
+            return []
+        _, units, problem = manifest_secrets(man)
+        if problem:
+            return []  # cannot tell what it names: remove nothing
+        wanted = {p for paths in units.values() for p in paths}
+        removed = []
+        for folder, dirs, names in os.walk(self.secrets_dir, topdown=False):
+            rel_dir = os.path.relpath(folder, self.secrets_dir).replace(os.sep, "/")
+            for name in names + [d for d in dirs if os.path.islink(os.path.join(folder, d))]:
+                rel = name if rel_dir == "." else f"{rel_dir}/{name}"
+                if rel not in wanted:
+                    os.remove(os.path.join(folder, name))
+                    removed.append(rel)
+            if folder != self.secrets_dir and not os.listdir(folder):
+                os.rmdir(folder)
+        held = state.get("secrets") if isinstance(state.get("secrets"), dict) else None
+        if held is not None and not wanted:
+            state.pop("secrets", None)
+            self._save_state(state)
+        return sorted(removed)
+
+    def pull_secrets(self, man, key, state: dict, mode: str, reason=None) -> dict:
+        """Fetch and write the secrets the accepted manifest names, when this node
+        may receive any. Returns the report's `secrets` block: names, never a
+        value, a hash or a size. Any failure writes nothing and keeps what is
+        there."""
+        out = {"ready": False, "reason": reason, "generation": None, "units": {}}
+        if man is None:
+            return out
+        gen, units, problem = manifest_secrets(man)
+        out["generation"] = gen
+
+        def done(why=None):
+            out["units"] = {u: {"ok": not self._secrets_missing(man, u, state),
+                                "files": list(paths)} for u, paths in sorted(units.items())}
+            out["reason"] = why
+            out["ready"] = why is None and all(v["ok"] for v in out["units"].values())
+            return out
+
+        if problem:
+            return done(problem)
+        refusal = self._secrets_refusal(mode)
+        if refusal:
+            return done(refusal)
+        if not units:
+            return done()
+        wanted = sorted({p for paths in units.values() for p in paths})
+        if self._secrets_current(gen, wanted, state):
+            return done()
+        url = f"{self.url}/secrets"
+        try:
+            headers = request_headers(key, self.node_id, "GET", url, b"",
+                                      int(self.runner.now()))
+            status, body = self.runner.get(url, headers, _MAX_SECRETS_BYTES, pin=self.pin,
+                                           ca_file=self.ca_file)
+        except Exception as exc:  # the text may quote the exchange: the class only
+            return done(f"secrets fetch failed ({exc.__class__.__name__}); nothing written")
+        if int(status) != 200:
+            return done(f"controller answered HTTP {int(status)} for the secrets; "
+                        "nothing written")
+        files, why = self._parse_secrets(body or b"", key, gen, units)
+        if files is None:
+            return done(f"secrets refused: {why}; nothing written")
+        absent = [p for p in wanted if p not in files]
+        changed, why = self._write_secrets(files)
+        if changed is None:
+            return done(why)
+        state["secrets"] = {"generation": gen, "files": {
+            p: hashlib.sha256(files[p]).hexdigest() for p in sorted(files)}}
+        touched = sorted(u for u, paths in units.items() if set(paths) & set(changed))
+        if touched:
+            state["secrets_restart"] = sorted(
+                set(touched) | set(state.get("secrets_restart") or []))
+        self._save_state(state)
+        if absent:
+            return done(f"the controller did not send {len(absent)} file(s) the manifest "
+                        "names")
+        return done()
+
+    # ── edge ────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _edge_blank(man, reason=None) -> dict:
+        """The report's `edge` block before anything is known to be applied."""
+        edge = man.get("edge") if man is not None and isinstance(man.get("edge"), dict) else {}
+        return {"applied": False, "reason": reason,
+                "generation": man["generation"] if man is not None else None,
+                "ready": {"image": False, "network": False, "runtime": False},
+                "egress": len(edge["egress"]) if isinstance(edge.get("egress"), list) else 0,
+                "ingress": len(edge["ingress"]) if isinstance(edge.get("ingress"), list) else 0,
+                "entries": {"egress": [], "ingress": []},
+                "removed": [], "foreign": [],
+                "hook": {"configured": False, "ok": None}}
+
+    @staticmethod
+    def _edge_rows(edge: dict):
+        """One report row per manifest entry, plus (for a valid entry) the entry
+        itself. Only checked values are echoed: a hostile entry is reported as
+        refused, never copied into a report or a file."""
+        egress, ingress = [], []
+        for ent in edge["egress"] if isinstance(edge.get("egress"), list) else []:
+            problem = edge_egress_problem(ent)
+            ok = problem is None
+            egress.append(({"name": ent["name"] if ok else None,
+                            "listen_port": ent["listen_port"] if ok else None,
+                            "target_ip": ent["target_ip"] if ok else None,
+                            "target_port": ent["target_port"] if ok else None,
+                            "unit": None, "state": "pending" if ok else "refused",
+                            "reason": problem, "reachable": None}, ent if ok else None))
+        for ent in edge["ingress"] if isinstance(edge.get("ingress"), list) else []:
+            problem = edge_ingress_problem(ent)
+            ok = problem is None
+            ingress.append(({"port": ent["port"] if ok else None,
+                             "via": ent["via"] if ok else None, "unit": None,
+                             "state": "pending" if ok else "refused", "reason": problem,
+                             "allow_enforced": bool(ok and ent["via"] == "relay"),
+                             "allow": sorted(set(ent["allow"])) if ok else []},
+                            ent if ok else None))
+        return egress, ingress
+
+    def _edge_ready(self, edge: dict, state: dict, needs_network: bool,
+                    probe: bool = True):
+        """(ready, reason): whether this node can build a forwarder at all. Checked
+        before anything is written, so a node that cannot is said so by the report
+        while every service is still where it was. `needs_network`: the manifest
+        asks for an egress forwarder, which joins the network.
+
+        ``probe=False`` answers the same question WITHOUT side effects: no pull, no
+        probe run, no relay write and no state save. A node that applies no edge
+        entry (mode observe or enforce-absent) still reports this block, so the
+        operator can see whether it WOULD be able to carry one -- and a node in any
+        mode can answer for its forwarder image and network before a move toward it
+        is opened."""
+        ready = {"image": False, "network": False, "runtime": False}
+        image, network = edge.get("image"), edge.get("network")
+        if not isinstance(image, str) or not _EDGE_IMAGE_RE.match(image):
+            return ready, ("the manifest pins no forwarder image (edge.image is not "
+                           "<ref>@sha256:<digest>)")
+        if not isinstance(network, str) or not _EDGE_NAME_RE.match(network):
+            return ready, "the manifest names no forwarder network (edge.network)"
+        if not self.runner.which("podman"):
+            return ready, "this node has no podman"
+        ready["runtime"] = True
+        ready["network"] = os.path.isfile(os.path.join(self.quadlet_dir, network + ".network"))
+        if needs_network and not ready["network"] and probe:
+            return ready, f"no {network}.network quadlet in {self.quadlet_dir}"
+        if any(c.isspace() for c in self.relay_file + self.agent_file):
+            return ready, "the agent's own path contains white space"
+        if not probe:
+            # A read-only presence check and nothing else: readiness is REPORTED in
+            # every mode, so it may not pull, run or write anything.
+            rc, _, _ = self.runner.run(["podman", "image", "exists", image], timeout=30)
+            if rc != 0:
+                return ready, "the forwarder image is not present on this node"
+            ready["image"] = True
+            return ready, None
+        rc, _, _ = self.runner.run(["podman", "image", "exists", image], timeout=30)
+        if rc != 0:
+            rc, _, err = self.runner.run(["podman", "pull", image], timeout=600)
+            if rc != 0:
+                return ready, f"the forwarder image could not be pulled: {err.strip()[:120]}"
+        if state.get("edge_ready") != image:
+            rc, _, _ = self.runner.run(
+                ["podman", "run", "--rm", "--network", "none", "--entrypoint", "python3",
+                 image, "-c", _EDGE_PROBE], timeout=120)
+            if rc != 0:
+                return ready, ("the forwarder image cannot run the relay (its python3 "
+                               "failed the import probe)")
+            state["edge_ready"] = image
+            self._save_state(state)
+        src = _read_bytes(self.agent_file, _MAX_MANIFEST_BYTES)
+        if src is None:
+            return ready, "the agent file could not be read for the forwarder"
+        try:
+            os.makedirs(self.edge_dir, mode=0o755, exist_ok=True)
+            if _read_bytes(self.relay_file, _MAX_MANIFEST_BYTES) != src:
+                _write_atomic(self.relay_file, src, 0o644)
+        except OSError as exc:
+            return ready, f"the relay file could not be written ({exc.__class__.__name__})"
+        ready["image"] = True
+        return ready, None
+
+    def _edge_stop(self, unit: str, states):
+        """Stop one of this agent's edge units; None, or why it is still up."""
+        if states is not None and self._unit(unit, states)[1] not in _LIVE:
+            return None
+        rc, _, err = self.runner.run(["systemctl", "stop", unit], timeout=120)
+        return None if rc == 0 else f"stop {unit} failed: {err.strip()[:120]}"
+
+    def _edge_remove(self, keep, states):
+        """Stop and delete every edge unit file this agent owns that is not in
+        `keep` (full paths). (removed names, foreign names, problems). A file
+        under the prefix that lacks the marker is foreign and is not touched."""
+        removed, foreign, problems = [], [], []
+        for folder, (prefix, suffix) in zip((self.quadlet_dir, self.systemd_dir), _EDGE_KINDS):
+            try:
+                names = sorted(os.listdir(folder))
+            except OSError:
+                continue
+            for fname in names:
+                path = os.path.join(folder, fname)
+                if not (fname.startswith(prefix) and fname.endswith(suffix)) or path in keep:
+                    continue
+                if not edge_owned(path):
+                    foreign.append(fname)
+                    continue
+                problem = self._edge_stop(fname[:-len(suffix)] + ".service", states)
+                if problem is None:
+                    try:
+                        os.remove(path)
+                        removed.append(fname)
+                        continue
+                    except OSError as exc:
+                        problem = f"remove {fname} failed ({exc.__class__.__name__})"
+                problems.append(problem)
+        return removed, foreign, problems
+
+    def _edge_hook(self, state: dict, changed: bool):
+        """Run the local hook when an edge unit changed, or when its last run
+        failed. (ok | None when it did not run, problem | None)."""
+        if not self.edge_hook or not (changed or state.get("edge_hook_pending")):
+            if changed and state.pop("edge_hook_pending", None):
+                self._save_state(state)
+            return None, None
+        rc, _, _ = self.runner.run([self.edge_hook], timeout=_EDGE_HOOK_TIMEOUT)
+        pending = rc != 0
+        if bool(state.get("edge_hook_pending")) != pending:
+            if pending:
+                state["edge_hook_pending"] = True
+            else:
+                state.pop("edge_hook_pending", None)
+            self._save_state(state)
+        return not pending, ("edge hook failed" if pending else None)
+
+    def _name_holders(self, rows):
+        """{container name: (owning unit or None, running)} this node declares, from
+        every container its runtimes know about (running OR NOT), every quadlet's
+        `ContainerName=`, and every local unit name that implies one. None when that
+        cannot be established, in which case no name is proved free. `podman ps` lists
+        running containers only: a crashed service is exactly the container a forwarder
+        must not take the name of."""
+        if rows is None:
+            return None
+        holders = {}
+        for row in rows:
+            name = row.get("name")
+            if name:
+                holders[name] = (row.get("unit"), True)
+        # `podman ps` above lists what is RUNNING; this lists what is stopped too, in
+        # one place for both runtimes (``strict``: a silent installed runtime proves
+        # no name free).
+        got, _ = inventory(self.runner, all_containers=True, strict=True)
+        if got is None:
+            return None
+        for row in got:
+            name = row.get("name")
+            if name and name not in holders:
+                holders[name] = (row.get("unit"), _row_running(row))
+        declared = _quadlet_names(self.quadlet_dir)
+        if declared is None:
+            return None
+        for name, unit in declared.items():
+            if name not in holders:
+                holders[name] = (unit, False)
+        states = self.unit_states()
+        if states is None:
+            return None
+        for unit, (_load, st) in states.items():
+            if unit.startswith((_EDGE_OUT, _EDGE_IN)):
+                continue          # this agent's own relays never hold a service name
+            implied = _implied_container(unit)
+            if implied and implied not in holders:
+                holders[implied] = (unit, st in _LIVE)
+        return holders
+
+    @staticmethod
+    def _name_taken(holders: dict, name: str, our_unit: str, absent: set) -> bool:
+        """True when an egress forwarder must not carry `name`. Only this node's own
+        declarations can prove the name free: the forwarder itself, or a unit the same
+        manifest lists absent whose container is down (the move took the name with it)."""
+        if name not in holders:
+            return False
+        holder, running = holders[name]
+        if holder == our_unit:
+            return False
+        return not (isinstance(holder, str) and holder in absent and not running)
+
+    def _published_ingress(self, man: dict, ent: dict):
+        """(state, reason) for one `via: published` ingress entry. Nothing is created
+        for it, so `published` is said only when this node SEES the port answering on
+        the address the manifest names. A node whose manifest declares a workspace is
+        refused: its unit publishes on the fleet address and this agent filters nothing
+        there, so every node on the overlay could reach the service."""
+        workspace = man.get("workspace")
+        if isinstance(workspace, str) and workspace and workspace != "platform":
+            return ("refused",
+                    f"a published ingress on workspace {workspace[:64]!r} has no allow "
+                    "list this node can enforce")
+        listen_ip, port = ent.get("listen_ip"), ent["port"]
+        if not _ip(listen_ip):
+            return "refused", "listen_ip is not an IP address"
+        if not self.runner.tcp_ok(listen_ip, port):
+            return "pending", f"nothing answers on {listen_ip}:{port} yet"
+        return "published", None
+
+    def apply_edge(self, man, mode, state, rows, reason=None) -> dict:
+        """Make this node's forwarders match the manifest's edge entries, as far as
+        `mode` allows, and say what is. See EDGE in the module docstring; `rows` is
+        the container inventory taken AFTER the converge step."""
+        out = self._edge_blank(man, reason)
+        out["hook"]["configured"] = bool(self.edge_hook)
+        if man is None:
+            return out
+        edge = man.get("edge") if isinstance(man.get("edge"), dict) else {}
+        egress, ingress = self._edge_rows(edge)
+        out["entries"] = {"egress": [r for r, _ in egress], "ingress": [r for r, _ in ingress]}
+        if MODES.index(mode) < R_EDGE:
+            # Nothing is applied in this mode, but the operator still reads here
+            # whether this node could carry an entry at all: readiness is probed
+            # without pulling, running or writing anything.
+            out["ready"], _why = self._edge_ready(
+                edge, state, any(ent is not None for _row, ent in egress), probe=False)
+            out["reason"] = f"mode {mode} applies no edge entry"
+            return out
+        if len(egress) + len(ingress) > _MAX_EDGE_ENTRIES:
+            out["reason"] = f"more than {_MAX_EDGE_ENTRIES} edge entries: none applied"
+            return out
+        out["ready"], problem = self._edge_ready(
+            edge, state, any(ent is not None for _row, ent in egress))
+        if problem:
+            out["reason"] = problem
+            return out
+        states = self.unit_states()
+        if states is None:
+            out["reason"] = "unit state unknown (systemctl did not answer)"
+            return out
+        image, network = edge["image"], edge["network"]
+
+        # What should exist: path -> [unit, text, spec, row, container name or None]
+        desired = {}
+        for row, ent in egress:
+            if ent is None:
+                continue
+            fname, unit, text, spec = edge_egress_unit(ent, image, network, self.relay_file)
+            path = os.path.join(self.quadlet_dir, fname)
+            row["unit"] = unit
+            if path in desired:
+                row.update(state="refused", reason="the same name and port is listed twice")
+                continue
+            desired[path] = [unit, text, spec, row, ent["name"]]
+        for row, ent in ingress:
+            if ent is None:
+                continue
+            if ent["via"] == "published":
+                # Nothing is created for such an entry, so nothing here can vouch for
+                # it: it is reported applied only when the port is seen answering, and
+                # refused outright on a node whose traffic nothing but the overlay
+                # reaches.
+                state_word, why = self._published_ingress(man, ent)
+                row.update(state=state_word, reason=why)
+                continue
+            fname, unit, text, spec = edge_ingress_unit(ent, image, network, sys.executable,
+                                                        self.agent_file)
+            path = os.path.join(self.systemd_dir, fname)
+            row["unit"] = unit
+            if path in desired:
+                row.update(state="refused", reason="the same port is listed twice")
+                continue
+            desired[path] = [unit, text, spec, row, None]
+
+        # Units the manifest no longer lists go first: a dropped forwarder frees its
+        # name or port before a new one is started.
+        out["removed"], out["foreign"], problems = self._edge_remove(set(desired), states)
+        changed = bool(out["removed"])
+        reload_needed = changed
+        starts = state.get("edge_starts") if isinstance(state.get("edge_starts"), dict) else {}
+        before = json.dumps(starts, sort_keys=True)
+        to_start = []
+        holders = None
+        absent = {ent.get("unit") for ent in man.get("absent") or [] if isinstance(ent, dict)}
+        for path in sorted(desired):
+            unit, text, spec, row, name = desired[path]
+            if os.path.lexists(path) and not edge_owned(path):
+                row.update(state="blocked", reason="a unit by this name exists that this "
+                                                   "agent did not create")
+                continue
+            current = _read_bytes(path, _MAX_UNIT_FILE_BYTES)
+            same = current is not None and current.decode("utf-8", "replace") == text
+            st = self._unit(unit, states)[1]
+            if same and st == "active":
+                row.update(state="active")
+                starts.pop(unit, None)
+                continue
+            if same and st in ("activating", "reloading"):
+                row.update(state="pending", reason=f"unit is {st}")
+                continue
+            if name is not None:
+                if holders is None:
+                    holders = self._name_holders(rows)
+                if holders is None:
+                    row.update(state="blocked", reason="container inventory unknown: cannot "
+                                                       "prove the name is free")
+                    continue
+                if self._name_taken(holders, name, unit, absent):
+                    row.update(state="blocked", reason="a local container still holds the name")
+                    continue
+            tried = starts.get(unit) if isinstance(starts.get(unit), dict) else {}
+            count = tried.get("n", 0) if tried.get("spec") == spec else 0
+            if count >= MAX_START_ATTEMPTS:
+                row.update(state="failed", reason=f"start already tried {MAX_START_ATTEMPTS} "
+                                                  "times for this entry")
+                continue
+            if not same:
+                try:
+                    _write_atomic(path, text.encode("utf-8"), 0o644)
+                except OSError as exc:
+                    row.update(state="failed",
+                               reason=f"unit file could not be written ({exc.__class__.__name__})")
+                    continue
+                changed = reload_needed = True
+            starts[unit] = {"spec": spec, "n": count + 1}
+            to_start.append((unit, row, "start" if same else "restart"))
+        if reload_needed:
+            rc, _, err = self.runner.run(["systemctl", "daemon-reload"], timeout=120)
+            if rc != 0:
+                problems.append(f"daemon-reload failed: {err.strip()[:120]}")
+                for _unit_name, row, _verb in to_start:
+                    row.update(state="failed", reason="daemon-reload failed")
+                to_start = []
+        if to_start:
+            state["edge_starts"] = starts
+            self._save_state(state)  # the attempt is on record before it is made
+        for unit, row, verb in to_start:
+            changed = True
+            rc, _, err = self.runner.run(["systemctl", verb, unit], timeout=180)
+            if rc != 0:
+                row.update(state="failed", reason=f"{verb} failed: {err.strip()[:140]}")
+                continue
+            rc, text, _ = self.runner.run(["systemctl", "is-active", unit], timeout=20)
+            word = text.strip().splitlines()[0].strip() if text.strip() else ""
+            if word == "active":
+                row.update(state="active")
+                starts.pop(unit, None)
+            elif word in ("activating", "reloading"):
+                row.update(state="pending", reason=f"unit is {word}")
+            else:
+                row.update(state="failed", reason=f"unit is {word or 'unknown'} after {verb}")
+        if json.dumps(starts, sort_keys=True) != before:
+            state["edge_starts"] = starts
+            self._save_state(state)
+
+        out["hook"]["ok"], hook_problem = self._edge_hook(state, changed)
+        if hook_problem:
+            problems.append(hook_problem)
+        for row, ent in egress:
+            if row["state"] == "active":
+                row["reachable"] = bool(self.runner.tcp_ok(ent["target_ip"], ent["target_port"]))
+        not_up = [r for r, _ in egress + ingress if r["state"] not in ("active", "published")]
+        if not_up:
+            problems.append(f"{len(not_up)} of {len(egress) + len(ingress)} edge entries "
+                            "are not applied")
+        out["applied"] = not problems
+        out["reason"] = "; ".join(problems) or None
+        return out
+
+    def clear_edge(self) -> dict:
+        """Stop and remove EVERY edge unit this agent owns (the `edge-clear` verb;
+        `awnix fleet leave` runs it). Files under the prefix without the marker
+        are listed as foreign and left alone."""
+        removed, foreign, problems = self._edge_remove(set(), self.unit_states())
+        if removed:
+            rc, _, err = self.runner.run(["systemctl", "daemon-reload"], timeout=120)
+            if rc != 0:
+                problems.append(f"daemon-reload failed: {err.strip()[:120]}")
+            if self.edge_hook:
+                rc, _, _ = self.runner.run([self.edge_hook], timeout=_EDGE_HOOK_TIMEOUT)
+                if rc != 0:
+                    problems.append("edge hook failed")
+        return {"removed": removed, "foreign": foreign, "problems": problems}
+
     # ── one cycle ───────────────────────────────────────────────────────
 
     def cycle(self, rows=None, runtimes=None) -> dict:
@@ -1351,12 +2572,17 @@ class PlacementAgent:
                               "accepted_sig": sig})
                 dirty = True
             if mode != "observe" and state.get("generation") != gen:
+                # A forwarder image proven once stays proven, and a hook that failed
+                # is still owed; edge start attempts begin again like `starts`.
+                kept = {k: state[k] for k in ("edge_ready", "edge_hook_pending", "secrets",
+                                              "secrets_restart") if k in state}
                 state = {"node": self.node_id, "generation": gen, "sig": sig,
                          "accepted_generation": gen, "accepted_sig": sig, "starts": {},
                          # What this agent masked outlives a generation: only a
                          # manifest that lists the unit present again undoes it.
                          "masked": _masked(state),
                          "applied_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+                state.update(kept)
                 dirty = True
             try:
                 if dirty:
@@ -1365,8 +2591,49 @@ class PlacementAgent:
                 # A floor that cannot be recorded is a replay window: hold.
                 man, mode = None, "observe"
                 reason = f"state.json cannot be written ({exc.__class__.__name__})"
+        edge_rows = rows
+        try:
+            # Before converge: a unit is started only with its secrets on disk.
+            secrets_report = self.pull_secrets(man, key, state, mode, reason)
+        except Exception as exc:  # a delivery fault must never stop the converge
+            secrets_report = {"ready": False, "generation": None, "units": {},
+                              "reason": f"secrets pull failed ({exc.__class__.__name__})"}
+        if man is not None and "secrets" in man:
+            # Only a node whose manifest names secrets logs about them, and only
+            # transitions: unit names and a reason, never a value.
+            line = "secrets: " + (secrets_report["reason"] or
+                                  f"generation {secrets_report['generation']} on disk")
+            if line != self._secrets_line:
+                self.log(line)
+                self._secrets_line = line
         if man is not None:
-            verdicts = self.converge(man, mode, self.unit_states(), state)
+            hold_absent = None
+            edge = man.get("edge") if isinstance(man.get("edge"), dict) else {}
+            if MODES.index(mode) >= R_EDGE and edge.get("egress"):
+                # This generation takes a name off this node. If no forwarder can be
+                # built here the local copy is all that answers, so it is not stopped:
+                # a move that cannot be routed holds instead of going dark.
+                _ready, problem = self._edge_ready(edge, state, True)
+                if problem:
+                    hold_absent = f"this node cannot route the names it would give up: {problem}"
+            verdicts = self.converge(man, mode, self.unit_states(), state,
+                                     hold_absent=hold_absent)
+            if any(v["action"] != "none" for v in verdicts):
+                # A unit was stopped or started: the name it held may be free now.
+                edge_rows = inventory(self.runner)[0]
+            try:
+                # After converge: a unit the manifest dropped is already stopped.
+                secrets_report["removed"] = self.prune_secrets(man, mode, state)
+            except OSError as exc:
+                secrets_report["ready"] = False
+                secrets_report["reason"] = ("a secret the manifest no longer names could "
+                                            f"not be removed ({exc.__class__.__name__})")
+        try:
+            # After converge: a unit this manifest lists absent is already down.
+            edge_report = self.apply_edge(man, mode, state, edge_rows, reason)
+        except Exception as exc:  # an edge fault must never stop the report
+            edge_report = self._edge_blank(
+                man, f"edge apply failed: {exc.__class__.__name__}: {str(exc)[:120]}")
 
         counts = {}
         for v in verdicts:
@@ -1387,7 +2654,6 @@ class PlacementAgent:
             rc, out, _ = self.runner.run([rt, "--version"], timeout=8)
             versions[rt] = out.strip().splitlines()[0][:80] if rc == 0 and out.strip() else None
         primary = (runtimes or ["none"])[0]
-        edge = man.get("edge") if man is not None and isinstance(man.get("edge"), dict) else {}
         report = {
             "schema": REPORT_SCHEMA, "node": self.node_id,
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -1399,13 +2665,14 @@ class PlacementAgent:
             # Pull mode only: what the fetch did this cycle. ok=False means the
             # cached desired.json is what was converged on.
             "pull": pulled,
-            # This agent applies NO edge entry: it sets up no name and opens no port.
-            # Said in every report, with how many entries the accepted manifest
-            # carries, so the placer never treats a name as routed here.
-            "edge": {"applied": False,
-                     "egress": len(edge["egress"]) if isinstance(edge.get("egress"), list) else 0,
-                     "ingress": len(edge["ingress"])
-                     if isinstance(edge.get("ingress"), list) else 0},
+            # What this agent did about the manifest's edge entries and what each
+            # one is now. `applied` is true only when every entry is up; the counts
+            # are what the accepted manifest carries. The placer routes no name on
+            # anything less.
+            "edge": edge_report,
+            # Delivered secrets: whether this node can receive any, and which units
+            # hold theirs. Unit names and paths only.
+            "secrets": secrets_report,
             "verdicts": verdicts,
             # What the placer reads. Only units whose state is KNOWN are listed: an
             # unknown unit must never look like a stopped one.
@@ -1445,7 +2712,48 @@ def placement_configured() -> bool:
     return bool(PLACEMENT_URL) or os.path.isdir(PLACEMENT_DIR)
 
 
-def main() -> None:
+def _env_file(path: str) -> dict:
+    """KEY=VALUE lines of an env file ({} when it cannot be read)."""
+    values = {}
+    raw = _read_bytes(path, 65536)
+    for line in (raw or b"").decode("utf-8", "replace").splitlines():
+        key, sep, value = line.strip().partition("=")
+        if sep and key and not key.startswith("#"):
+            values[key.strip()] = value.strip()
+    return values
+
+
+def edge_clear_main(argv) -> int:
+    """`edge-clear [--env-file FILE]`: remove every edge unit this agent owns.
+    The env file is the agent's own (agent.env), so the directories it was told
+    to use are the ones that are cleared. Exit 0, or 1 when a unit is left."""
+    args = list(argv)
+    if args and (len(args) != 2 or args[0] != "--env-file"):
+        print("[dgx-agent] usage: edge-clear [--env-file FILE]", flush=True)
+        return 2
+    env = _env_file(args[1]) if args else {}
+    agent = PlacementAgent(
+        root=env.get("AITHER_PLACEMENT_DIR") or None,
+        quadlet_dir=env.get("AITHER_QUADLET_DIR") or None,
+        systemd_dir=env.get("AITHER_SYSTEMD_DIR") or None,
+        edge_hook=env.get("AITHER_PLACEMENT_EDGE_HOOK") if "AITHER_PLACEMENT_EDGE_HOOK" in env
+        else None)
+    result = agent.clear_edge()
+    print(f"[dgx-agent] edge-clear: removed {len(result['removed'])} unit(s)"
+          + (f", left {len(result['foreign'])} that are not this agent's"
+             if result["foreign"] else "")
+          + (f"; NOT DONE: {'; '.join(result['problems'])}" if result["problems"] else ""),
+          flush=True)
+    return 1 if result["problems"] else 0
+
+
+def main(argv=None) -> None:
+    argv = sys.argv[1:] if argv is None else list(argv)
+    # The two verbs that are not the agent loop. Neither reads a key or a sink.
+    if argv and argv[0] == "edge-relay":
+        raise SystemExit(edge_relay_main(argv[1:]))
+    if argv and argv[0] == "edge-clear":
+        raise SystemExit(edge_clear_main(argv[1:]))
     pulse_token = _pulse_token() if PULSE_ENABLED else ""
     registry = bool(GATEWAY and TOKEN)
     placement = PlacementAgent() if placement_configured() else None
