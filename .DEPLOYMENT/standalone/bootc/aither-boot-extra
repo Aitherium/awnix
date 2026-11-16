@@ -28,3 +28,6 @@ shadowbroker-frontend.service     # shadowbroker.aitherium.com tunnel origin (FR
 aither-community-intake.service   # contribute.aitherium.com: `adk contribute upload` intake (criticality: important; 503 after reboot)
 aither-cinema.service             # Aither Cinema Studio :8765 (camera-rig shots; awdesk + Forge 'Cinema' open it): down after the 2026-10-31 15:09 distro restart
 aither-aitherium-mediaforge.service # the Aitherium team's media-forge (ws_96ccadbf members): down after the 2026-10-31 15:09 distro restart
+aither-discordrelaybridge.service # Discord<->fleet mirror the bot posts every message to (mirror.py): not booted after the 2026-11-15 04:16 crash, triage silent for 2.6 h
+aither-knowledgeragingestworker.service # company-brain writes (graph_kb_ingest): was running before the 2026-11-15 04:16 crash, not booted after it
+aither-llamacpp-bonsai4b-tc.service # tool-call lane: `on` in posture pool-fast-spark-embed (FRG008), was running before the 2026-11-15 04:16 crash, not booted after it
