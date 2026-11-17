@@ -108,21 +108,21 @@ jobs:
         if: ${{ !cancelled() && (inputs.iso || inputs.raw) }}
         run: |
           set -euo pipefail
-          # upload-artifact only reads inside GITHUB_WORKSPACE; the lane writes to /var/tmp.
           mkdir -p stage
-          # A 10 GiB raw disk sits exactly on the artifact ceiling; the image is mostly
-          # zeroes, so gzip makes it both smaller and honest about its real content.
-          # MEDIA_ROOT is whichever mount is roomiest -- on these runners that is often `/`,
-          # so the media lands at //awnix-arm64-*. Look in both places, never assume one.
-          for f in /var/tmp/awnix-arm64-iso/*.iso /var/tmp/awnix-arm64-raw/*.raw                    /awnix-arm64-iso/*.iso /awnix-arm64-raw/*.raw; do
-            [ -f "$f" ] || continue
-            case "$f" in
-              *.raw) sudo gzip -1 -c "$f" > "stage/$(basename "$f").gz" ;;
-              *)     sudo cp "$f" stage/ ;;
-            esac
+          # Two things bit here, both measured: bootc-image-builder writes <OUT>/<type>/<file>
+          # (one level deeper than the output dir), and MEDIA_ROOT is whichever mount is
+          # roomiest -- `/` on these runners -- so the tree is /awnix-arm64-* not /var/tmp.
+          for root in /var/tmp /; do
+            r="${root%/}"
+            sudo find "$r/awnix-arm64-iso" "$r/awnix-arm64-raw" -type f               \( -name '*.iso' -o -name '*.raw' \) 2>/dev/null | while read -r f; do
+              case "$f" in
+                *.raw) sudo gzip -1 -c "$f" > "stage/$(basename "$f").gz" ;;
+                *)     sudo cp "$f" stage/ ;;
+              esac
+            done
           done
           sudo chown -R "$(id -u):$(id -g)" stage
-          ls -l stage
+          ls -lh stage
 
       - name: Upload the aarch64 raw disk
         if: ${{ !cancelled() && inputs.raw }}
