@@ -112,7 +112,9 @@ jobs:
           mkdir -p stage
           # A 10 GiB raw disk sits exactly on the artifact ceiling; the image is mostly
           # zeroes, so gzip makes it both smaller and honest about its real content.
-          for f in /var/tmp/awnix-arm64-iso/*.iso /var/tmp/awnix-arm64-raw/*.raw; do
+          # MEDIA_ROOT is whichever mount is roomiest -- on these runners that is often `/`,
+          # so the media lands at //awnix-arm64-*. Look in both places, never assume one.
+          for f in /var/tmp/awnix-arm64-iso/*.iso /var/tmp/awnix-arm64-raw/*.raw                    /awnix-arm64-iso/*.iso /awnix-arm64-raw/*.raw; do
             [ -f "$f" ] || continue
             case "$f" in
               *.raw) sudo gzip -1 -c "$f" > "stage/$(basename "$f").gz" ;;
