@@ -1,0 +1,169 @@
+# awnix on aarch64 -- the arm64 build lane (AFRL proof plan gap G13).
+#
+# Builds the awnix chain NATIVELY on an aarch64 runner from the same Containerfiles
+# the x86 lane uses, probes every layer it built (image arch, `uname -m`, the layer's
+# own contents), and optionally makes an ISO and boots a qcow2 of the same image under
+# qemu-system-aarch64. Everything lives in .DEPLOYMENT/standalone/bootc/awnix-arm64-lane.sh
+# so the hosted and Spark jobs run the same bytes; this file only picks the machine.
+#
+# WHY NATIVE. An arm64 image built under qemu-user on an x86 box proves the Dockerfile
+# parses, not that the binaries it fetched run: an x86 tarball inside an arm64 image
+# builds fine and dies at first exec. The lane refuses a non-aarch64 host.
+#
+# PUBLISH IS OFF BY DEFAULT and is the owner's call. Nothing here pushes, tags for a
+# registry or releases unless a dispatch sets publish=true, and even then the push step
+# refuses until publish-awnix-images.sh grows --arch-tag-suffix (a :beta-arm64 tag plus
+# a manifest list), so an arm64 image can never overwrite the x86 :beta.
+#
+# RUNNERS. `hosted` = GitHub's ubuntu-24.04-arm. `spark` = the DGX Spark (GB10), which
+# serves production inference: its job is rootless, capped by the runner's systemd
+# slice (register-spark-arm64-runner.sh), builds in its OWN store
+# (CONTAINERS_STORAGE_CONF), never runs a store-wide podman verb, and refuses media
+# builds. No runner carries spark-build until the owner applies that script, so a
+# spark dispatch queues until then -- by design.
+#
+# Asserted by check_awnix_multiarch.py AMA004-AMA007 (gate 1zma).
+name: awnix arm64
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: 'Top of the chain (layers below are built too). runner-ai and garg FAIL at build until their Containerfiles pick arm64 assets (check_awnix_multiarch.py AMA001/AMA003)'
+        type: choice
+        options: [awnix, runner, runner-ai, garg]
+        default: awnix
+      runner:
+        description: 'hosted = ubuntu-24.04-arm; spark = the DGX Spark (rootless, own store, no media)'
+        type: choice
+        options: [hosted, spark]
+        # spark by default since 2026-10-24: GitHub-hosted jobs no longer start on this
+        # org (billing), and the DGX Spark is our own aarch64 machine.
+        default: spark
+      iso:
+        description: 'Also build an aarch64 ISO with bootc-image-builder (hosted only)'
+        type: boolean
+        default: false
+      boot_smoke:
+        description: 'Also boot a qcow2 of the image under qemu-system-aarch64 and wait for login: (hosted only)'
+        type: boolean
+        default: false
+      publish:
+        description: 'OWNER ONLY. Push :beta-arm64 (refuses until publish-awnix-images.sh supports --arch-tag-suffix)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: awnix-arm64-${{ inputs.runner }}-${{ inputs.layer }}
+  cancel-in-progress: false
+
+jobs:
+  build-hosted:
+    if: ${{ inputs.runner == 'hosted' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 300
+    # id-token: keyless signing of a pushed digest (AUC001). Only the owner-only publish
+    # path below ever asks for a token; a build-only dispatch mints none.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # garg only: the tenant backend is a PRIVATE repo, staged exactly as the x86
+      # ISO lane stages it. garg on arm64 is experimental (awnix-variants.yaml).
+      - name: Stage the tenant backend (garg)
+        if: ${{ inputs.layer == 'garg' }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_ORG_ADMIN_TOKEN || secrets.ALPHA_REPO_PAT }}
+        run: |
+          set -euo pipefail
+          [ -n "${GH_TOKEN:-}" ] || { echo "::error::no org credential to clone the private tenant repo"; exit 1; }
+          rm -rf .DEPLOYMENT/standalone/bootc/.gargbot-backend /tmp/garg-tenant
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/Aitherium/garg-aitherium.git" /tmp/garg-tenant
+          cp -r /tmp/garg-tenant/backend .DEPLOYMENT/standalone/bootc/.gargbot-backend
+          test -f .DEPLOYMENT/standalone/bootc/.gargbot-backend/app/main.py
+
+      - name: Build, probe and (optionally) make media -- natively on aarch64
+        run: |
+          set -uo pipefail
+          ARGS=(--layer "${{ inputs.layer || 'awnix' }}" --runner-kind hosted --evidence "$GITHUB_WORKSPACE/arm64-evidence.json")
+          [ "${{ inputs.iso }}" = true ] && ARGS+=(--iso)
+          [ "${{ inputs.boot_smoke }}" = true ] && ARGS+=(--boot-smoke)
+          bash .DEPLOYMENT/standalone/bootc/awnix-arm64-lane.sh "${ARGS[@]}"
+
+      - name: Upload arm64 evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arm64-evidence-${{ inputs.layer || 'awnix' }}
+          path: |
+            arm64-evidence.json
+            arm64-serial.log
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Push the arm64 image (owner only)
+        if: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+          # garg stages the PRIVATE tenant backend into the image; it is never pushed
+          # from this lane, whatever publish-awnix-images.sh grows later.
+          if [ "${{ inputs.layer }}" = garg ]; then
+            echo "::error::layer=garg carries the private tenant backend; this lane never pushes it. Refusing."
+            exit 1
+          fi
+          if ! grep -q -- '--arch-tag-suffix' .DEPLOYMENT/standalone/bootc/publish-awnix-images.sh; then
+            echo "::error::publish-awnix-images.sh has no --arch-tag-suffix yet; pushing would overwrite the x86 :beta. Refusing."
+            exit 1
+          fi
+          : > "$RUNNER_TEMP/digests.txt"
+          bash .DEPLOYMENT/standalone/bootc/publish-awnix-images.sh --layer "${{ inputs.layer }}" --arch-tag-suffix -arm64             --digests-out "$RUNNER_TEMP/digests.txt" --git-sha "$GITHUB_SHA"
+          test -s "$RUNNER_TEMP/digests.txt"             || { echo "::error::the push recorded no digest -- nothing to sign"; exit 1; }
+
+      # SIGN BY DIGEST right after the push (AUC001), the same keyless identity the x86
+      # lane uses, so `awnix update check` on an arm64 box verifies what it stages.
+      - name: Sign every pushed arm64 digest (owner only)
+        if: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+          bash .DEPLOYMENT/standalone/bootc/sign-awnix-image.sh install "$RUNNER_TEMP/bin"
+          PATH="$RUNNER_TEMP/bin:$PATH" bash .DEPLOYMENT/standalone/bootc/sign-awnix-image.sh sign --digests-file "$RUNNER_TEMP/digests.txt"
+
+  build-spark:
+    if: ${{ (inputs.runner || 'spark') == 'spark' }}
+    # spark-dgx-build (Machine name 'spark', aarch64) was registered with only `dgx`;
+    # it was given self-hosted/Linux/ARM64/spark-build/offbox on 2026-10-24.
+    runs-on: [self-hosted, Linux, ARM64, spark-build, offbox]
+    timeout-minutes: 240
+    # One Spark build at a time, never cancelled mid-write into its store.
+    concurrency:
+      group: awnix-arm64-spark-build
+      cancel-in-progress: false
+    env:
+      # The build's OWN store (written by register-spark-arm64-runner.sh). Without it
+      # podman would build in the default store beside the inference containers.
+      CONTAINERS_STORAGE_CONF: /etc/awnix-build/storage.conf
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build and probe -- rootless, own store, capped slice
+        run: |
+          set -uo pipefail
+          [ "${{ inputs.iso }}" = true ] || [ "${{ inputs.boot_smoke }}" = true ] && {
+            echo "::error::iso/boot_smoke never run on the Spark (rootful --privileged); dispatch runner=hosted"; exit 1; }
+          bash .DEPLOYMENT/standalone/bootc/awnix-arm64-lane.sh \
+            --layer "${{ inputs.layer || 'awnix' }}" --runner-kind spark \
+            --evidence "$GITHUB_WORKSPACE/arm64-evidence.json"
+
+      - name: Upload arm64 evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: arm64-evidence-spark-${{ inputs.layer || 'awnix' }}
+          path: arm64-evidence.json
+          if-no-files-found: error
+          retention-days: 90
