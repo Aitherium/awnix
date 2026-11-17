@@ -128,7 +128,7 @@ Environment=AITHER_OLLAMA_REMOTE=1
 Environment=AITHER_LLM_INFLIGHT_WEDGE_S=180
 Environment=AITHER_LLM_INTERACTIVE_WEDGE_S=30
 Environment=AITHER_LLM_PROGRESS_STALL_S=45
-Environment=AITHER_MESH_URL=http://aitheros-mesh:8125
+Environment=AITHER_MESH_URL=https://aitheros-mesh-core:8125
 Environment=DEEPSEEK_API_URL=https://api.deepseek.com/v1
 Environment=AITHERCOMPUTE_URL=http://aither-compute:8168
 Environment=GPU_TOTAL_VRAM_MB=32768
