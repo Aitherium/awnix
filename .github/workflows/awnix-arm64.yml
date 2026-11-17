@@ -88,12 +88,25 @@ jobs:
           test -f .DEPLOYMENT/standalone/bootc/.gargbot-backend/app/main.py
 
       - name: Build, probe and (optionally) make media -- natively on aarch64
+        # iso=true means the media is the point (a box being reimaged), so the lane
+        # is told to keep it instead of deleting 3.3 GB it cannot upload.
+        env:
+          AWNIX_ARM64_RETAIN_ISO: ${{ inputs.iso && '1' || '0' }}
         run: |
           set -uo pipefail
           ARGS=(--layer "${{ inputs.layer || 'awnix' }}" --runner-kind hosted --evidence "$GITHUB_WORKSPACE/arm64-evidence.json")
           [ "${{ inputs.iso }}" = true ] && ARGS+=(--iso)
           [ "${{ inputs.boot_smoke }}" = true ] && ARGS+=(--boot-smoke)
           bash .DEPLOYMENT/standalone/bootc/awnix-arm64-lane.sh "${ARGS[@]}"
+
+      - name: Upload the aarch64 ISO
+        if: ${{ inputs.iso }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: awnix-aarch64-iso
+          path: /var/tmp/awnix-arm64-iso/*.iso
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload arm64 evidence
         if: ${{ !cancelled() }}
