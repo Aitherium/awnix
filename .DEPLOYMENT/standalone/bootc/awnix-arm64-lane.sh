@@ -330,9 +330,14 @@ if [ "$DO_RAW" = 1 ]; then
 fi
 
 if [ "$DO_BOOT" = 1 ]; then
-  command -v qemu-system-aarch64 >/dev/null || sudo apt-get install -y -qq qemu-system-arm qemu-efi-aarch64 qemu-utils >/dev/null
+  command -v qemu-system-aarch64 >/dev/null || sudo apt-get install -y -qq qemu-system-arm qemu-utils >/dev/null
+  # qemu-system-aarch64 is PREINSTALLED on the hosted arm image and the UEFI firmware is
+  # NOT, so installing only when the binary is missing left FW empty and the smoke could
+  # never run (measured 2026-11-17: firmware='' -> boot_smoke:setup). The firmware is
+  # installed on its own merit, and the scan covers every path the distros use.
+  scan_fw() { for f in /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/AAVMF/AAVMF_CODE.fd /usr/share/qemu/edk2-aarch64-code.fd; do [ -r "$f" ] && { FW="$f"; return 0; }; done; return 1; }
   FW=""
-  for f in /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/AAVMF/AAVMF_CODE.fd; do [ -r "$f" ] && { FW="$f"; break; }; done
+  scan_fw || { log "installing the aarch64 UEFI firmware"; sudo apt-get install -y -qq qemu-efi-aarch64 >/dev/null 2>&1 || true; scan_fw || true; }
   WORK="$(mktemp -d)"
   printf '[customizations.kernel]\nappend = "console=ttyAMA0,115200"\n' > "$WORK/config.toml"
   OUT="$MEDIA_ROOT/awnix-arm64-qcow2"
