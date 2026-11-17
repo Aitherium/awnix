@@ -104,12 +104,22 @@ jobs:
           [ "${{ inputs.boot_smoke }}" = true ] && ARGS+=(--boot-smoke)
           bash .DEPLOYMENT/standalone/bootc/awnix-arm64-lane.sh "${ARGS[@]}"
 
+      - name: Stage the media into the workspace
+        if: ${{ inputs.iso || inputs.raw }}
+        run: |
+          set -euo pipefail
+          # upload-artifact only reads inside GITHUB_WORKSPACE; the lane writes to /var/tmp.
+          mkdir -p stage
+          sudo find /var/tmp/awnix-arm64-iso /var/tmp/awnix-arm64-raw -maxdepth 1 -type f 2>/dev/null             -exec cp -v {} stage/ \; || true
+          sudo chown -R "$(id -u):$(id -g)" stage
+          ls -l stage
+
       - name: Upload the aarch64 raw disk
         if: ${{ inputs.raw }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: awnix-aarch64-raw
-          path: /var/tmp/awnix-arm64-raw/*
+          path: stage/awnix-aarch64.raw
           if-no-files-found: error
           retention-days: 14
 
@@ -118,7 +128,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: awnix-aarch64-iso
-          path: /var/tmp/awnix-arm64-iso/*.iso
+          path: stage/awnix-aarch64.iso
           if-no-files-found: error
           retention-days: 14
 
