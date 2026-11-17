@@ -273,13 +273,22 @@ if [ "$DO_ISO" = 1 ]; then
     bib iso "$OUT"; rc=$?
     ISO="$(sudo find "$OUT" -type f -name '*.iso' | head -1)"
     if [ -n "$ISO" ] && sudo sh -c "dd if='$ISO' bs=1 skip=32769 count=5 2>/dev/null" | grep -q CD001; then
+      RETAIN=false
+      if [ "${AWNIX_ARM64_RETAIN_ISO:-0}" = "1" ]; then RETAIN=true; fi
       SUM="$(sudo sha256sum "$ISO" | cut -d' ' -f1)"; SZ="$(sudo stat -c%s "$ISO")"
       # BUILT-UNMEASURED: only the ISO9660 magic is checked; the boot smoke boots a
       # qcow2 of the same image, never this ISO, and the ISO is not retained, so its
       # sha256 names bytes nobody can re-verify after the run.
-      ISO_JSON="{\"built\": true, \"sha256\": \"$SUM\", \"size\": $SZ, \"bib_rc\": $rc, \"name\": \"awnix-aarch64.iso\", \"checked\": \"iso9660-magic-only\", \"boot_verified\": false, \"retained\": false}"
+      ISO_JSON="{\"built\": true, \"sha256\": \"$SUM\", \"size\": $SZ, \"bib_rc\": $rc, \"name\": \"awnix-aarch64.iso\", \"checked\": \"iso9660-magic-only\", \"boot_verified\": false, \"retained\": $RETAIN}"
       log "ISO sha256=$SUM size=$SZ (bib rc=$rc)"
-      sudo rm -rf "$OUT"   # not retained: too large for a hosted runner (see retained:false)
+      # Retention is OFF by default: 3.3 GB is a lot for a runner. Set
+      # AWNIX_ARM64_RETAIN_ISO=1 when the media is the point -- a box being reimaged.
+      if [ "$RETAIN" = true ]; then
+        sudo chmod 0644 "$ISO"
+        log "ISO retained: $ISO"
+      else
+        sudo rm -rf "$OUT"
+      fi
     else
       ISO_JSON="{\"built\": false, \"sha256\": null, \"size\": null, \"bib_rc\": $rc}"
       FAILED_STAGE="iso"; RC_FINAL=1
