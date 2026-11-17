@@ -107,7 +107,9 @@ jobs:
       - name: Stage the media into the workspace
         if: ${{ !cancelled() && (inputs.iso || inputs.raw) }}
         run: |
-          set -euo pipefail
+          # No -e: find returns 1 for a root that does not exist on this runner, and under
+          # pipefail that would abort the stage instead of trying the other root.
+          set -uo pipefail
           mkdir -p stage
           # Two things bit here, both measured: bootc-image-builder writes <OUT>/<type>/<file>
           # (one level deeper than the output dir), and MEDIA_ROOT is whichever mount is
