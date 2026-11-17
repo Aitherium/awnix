@@ -105,26 +105,34 @@ jobs:
           bash .DEPLOYMENT/standalone/bootc/awnix-arm64-lane.sh "${ARGS[@]}"
 
       - name: Stage the media into the workspace
-        if: ${{ inputs.iso || inputs.raw }}
+        if: ${{ !cancelled() && (inputs.iso || inputs.raw) }}
         run: |
           set -euo pipefail
           # upload-artifact only reads inside GITHUB_WORKSPACE; the lane writes to /var/tmp.
           mkdir -p stage
-          sudo find /var/tmp/awnix-arm64-iso /var/tmp/awnix-arm64-raw -maxdepth 1 -type f 2>/dev/null             -exec cp -v {} stage/ \; || true
+          # A 10 GiB raw disk sits exactly on the artifact ceiling; the image is mostly
+          # zeroes, so gzip makes it both smaller and honest about its real content.
+          for f in /var/tmp/awnix-arm64-iso/*.iso /var/tmp/awnix-arm64-raw/*.raw; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *.raw) sudo gzip -1 -c "$f" > "stage/$(basename "$f").gz" ;;
+              *)     sudo cp "$f" stage/ ;;
+            esac
+          done
           sudo chown -R "$(id -u):$(id -g)" stage
           ls -l stage
 
       - name: Upload the aarch64 raw disk
-        if: ${{ inputs.raw }}
+        if: ${{ !cancelled() && inputs.raw }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: awnix-aarch64-raw
-          path: stage/awnix-aarch64.raw
+          path: stage/awnix-aarch64.raw.gz
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload the aarch64 ISO
-        if: ${{ inputs.iso }}
+        if: ${{ !cancelled() && inputs.iso }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: awnix-aarch64-iso
