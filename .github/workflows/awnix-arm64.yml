@@ -52,6 +52,10 @@ on:
         description: 'Also build a RAW disk image -- the dd-able artefact, no USB installer needed (hosted only)'
         type: boolean
         default: false
+      save_image:
+        description: 'Also export the built OCI image (podman save) so a box can podman load it (hosted only)'
+        type: boolean
+        default: false
       publish:
         description: 'OWNER ONLY. Push :beta-arm64 (refuses until publish-awnix-images.sh supports --arch-tag-suffix)'
         type: boolean
@@ -101,11 +105,12 @@ jobs:
           ARGS=(--layer "${{ inputs.layer || 'awnix' }}" --runner-kind hosted --evidence "$GITHUB_WORKSPACE/arm64-evidence.json")
           [ "${{ inputs.iso }}" = true ] && ARGS+=(--iso)
           [ "${{ inputs.raw }}" = true ] && ARGS+=(--raw)
+          [ "${{ inputs.save_image }}" = true ] && ARGS+=(--save-image)
           [ "${{ inputs.boot_smoke }}" = true ] && ARGS+=(--boot-smoke)
           bash .DEPLOYMENT/standalone/bootc/awnix-arm64-lane.sh "${ARGS[@]}"
 
       - name: Stage the media into the workspace
-        if: ${{ !cancelled() && (inputs.iso || inputs.raw) }}
+        if: ${{ !cancelled() && (inputs.iso || inputs.raw || inputs.save_image) }}
         run: |
           # The runner runs this as `bash -e`, and pipefail would abort on the root that
           # does not exist here (find returns 1). Both are turned OFF deliberately: the
@@ -119,15 +124,24 @@ jobs:
           # roomiest -- `/` on these runners -- so the tree is /awnix-arm64-* not /var/tmp.
           for root in /var/tmp /; do
             r="${root%/}"
-            { sudo find "$r/awnix-arm64-iso" "$r/awnix-arm64-raw" -type f               \( -name '*.iso' -o -name '*.raw' \) 2>/dev/null || true; } | while read -r f; do
+            { sudo find "$r/awnix-arm64-iso" "$r/awnix-arm64-raw" "$r/awnix-arm64-image" -type f               \( -name '*.iso' -o -name '*.raw' -o -name '*.tar' \) 2>/dev/null || true; } | while read -r f; do
               case "$f" in
-                *.raw) sudo gzip -1 -c "$f" > "stage/$(basename "$f").gz" ;;
+                *.raw|*.tar) sudo gzip -1 -c "$f" > "stage/$(basename "$f").gz" ;;
                 *)     sudo cp "$f" stage/ ;;
               esac
             done
           done
           sudo chown -R "$(id -u):$(id -g)" stage
           ls -lh stage
+
+      - name: Upload the aarch64 OCI image
+        if: ${{ !cancelled() && inputs.save_image }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: awnix-arm64-image
+          path: stage/*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload the aarch64 raw disk
         if: ${{ !cancelled() && inputs.raw }}
