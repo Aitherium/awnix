@@ -134,7 +134,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: awnix-aarch64-raw
-          path: stage/awnix-aarch64.raw.gz
+          # bib names the file after the type (disk.raw), never after our label.
+          path: stage/*.raw.gz
           if-no-files-found: error
           retention-days: 14
 
@@ -143,7 +144,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: awnix-aarch64-iso
-          path: stage/awnix-aarch64.iso
+          path: stage/*.iso
           if-no-files-found: error
           retention-days: 14
 
