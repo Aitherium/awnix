@@ -12,6 +12,7 @@ aither-orchestrator.service       # the brain (model-postures: on)
 aither-llamacpp-bonsai.service    # Bonsai vision lane, chelle pins it (model-postures: on)
 aither-aitherwhisperptt.service   # Discord/desk voice STT, generated quadlet (model-postures: on)
 aither-aither-directory.service   # directory plane
+aither-docker-socket-proxy.service # aitheros-docker-proxy: aither-worker's DOCKER_HOST; never started after the 2026-11-16 07:54 reboot, so every container inspect failed (#17364, D-2834)
 aither-worker.service             # runs every routine (embed migration, backups, probes)
 aither-awdiscord.service         # official Discord bot: reads the owner's DM replies (card answers + chat)
 aither-awdiscord@atlas.service            # per-agent Discord bot (install_agent_bot.py); parked by the 11-08 05:28 sweep
