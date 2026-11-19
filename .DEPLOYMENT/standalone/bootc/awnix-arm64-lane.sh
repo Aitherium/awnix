@@ -23,8 +23,6 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAYER=awnix
 KIND=hosted
 DO_ISO=0
-DO_RAW=0
-DO_SAVE=0
 DO_BOOT=0
 EVIDENCE="${PWD}/arm64-evidence.json"
 SMOKE_TIMEOUT_MIN="${AWNIX_ARM64_SMOKE_TIMEOUT_MIN:-45}"
@@ -70,11 +68,11 @@ probe_cmd_for() {
 # (the reviewer's reproduction). A failed write turns a passing run into rc 1, so a
 # green job always has its evidence file.
 MEDIA_ROOT=/var/tmp
-BUILD_EXIT=null PROBE_EXIT=null IMAGE_DIGEST="" ISO_JSON=null RAW_JSON=null BOOT_JSON=null KVM=false
+BUILD_EXIT=null PROBE_EXIT=null IMAGE_DIGEST="" ISO_JSON=null BOOT_JSON=null KVM=false
 FAILED_STAGE=""
 write_evidence() {
   E_LAYER="$LAYER" E_KIND="$KIND" E_DIGEST="$IMAGE_DIGEST" E_BUILD="$BUILD_EXIT" \
-  E_PROBE="$PROBE_EXIT" E_ISO="$ISO_JSON" E_RAW="$RAW_JSON" E_BOOT="$BOOT_JSON" E_KVM="$KVM" \
+  E_PROBE="$PROBE_EXIT" E_ISO="$ISO_JSON" E_BOOT="$BOOT_JSON" E_KVM="$KVM" \
   E_FAILED="$FAILED_STAGE" "$PY" - "$EVIDENCE" <<'PYEOF'
 import json, os, platform, sys
 e = os.environ
@@ -100,7 +98,6 @@ doc = {
   "build_exit": num("E_BUILD"),
   "probe_exit": num("E_PROBE"),
   "iso": obj("E_ISO"),
-  "raw": obj("E_RAW"),
   "boot_smoke": obj("E_BOOT"),
   "host": {"uname_m": platform.machine(), "kvm": e.get("E_KVM") == "true",
            "failed_stage": e.get("E_FAILED") or None},
@@ -157,8 +154,6 @@ while [ $# -gt 0 ]; do
     --layer) LAYER="${2:-}"; shift 2 ;;
     --runner-kind) KIND="${2:-}"; shift 2 ;;
     --iso) DO_ISO=1; shift ;;
-    --raw) DO_RAW=1; shift ;;
-    --save-image) DO_SAVE=1; shift ;;
     --boot-smoke) DO_BOOT=1; shift ;;
     --evidence) EVIDENCE="${2:-}"; shift 2 ;;
     --self-test) self_test; exit $? ;;
@@ -278,22 +273,13 @@ if [ "$DO_ISO" = 1 ]; then
     bib iso "$OUT"; rc=$?
     ISO="$(sudo find "$OUT" -type f -name '*.iso' | head -1)"
     if [ -n "$ISO" ] && sudo sh -c "dd if='$ISO' bs=1 skip=32769 count=5 2>/dev/null" | grep -q CD001; then
-      RETAIN=false
-      if [ "${AWNIX_ARM64_RETAIN_ISO:-0}" = "1" ]; then RETAIN=true; fi
       SUM="$(sudo sha256sum "$ISO" | cut -d' ' -f1)"; SZ="$(sudo stat -c%s "$ISO")"
       # BUILT-UNMEASURED: only the ISO9660 magic is checked; the boot smoke boots a
       # qcow2 of the same image, never this ISO, and the ISO is not retained, so its
       # sha256 names bytes nobody can re-verify after the run.
-      ISO_JSON="{\"built\": true, \"sha256\": \"$SUM\", \"size\": $SZ, \"bib_rc\": $rc, \"name\": \"awnix-aarch64.iso\", \"checked\": \"iso9660-magic-only\", \"boot_verified\": false, \"retained\": $RETAIN}"
+      ISO_JSON="{\"built\": true, \"sha256\": \"$SUM\", \"size\": $SZ, \"bib_rc\": $rc, \"name\": \"awnix-aarch64.iso\", \"checked\": \"iso9660-magic-only\", \"boot_verified\": false, \"retained\": false}"
       log "ISO sha256=$SUM size=$SZ (bib rc=$rc)"
-      # Retention is OFF by default: 3.3 GB is a lot for a runner. Set
-      # AWNIX_ARM64_RETAIN_ISO=1 when the media is the point -- a box being reimaged.
-      if [ "$RETAIN" = true ]; then
-        sudo chmod 0644 "$ISO"
-        log "ISO retained: $ISO"
-      else
-        sudo rm -rf "$OUT"
-      fi
+      sudo rm -rf "$OUT"   # not retained: too large for a hosted runner (see retained:false)
     else
       ISO_JSON="{\"built\": false, \"sha256\": null, \"size\": null, \"bib_rc\": $rc}"
       FAILED_STAGE="iso"; RC_FINAL=1
@@ -301,63 +287,10 @@ if [ "$DO_ISO" = 1 ]; then
   fi
 fi
 
-if [ "$DO_RAW" = 1 ]; then
-  # A raw disk is the dd-able artefact: write it straight to a disk from any live system
-  # (or from the box's own OS) and boot it. Smaller than the ISO and no USB installer.
-  FG="$(free_gb)"
-  if [ "$FG" -lt "$ISO_MIN_FREE_GB" ]; then
-    RAW_JSON="{\"built\": false, \"sha256\": null, \"size\": null, \"reason\": \"only ${FG}GB free, need ${ISO_MIN_FREE_GB}\"}"
-    FAILED_STAGE="raw:disk"; RC_FINAL=1
-  else
-    OUTR="$MEDIA_ROOT/awnix-arm64-raw"
-    bib raw "$OUTR"; rc=$?
-    RAWIMG="$(sudo find "$OUTR" -type f \( -name '*.raw' -o -name '*.img' \) | head -1)"
-    if [ -n "$RAWIMG" ]; then
-      RETAIN=false
-      if [ "${AWNIX_ARM64_RETAIN_ISO:-0}" = "1" ]; then RETAIN=true; fi
-      SUM="$(sudo sha256sum "$RAWIMG" | cut -d' ' -f1)"; SZ="$(sudo stat -c%s "$RAWIMG")"
-      RAW_JSON="{\"built\": true, \"sha256\": \"$SUM\", \"size\": $SZ, \"bib_rc\": $rc, \"name\": \"awnix-aarch64.raw\", \"ddable\": true, \"retained\": $RETAIN}"
-      log "raw disk sha256=$SUM size=$SZ (bib rc=$rc)"
-      if [ "$RETAIN" = true ]; then
-        sudo chmod 0644 "$RAWIMG"
-        log "raw disk retained: $RAWIMG"
-      else
-        sudo rm -rf "$OUTR"
-      fi
-    else
-      RAW_JSON="{\"built\": false, \"sha256\": null, \"size\": null, \"bib_rc\": $rc}"
-      FAILED_STAGE="raw"; RC_FINAL=1
-    fi
-  fi
-fi
-
-if [ "$DO_SAVE" = 1 ]; then
-  # The OCI image itself, so an aarch64 box that cannot build it (no memory to spare
-  # beside a resident model, or no registry to pull from) can `podman load` exactly the
-  # image this lane built and probed.
-  if [ "$BUILD_EXIT" = 0 ] && [ -n "$TOP_TAG" ]; then
-    OUTI="$MEDIA_ROOT/awnix-arm64-image"
-    $SUDO mkdir -p "$OUTI"
-    if $SUDO podman save --format oci-archive -o "$OUTI/awnix-arm64-image.tar" "$TOP_TAG" >/dev/null 2>&1; then
-      $SUDO chmod 0644 "$OUTI/awnix-arm64-image.tar"
-      log "image archive: $($SUDO stat -c%s "$OUTI/awnix-arm64-image.tar") bytes for $TOP_TAG"
-    else
-      FAILED_STAGE="save_image"; RC_FINAL=1
-    fi
-  else
-    FAILED_STAGE="save_image:no_build"; RC_FINAL=1
-  fi
-fi
-
 if [ "$DO_BOOT" = 1 ]; then
-  command -v qemu-system-aarch64 >/dev/null || sudo apt-get install -y -qq qemu-system-arm qemu-utils >/dev/null
-  # qemu-system-aarch64 is PREINSTALLED on the hosted arm image and the UEFI firmware is
-  # NOT, so installing only when the binary is missing left FW empty and the smoke could
-  # never run (measured 2026-11-17: firmware='' -> boot_smoke:setup). The firmware is
-  # installed on its own merit, and the scan covers every path the distros use.
-  scan_fw() { for f in /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/AAVMF/AAVMF_CODE.fd /usr/share/qemu/edk2-aarch64-code.fd; do [ -r "$f" ] && { FW="$f"; return 0; }; done; return 1; }
+  command -v qemu-system-aarch64 >/dev/null || sudo apt-get install -y -qq qemu-system-arm qemu-efi-aarch64 qemu-utils >/dev/null
   FW=""
-  scan_fw || { log "installing the aarch64 UEFI firmware"; sudo apt-get install -y -qq qemu-efi-aarch64 >/dev/null 2>&1 || true; scan_fw || true; }
+  for f in /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/AAVMF/AAVMF_CODE.fd; do [ -r "$f" ] && { FW="$f"; break; }; done
   WORK="$(mktemp -d)"
   printf '[customizations.kernel]\nappend = "console=ttyAMA0,115200"\n' > "$WORK/config.toml"
   OUT="$MEDIA_ROOT/awnix-arm64-qcow2"
