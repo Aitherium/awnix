@@ -32,3 +32,4 @@ aither-aitherium-mediaforge.service # the Aitherium team's media-forge (ws_96cca
 aither-discordrelaybridge.service # Discord<->fleet mirror the bot posts every message to (mirror.py): not booted after the 2026-11-15 04:16 crash, triage silent for 2.6 h
 aither-knowledgeragingestworker.service # company-brain writes (graph_kb_ingest): was running before the 2026-11-15 04:16 crash, not booted after it
 aither-llamacpp-bonsai4b-tc.service # tool-call lane: `on` in posture pool-fast-spark-embed (FRG008), was running before the 2026-11-15 04:16 crash, not booted after it
+aither-kokoro-tts.service         # agents' Kokoro voices: `on` in posture pool-fast-spark-embed, FRG008 on 2026-11-19 (nothing booted it)

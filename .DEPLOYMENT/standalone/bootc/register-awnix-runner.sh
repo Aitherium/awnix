@@ -104,6 +104,11 @@ if [ -f "$USER_UNIT" ]; then
 [Service]
 Restart=always
 RestartSec=15
+# svc.sh ships KillMode=process: a stop kills only runsvc.sh and leaves
+# Runner.Listener running, still holding the GitHub session. Every restart
+# after that exits "Session Conflict" (awnix-host-1, 2026-11-18, orphan pid
+# 1080). control-group reaps the whole unit on stop. Card d-erzx.
+KillMode=control-group
 RESTART
   chown runner:runner "$RUNNER_HOME/.config/systemd/user/$SVC_NAME.d/restart.conf"
   su - runner -c "systemctl --user daemon-reload"
@@ -114,6 +119,11 @@ elif [ -f "$SYS_UNIT" ]; then
 [Service]
 Restart=always
 RestartSec=15
+# svc.sh ships KillMode=process: a stop kills only runsvc.sh and leaves
+# Runner.Listener running, still holding the GitHub session. Every restart
+# after that exits "Session Conflict" (awnix-host-1, 2026-11-18, orphan pid
+# 1080). control-group reaps the whole unit on stop. Card d-erzx.
+KillMode=control-group
 RESTART
   systemctl daemon-reload
   echo "pinned Restart=always on SYSTEM unit $SVC_NAME (D-2131)"
