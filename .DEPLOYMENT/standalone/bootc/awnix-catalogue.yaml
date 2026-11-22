@@ -109,6 +109,11 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awdiscord
+  tagline: Put any agent on Discord as a real bot, with an operator in the loop.
+  status: public
+  available: true
+  reason: ''
 - id: awdit
   tagline: An append-only audit trail whose gaps are DETECTABLE.
   status: public
@@ -249,6 +254,11 @@ packages:
   status: public
   available: true
   reason: ''
+- id: awpermit
+  tagline: Let an agent through your door with a scope, a spend cap, and someone accountable.
+  status: public
+  available: true
+  reason: ''
 - id: awpool
   tagline: 'The free half of the elastic work pool: dispatches public-safe work onto the free GitHub-hosted runners of the public aw* mirrors, so their idle CI minutes become compute. awrun remains the paid/self-hosted lane; this is its free twin.'
   status: no-pages
@@ -381,6 +391,11 @@ packages:
   reason: ''
 - id: awstorage
   tagline: Every drive on every node, indexed, classified and diffed -- so you can see what you own before you delete it.
+  status: public
+  available: true
+  reason: ''
+- id: awsuite
+  tagline: Your Google Workspace as agent tools, and no write happens without a yes.
   status: public
   available: true
   reason: ''

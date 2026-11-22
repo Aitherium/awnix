@@ -4,9 +4,9 @@
 # on-box tool needs no PyYAML. Pins move only through the weekly lock-refresh PR.
 schema: 1
 generated_by: AitherOS/dev/tools/gen_awnix_component_lock.py
-catalogue_sha256: 73d0a707d04c62e37c8bf859bf74ea1c1ab7a177f2633b37f9a6d0777924b682
+catalogue_sha256: b58ce142a9a88953097a5eec5df50a54cd6fd85780ecfec5da138350448b3b15
 stacks_sha256: cda5aa14e842cebc95386a581bd4d056f0f92068ec9dc792c023df57336d107c
-generated_at: '2026-11-07T07:35:15Z'
+generated_at: '2026-11-22T12:27:07Z'
 target:
   python: '3.11'
   platform: manylinux_2_34_x86_64
@@ -14,9 +14,9 @@ wheels:
   aiosqlite==0.22.1:
     url: https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl
     sha256: 21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb
-  annotated-doc==0.0.5:
-    url: https://files.pythonhosted.org/packages/3e/30/e900b21425a860e195f32e37657aa1f7c7f2b1bfb26f03ca209b90933c06/annotated_doc-0.0.5-py3-none-any.whl
-    sha256: 117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101
+  annotated-doc==0.0.7:
+    url: https://files.pythonhosted.org/packages/5e/b1/9530d6bee606979d54501adcc767d958a38929827f11a524b0d93429d2ad/annotated_doc-0.0.7-py3-none-any.whl
+    sha256: 6bc31bbbec6dfaaedc1676dbc11dbda96fe22a2b5c400e9ebad113fec44a9dc6
   annotated-types==0.8.0:
     url: https://files.pythonhosted.org/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl
     sha256: f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0
@@ -32,30 +32,33 @@ wheels:
   awdit==0.1.0:
     url: https://files.pythonhosted.org/packages/2d/86/a2fda7a4190764d7583ae23e34067a9cdf6fe1efd666f5fcbc8b6a433604/awdit-0.1.0-py3-none-any.whl
     sha256: 896d23f20592bc7027d2ca2c6bae4e058a7b33e02865d510394fb792f0b7403d
-  awdk==3.8.97:
-    url: https://files.pythonhosted.org/packages/54/8f/865ef45bda53f444d25d89f0f97a087718ba805cf5c4bd059002e0a27f35/awdk-3.8.97-py3-none-any.whl
-    sha256: c4560ee61eeb4f8bbd828f5b7f2ac97148e6fdae8a354ed9e6f06149e90eb9c0
-  awgit==1.12.1:
-    url: https://files.pythonhosted.org/packages/01/ba/7dcec7d45e40b6680d00ba750dc7f0e0a06629698c631e6d8f892692edbf/awgit-1.12.1-py3-none-any.whl
-    sha256: a6cf6e52216656d6133a92ca78c9ae7cc8a5701bcc862a9587376b18eae9644c
-  awgraph==1.4.14:
-    url: https://files.pythonhosted.org/packages/99/8c/f1e98c89c05d272e96d7f77f9f6ea428375624a7d4d7a1384f35d2257827/awgraph-1.4.14-py3-none-any.whl
-    sha256: d20dc3111decca873d1c4db94b86848389beb597999bbed1dad50c9037bf577e
-  awrelay==0.5.1:
-    url: https://files.pythonhosted.org/packages/01/e0/de9eef74aadc17220fe2d4e32c6e716fcadbc799a9603ccd9e73b45ba6b7/awrelay-0.5.1-py3-none-any.whl
-    sha256: ebf5d51739769c497ed387b711440f04a1b744dcf4298f2bdc6ce89ac502a3cb
+  awdk==3.8.108:
+    url: https://files.pythonhosted.org/packages/d4/75/f199b3fbc57c6dec75ff0dfee6e98fb06f8040e7d8dc405db6232747f612/awdk-3.8.108-py3-none-any.whl
+    sha256: 8c30823f380dd6da2232a2a5de96c87602b1128dee550944fef15473351fc5e9
+  awgit==1.14.1:
+    url: https://files.pythonhosted.org/packages/78/96/5eed127acef444da54ccd8f8bd095655398f2ad07989e385f13caff0ef8b/awgit-1.14.1-py3-none-any.whl
+    sha256: e851a8f5c51626cba9154ca0a10b80dcfe3441d1e97cea34130899b1323ec2b3
+  awgraph==1.4.19:
+    url: https://files.pythonhosted.org/packages/42/65/662130e62786467de6b1ecaa313b1e5b5c6e5ec49c93bd84e7a1e6b0175b/awgraph-1.4.19-py3-none-any.whl
+    sha256: bed9b543049ff0d29e8f0d2da5e0045123ee72482271c32532613d59f141ec7f
+  awrelay==0.5.3:
+    url: https://files.pythonhosted.org/packages/78/5f/2cca2c939bf2c5850c22eec8cf991609e3427f47b2d520eda43da453119d/awrelay-0.5.3-py3-none-any.whl
+    sha256: 99c5d78fc2e147d08c53d58b519b27ff4dd018e31a652aded4fa832aab398641
   awreport==0.2.0:
     url: https://files.pythonhosted.org/packages/1d/e6/1057b99c4b7acf5b0394a59d928d1cb4ad6ef9c32f9651f2467be6251bad/awreport-0.2.0-py3-none-any.whl
     sha256: 0efab42e97405ef48e499782dae90921f1ecc3be066148a9a89f465c61c14469
-  awsettings==0.3.13:
-    url: https://files.pythonhosted.org/packages/ee/db/702bf258baee523ec7b451a2cd3321e99f26088b37cc487075a445c4f3ba/awsettings-0.3.13-py3-none-any.whl
-    sha256: 9a03eba44a149cc78c1c9b00b13051ddcf3390cc551da9de55ce6be982d7b7f4
+  awsettings==0.3.14:
+    url: https://files.pythonhosted.org/packages/71/9b/06892d78c858e1830a3bb272b8741034dcd95fb5d68865d51bf6eea92049/awsettings-0.3.14-py3-none-any.whl
+    sha256: cb744a72dbf0971321bfbfcc36c210a747068825b154ecfd76bb3f774c57ce66
   awshare==0.2.3:
     url: https://files.pythonhosted.org/packages/2c/af/735040f0064e6d36b7e98411cffee8481e5c5c4f999a45b7b0eaabcc7392/awshare-0.2.3-py3-none-any.whl
     sha256: df1eb160be6c52b039917d53f5c123c76c9c8d24cffeafec21425f52b57441ff
-  certifi==2026.10.23:
-    url: https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl
-    sha256: e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1
+  awvision==0.3.3:
+    url: https://files.pythonhosted.org/packages/b5/4d/813271618bf0ff5954f4ada703af889bd18739464555e7357e53055dbad6/awvision-0.3.3-py3-none-any.whl
+    sha256: 955956a7f6cbd13c424a7f8dc4d1b518cd2f23a320fa9358ccb90f65771d4c20
+  certifi==2026.11.20:
+    url: https://files.pythonhosted.org/packages/6d/39/5eec3296860b94ac20bb8ed807725b88f6adfab3f343df592afd975f5f86/certifi-2026.11.20-py3-none-any.whl
+    sha256: 7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f
   cffi==2.1.1:
     url: https://files.pythonhosted.org/packages/f7/a4/4399daaf8f7dfee9d7c3327fdb0426ee041cc63edc358b93911ceb2bfc7a/cffi-2.1.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
     sha256: 34e261f78cb6ceaaa36f42f2613f4380d94d9c759a9c73c769ee6e0247364632
@@ -71,21 +74,21 @@ wheels:
   cuda-bindings==13.5.0:
     url: https://files.pythonhosted.org/packages/f6/0d/ca24317a31118b90fd60126aec5c0a92a191a7fdd39524032d43328b49b5/cuda_bindings-13.5.0-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
     sha256: 08b7e8d674c3266facb00453a7e34ea7d3ea965c2f594bb728f269f45f39fbe2
-  cuda-pathfinder==1.8.6:
-    url: https://files.pythonhosted.org/packages/6a/9e/08555797c979322def080814686417ea93f66d38f5c48ebab6867a85a21e/cuda_pathfinder-1.8.6-py3-none-any.whl
-    sha256: bf6b3b06323cf95a11d671818392da5da23ddbbb4dfc4b77ca10622783c25980
+  cuda-pathfinder==1.9.1:
+    url: https://files.pythonhosted.org/packages/62/8e/e6101ff068e7e78b362879ffc0c7cbfe68c9742943c9b034f009fe19f88f/cuda_pathfinder-1.9.1-py3-none-any.whl
+    sha256: b743c132f90ad2d1e71d43fd28f31ebcde518f943e50fd44aca62b2a80d5230d
   cuda-toolkit==13.2.2:
     url: https://files.pythonhosted.org/packages/3d/62/854e4a141f5e87e5425513bad2a742a6260acfe06ef148001b5362148f31/cuda_toolkit-13.2.2-py2.py3-none-any.whl
     sha256: d12edc1aad1356236a2ee10c0d794b1aff5d3e79bfeca54867c3bb8e5afd87b0
   ddgs==9.16.1:
     url: https://files.pythonhosted.org/packages/60/5f/9388344fe821102459a73d2d49ab5e6769b3bab3f17ecf79fb1f736cf1d6/ddgs-9.16.1-py3-none-any.whl
     sha256: 9ac0b3c19d865a9bfbf7bc7cc8090bd43d1e7adfb083a017bbece360a22e21b6
-  fastapi==0.162.0:
-    url: https://files.pythonhosted.org/packages/b4/4f/3f2c25c9b43970b5e9a08beb5e04776247edea684ddc0930f4f02f0bb6cb/fastapi-0.162.0-py3-none-any.whl
-    sha256: 3785963de305dd09912426cb81f2d230fce98ab3521cdfe97265c8d14983128c
-  filelock==4.2.9:
-    url: https://files.pythonhosted.org/packages/00/05/76184fe08339723d643ab47887a8e4de8f2921ca4e008617ab7490af7857/filelock-4.2.9-py3-none-any.whl
-    sha256: a379c50a729e5b68c8519a4d26489f755d9769960a236ecd838190e2a78db2e9
+  fastapi==0.165.0:
+    url: https://files.pythonhosted.org/packages/c4/c1/3b74c030262a1b38b1fee180f80b4007bbc11c9ac12028cb18c7bcecaec9/fastapi-0.165.0-py3-none-any.whl
+    sha256: 896f48462042bb4f162147eb8fac7e858753dc1f486765709baf105d70e4fc5b
+  filelock==4.3.0:
+    url: https://files.pythonhosted.org/packages/68/66/870b527908a06c7ec0e91239bd2c4d0bb22921efd4f915428b4e47d461a6/filelock-4.3.0-py3-none-any.whl
+    sha256: f933f39f7e01249a4a49b9abab30edc6d4b874624c3de5dd0b0d137aa8adb979
   flatbuffers==25.12.19:
     url: https://files.pythonhosted.org/packages/e8/2d/d2a548598be01649e2d46231d151a6c56d10b964d94043a335ae56ea2d92/flatbuffers-25.12.19-py2.py3-none-any.whl
     sha256: 7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4
@@ -98,18 +101,18 @@ wheels:
   hf-xet==1.8.0:
     url: https://files.pythonhosted.org/packages/f8/1e/1e8ecc05ef034e9a95c18ed32d2ec07905a7cd2ca611a9d88e25ee1f4850/hf_xet-1.8.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
     sha256: 29dab7c904cd1914a0439c6e1306c12c7497c8bd32290fbe563ebf51ca4b6d6d
-  httpcore2==2.16.0:
-    url: https://files.pythonhosted.org/packages/af/c2/ce417c397afa5181f0e3c6ff01a4d01639414e1adef08730d97571297151/httpcore2-2.16.0-py3-none-any.whl
-    sha256: 5c4358319f2602d984ad93182c9fee5160f22e9da7babdda870a5e7c4e2dc34f
+  httpcore2==2.16.2:
+    url: https://files.pythonhosted.org/packages/2a/e8/009c347feac27f8960605aa98d55ed263b5870dd4fd80b82fd1d00d5716c/httpcore2-2.16.2-py3-none-any.whl
+    sha256: 16051ae2a42f776007543f32de9349a317b23d2cbb4e1456b4bac0e88b87419a
   httpcore==1.0.9:
     url: https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl
     sha256: 2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55
   httptools==0.9.0:
     url: https://files.pythonhosted.org/packages/f7/0b/6498fe8218db1ed5f785010c303bfef50516d0988e64988bb8f9f59d70ab/httptools-0.9.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
     sha256: b68fb053b37c258a473ab67f4965c3b439500dc160fe364667035a6833eaf50a
-  httpx2==2.16.0:
-    url: https://files.pythonhosted.org/packages/7b/3d/2e4bc4fd1ef9770871669adb348d612a6e4786b303a23f9935b81c48dd60/httpx2-2.16.0-py3-none-any.whl
-    sha256: fd2c5d7909e8d86fe92d53020c310ca0e4e431b838c207c5754b9bbf0308d49a
+  httpx2==2.16.2:
+    url: https://files.pythonhosted.org/packages/77/de/8c4306a3d6aa2495111986addf33a9e561eff4c47552e4c4b9251160d0ad/httpx2-2.16.2-py3-none-any.whl
+    sha256: f05c13aade4c45dbf1c9060647a1058f0acad62398fad96e741269edb33d46f5
   httpx==0.28.1:
     url: https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl
     sha256: d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
@@ -131,9 +134,9 @@ wheels:
   lxml==6.1.3:
     url: https://files.pythonhosted.org/packages/71/69/ce2436d854c848c19fc9287143991f3fc76b8b4e9a0dbba8452e51dff264/lxml-6.1.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
     sha256: 49fbc2682a9306135b7ec49e93f97f9c26689b9b7f96ed2742d8d6497e994d13
-  markdown-it-py==4.2.0:
-    url: https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl
-    sha256: 9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a
+  markdown-it-py==4.3.0:
+    url: https://files.pythonhosted.org/packages/c9/31/5f0ac2f1a1c67423c995c731a11cd4ad05d081a2be969d74f868bdb9cc70/markdown_it_py-4.3.0-py3-none-any.whl
+    sha256: 7aa1511a46c39138de78d9eba92ce47e63124d8003fc98b3a351909e04239efa
   markupsafe==3.0.4:
     url: https://files.pythonhosted.org/packages/81/a5/a513b76c139a3915b43404324e55c0b7979ae4f0d39eb6f075b0282e90a8/markupsafe-3.0.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
     sha256: 6da83a088f8ef93b2d483a8232a4dbf4d69d3d8496b568a03c56becac43e1808
@@ -200,15 +203,18 @@ wheels:
   nvidia-nvtx==13.2.86:
     url: https://files.pythonhosted.org/packages/49/ee/16bde09927e7ffacd50b117cd7d1dc764d145f03249fc41fdf6dfba3301f/nvidia_nvtx-13.2.86-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl
     sha256: 968ce72baee2a01791c7d3254000eac81f24677b0b91c62d21b449a1f309c245
-  onnxruntime==1.31.1:
-    url: https://files.pythonhosted.org/packages/b4/1d/0f85ee31a3d93f2243a5cc29252becf858f53ac5cfa6c9c15d9ffe107eea/onnxruntime-1.31.1-cp311-cp311-manylinux_2_28_x86_64.whl
-    sha256: 5752bd508126ae7c49894d3b9d2e83f0c3d487319246d04c444b393308d7ad7f
+  onnxruntime==1.32.0:
+    url: https://files.pythonhosted.org/packages/1d/46/e6f356c9539d2eed44126de3421a81e217da2ad91b22dc11b379cb1e384f/onnxruntime-1.32.0-cp311-cp311-manylinux_2_28_x86_64.whl
+    sha256: 5a34fc4dfeb5a7b4a74c95dcba1e773d722abda720b474edf1b0c419dc6d163d
   opentelemetry-api==1.45.2:
     url: https://files.pythonhosted.org/packages/a9/2d/610db864d7513158cebb8f36cc88e67e73bd6c7aa1905ef18d89e1281c81/opentelemetry_api-1.45.2-py3-none-any.whl
     sha256: 2cbd737377e710ee740d261c94e93fa0f08e6d037c18f17513cc0a2d94479a34
   packaging==26.3:
     url: https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl
     sha256: d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
+  pillow==13.0.0:
+    url: https://files.pythonhosted.org/packages/36/46/f509b74787f40ce0627501089d630b2c741b63b244c1f40b640b3b01e181/pillow-13.0.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+    sha256: a625df9a2a5597fa5e5266e01aefc82604bb85d291e3547981e863560d75da6c
   primp==2.0.1:
     url: https://files.pythonhosted.org/packages/59/e9/24b5f9439aa4a0209602c7a997bf6dc537ed2aa0c8b6b7e5a40e694a5633/primp-2.0.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
     sha256: 9a7be373adfded677a9092ae2743873d5c8a9573148d617a189d26715f7d8ea5
@@ -221,12 +227,12 @@ wheels:
   pycparser==3.12:
     url: https://files.pythonhosted.org/packages/b6/ae/315bbeee126a769cbde43cf4908acb4b40408d8bf8bbf334dd7368d8dadf/pycparser-3.12-py3-none-any.whl
     sha256: a076f3f489b39b43ed13563a1dafe42447445bec2e294154ec5c57fcdda4c85e
-  pydantic-core==2.50.4:
-    url: https://files.pythonhosted.org/packages/56/51/cbb7a1bc0196ff94d3478d265eed7449f811759988eb760d41f4edd0893b/pydantic_core-2.50.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-    sha256: 0574866e05f6adeecc520d87e87dd06210c0a51706341f6ef8421572f5a64444
-  pydantic==2.14.3:
-    url: https://files.pythonhosted.org/packages/72/b8/b864503789ef5c58597d2a7b4adbee62c26440ab1e682581fc6838df8947/pydantic-2.14.3-py3-none-any.whl
-    sha256: 3f7b347782ab7e4cf4c798496ae3a82787d9f21ec12676a9c564355eeef8daa8
+  pydantic-core==2.50.5:
+    url: https://files.pythonhosted.org/packages/bd/77/9520ca4c8f9bac81c2c4124389a8413c9d0e97e054b1d0c854b71e104297/pydantic_core-2.50.5-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+    sha256: 488319076ec92908b91fc6265ce761f1d78748f69f85518564fd16bf333e1b70
+  pydantic==2.14.4:
+    url: https://files.pythonhosted.org/packages/8a/8c/824a686c4ba815ddb0722f9e66272088bccd4e1ae1d2f7015375e4a4fc7f/pydantic-2.14.4-py3-none-any.whl
+    sha256: 653a2ad9f6d8858529c77c72717d0ea991d6c6837fe683246b2f4b2bbfc3fadc
   pygments==2.21.0:
     url: https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl
     sha256: 2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9
@@ -245,21 +251,21 @@ wheels:
   python-dotenv==1.2.4:
     url: https://files.pythonhosted.org/packages/60/d1/38f3a3405989a89ac18390803e70c6ad7c7760da4f9b83cbeca0c44a0c72/python_dotenv-1.2.4-py3-none-any.whl
     sha256: 42269a8a5b3fd54ffa6f3d84b18abed50064717576b4ecf03dc4a55d8aa04fdc
-  python-multipart==0.0.33:
-    url: https://files.pythonhosted.org/packages/dd/1b/6b1b4164ec734cac911460ab599bfbe46afedd42c5c9627fe4235942c314/python_multipart-0.0.33-py3-none-any.whl
-    sha256: 8f16c07b36add9da6b2ee87d3efcaf0a45a6de9c3d0a5dd94e9ccf7675a7bc45
-  pyyaml==6.0.3:
-    url: https://files.pythonhosted.org/packages/71/60/917329f640924b18ff085ab889a11c763e0b573da888e8404ff486657602/pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
-    sha256: b8bb0864c5a28024fac8a632c443c87c5aa6f215c0b126c449ae1a150412f31d
+  python-multipart==0.0.34:
+    url: https://files.pythonhosted.org/packages/f5/0e/090c52b122d8ec5fa37942c1410fea9cf04ce98bca0c84dde7f0aa11594d/python_multipart-0.0.34-py3-none-any.whl
+    sha256: ebacd224bd686eee2f9aa1066a657affe07435a185834e05e5235e2e59173e91
+  pyyaml==6.0.4:
+    url: https://files.pythonhosted.org/packages/9d/3e/c1c307b6c03e4ea7d86f166f14920ead07aecc35e88d873814d12aa2da66/pyyaml-6.0.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+    sha256: 622aa875fa6533f25fedcffe23079357d65a690d462200afed5d8e9d0e01ebee
   qrcode==8.2:
     url: https://files.pythonhosted.org/packages/dd/b8/d2d6d731733f51684bbf76bf34dab3b70a9148e8f2cef2bb544fccec681a/qrcode-8.2-py3-none-any.whl
     sha256: 16e64e0716c14960108e85d853062c9e8bba5ca8252c0b4d0231b9df4060ff4f
   referencing==0.37.0:
     url: https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl
     sha256: 381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231
-  regex==2026.11.7:
-    url: https://files.pythonhosted.org/packages/93/9a/92e4a8750bf1cfe5e77cb5873af83d9b6d1af97889c89e7295d095f472c8/regex-2026.11.7-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
-    sha256: 8ad28dc9261775ee59a9190d4fe909c72734b0e42755fcfb9214e2b2766e7153
+  regex==2026.11.19:
+    url: https://files.pythonhosted.org/packages/ec/9b/010ae7ce9edad5ff603fc6ed8488045a6e6f9f7a028cbd08cd549e338dc5/regex-2026.11.19-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+    sha256: 86d3b2ea69b3c56df3e8ddbac6cd98eaf5a8c5b5e7e006897ebdf7a28d6818e6
   requests==2.34.2:
     url: https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl
     sha256: 2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0
@@ -278,9 +284,9 @@ wheels:
   shellingham==1.5.4:
     url: https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl
     sha256: 7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686
-  sse-starlette==3.6.0:
-    url: https://files.pythonhosted.org/packages/cf/49/35053078cdfcf639237e8bee6dc6f34f1b3a3cc8d01800a1e213e1660ff6/sse_starlette-3.6.0-py3-none-any.whl
-    sha256: e4dfa4d237d2712cb2b4d4918eda9b457cd6b44bbecdc838af75de836565bafd
+  sse-starlette==3.7.0:
+    url: https://files.pythonhosted.org/packages/6a/11/25cabac0a24fa76f58637d8671b549c90d818d69d26beecf0c59a3b186e0/sse_starlette-3.7.0-py3-none-any.whl
+    sha256: f1d3136caa12d129284fca3d2ded79bc9af943320b6472712955fea52a6d3eea
   starlette==1.10.0:
     url: https://files.pythonhosted.org/packages/88/2e/947cfe02def9371c07cd5bf5b6b61c829e9aecb9904db02a66cfafbc1eec/starlette-1.10.0-py3-none-any.whl
     sha256: 478c0ab3b4ced6e82719849c118fa406f0278a3499c1a898cd15cd31bdc38ce4
@@ -299,18 +305,18 @@ wheels:
   tqdm==4.70.1:
     url: https://files.pythonhosted.org/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl
     sha256: c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73
-  transformers==5.22.2:
-    url: https://files.pythonhosted.org/packages/ff/bb/cc0b27a3000ddcf4903d3a26983c8b4c9a36050bbaf05675f353e8bcb08c/transformers-5.22.2-py3-none-any.whl
-    sha256: 829c2820aff91730b8ec45a4b8ff4be07f586a140b68a9073998b36fa35297dc
+  transformers==5.24.0:
+    url: https://files.pythonhosted.org/packages/a4/6c/0a5b01b84e605e811f25d091262f199894c0839dcd7f2a289254cf7a16a7/transformers-5.24.0-py3-none-any.whl
+    sha256: ff5ebedf9359f94bb63772b6380eba6e7104d010cbbb2cb82c788817ea7486f6
   triton==3.9.0:
     url: https://files.pythonhosted.org/packages/05/73/51e1466f2941ed36dbe57d1f88f772ba6afe669e5ba1e24eaf148b7ec0e1/triton-3.9.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
     sha256: 1622118a038b0c6e16fa4a0305da62c8b3c15904ee1cc4d4e65846a25969e41e
   truststore==0.10.5:
     url: https://files.pythonhosted.org/packages/51/e9/3a7820be2bb0fe53b6bc9c3be26d3d1158004e4c3ab953aa6840b955b1e9/truststore-0.10.5-py3-none-any.whl
     sha256: 9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c
-  typer==0.28.0:
-    url: https://files.pythonhosted.org/packages/19/98/8ef60c7cd773dbab9d276a4c7bff505913a25b61acd8a9ef01ceeb70f554/typer-0.28.0-py3-none-any.whl
-    sha256: afd18929180b706c5e9a239f53c3c8136903553c0c2d460598bbaa924191d4ab
+  typer==0.29.2:
+    url: https://files.pythonhosted.org/packages/62/f3/864dcb0e165b52e9f75aa3c7e0aeeb9876f139c66eb14d87856bb173b0fa/typer-0.29.2-py3-none-any.whl
+    sha256: f30731f8ca758368b836b3714872e58e395cef8fcaff918c853b1969ed5274e7
   typing-extensions==4.16.0:
     url: https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl
     sha256: 481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
@@ -360,9 +366,9 @@ components:
 - id: aitherkvcache
   name: aitherkvcache
   kind: pypi
-  version: 2.4.1
-  pin: sha256:26b2b79246ae83333dc7bc3f05dcde7a0922bab99222389f0dc390833e3b3bb4
-  url: https://files.pythonhosted.org/packages/ea/9c/4a3633728bfca89d3818030daa87fc695fd010cd917841a66b192f0ab5e7/aither_kvcache-2.4.1-py3-none-any.whl
+  version: 2.4.2
+  pin: sha256:1a154258044f877161f8a40d0b1fb266af68f720ad1dd93420a29cb94968567d
+  url: https://files.pythonhosted.org/packages/87/cc/8cf3721d173385b71d342a42a2291b6c5967a8d9ac60bdd4dd3c1c4e3c49/aither_kvcache-2.4.2-py3-none-any.whl
   provides: []
   requires_license: false
   entitlement: core
@@ -370,9 +376,9 @@ components:
   reason: ''
   deps:
   - cuda-bindings==13.5.0
-  - cuda-pathfinder==1.8.6
+  - cuda-pathfinder==1.9.1
   - cuda-toolkit==13.2.2
-  - filelock==4.2.9
+  - filelock==4.3.0
   - fsspec==2026.9.0
   - jinja2==3.1.6
   - markupsafe==3.0.4
@@ -415,9 +421,9 @@ components:
 - id: awask
   name: awask
   kind: pypi
-  version: 0.1.0
-  pin: sha256:37c08d782837e0fffff22b814929795e4192af4b0ac6de99275ee56a1b5e82f3
-  url: https://files.pythonhosted.org/packages/bd/e2/4643fdbde3db6d0da46d4abe23418316242f6968b7bd00c5574ed0268be7/awask-0.1.0-py3-none-any.whl
+  version: 0.2.4
+  pin: sha256:84cd9c95b4df1958a20b8a355d35427440cc5e56045921a9e2a6b70e7c04ad76
+  url: https://files.pythonhosted.org/packages/90/7e/a3f47761086080da1e119b23a258c0ab3d6450fc8259a211312900b5cabd/awask-0.2.4-py3-none-any.whl
   provides:
   - awask
   requires_license: false
@@ -518,7 +524,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -615,7 +621,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -634,6 +640,20 @@ components:
   available: false
   reason: not a pip-installable brick (see the repo -- Electron app (npm install && npx electron .))
   deps: []
+- id: awdiscord
+  name: awdiscord
+  kind: git
+  version: 6296f1a12314
+  pin: 6296f1a12314f69ced57b5d7e079d5c61b8dd2e4
+  url: git+https://github.com/Aitherium/awdiscord.git@6296f1a12314f69ced57b5d7e079d5c61b8dd2e4
+  provides:
+  - awdiscord
+  requires_license: false
+  entitlement: core
+  available: true
+  reason: ''
+  deps: []
+  dist: awdiscord
 - id: awdit
   name: awdit
   kind: pypi
@@ -651,9 +671,9 @@ components:
 - id: awdk
   name: awdk
   kind: pypi
-  version: 3.8.97
-  pin: sha256:c4560ee61eeb4f8bbd828f5b7f2ac97148e6fdae8a354ed9e6f06149e90eb9c0
-  url: https://files.pythonhosted.org/packages/54/8f/865ef45bda53f444d25d89f0f97a087718ba805cf5c4bd059002e0a27f35/awdk-3.8.97-py3-none-any.whl
+  version: 3.8.108
+  pin: sha256:8c30823f380dd6da2232a2a5de96c87602b1128dee550944fef15473351fc5e9
+  url: https://files.pythonhosted.org/packages/d4/75/f199b3fbc57c6dec75ff0dfee6e98fb06f8040e7d8dc405db6232747f612/awdk-3.8.108-py3-none-any.whl
   provides:
   - adk
   - adk-awdelegate
@@ -671,21 +691,21 @@ components:
   reason: ''
   deps:
   - aiosqlite==0.22.1
-  - annotated-doc==0.0.5
+  - annotated-doc==0.0.7
   - annotated-types==0.8.0
   - anyio==4.16.0
-  - awgit==1.12.1
-  - awgraph==1.4.14
-  - awrelay==0.5.1
+  - awgit==1.14.1
+  - awgraph==1.4.19
+  - awrelay==0.5.3
   - awreport==0.2.0
-  - awsettings==0.3.13
-  - certifi==2026.10.23
+  - awsettings==0.3.14
+  - certifi==2026.11.20
   - cffi==2.1.1
   - charset-normalizer==3.5.2
   - click==8.5.1
   - cryptography==50.0.2
   - ddgs==9.16.1
-  - fastapi==0.162.0
+  - fastapi==0.165.0
   - h11==0.16.0
   - httpcore==1.0.9
   - httptools==0.9.0
@@ -697,10 +717,10 @@ components:
   - opentelemetry-api==1.45.2
   - primp==2.0.1
   - pycparser==3.12
-  - pydantic==2.14.3
-  - pydantic-core==2.50.4
+  - pydantic==2.14.4
+  - pydantic-core==2.50.5
   - python-dotenv==1.2.4
-  - pyyaml==6.0.3
+  - pyyaml==6.0.4
   - qrcode==8.2
   - requests==2.34.2
   - starlette==1.10.0
@@ -725,22 +745,23 @@ components:
   available: true
   reason: ''
   deps:
-  - annotated-doc==0.0.5
+  - annotated-doc==0.0.7
+  - annotated-types==0.8.0
   - anyio==4.16.0
   - click==8.5.1
   - cuda-bindings==13.5.0
-  - cuda-pathfinder==1.8.6
+  - cuda-pathfinder==1.9.1
   - cuda-toolkit==13.2.2
-  - filelock==4.2.9
+  - filelock==4.3.0
   - fsspec==2026.9.0
   - h11==0.16.0
   - hf-xet==1.8.0
-  - httpcore2==2.16.0
-  - httpx2==2.16.0
+  - httpcore2==2.16.2
+  - httpx2==2.16.2
   - huggingface-hub==2.4.0
   - idna==3.20
   - jinja2==3.1.6
-  - markdown-it-py==4.2.0
+  - markdown-it-py==4.3.0
   - markupsafe==3.0.4
   - mdurl==0.1.2
   - mpmath==1.3.0
@@ -762,9 +783,11 @@ components:
   - nvidia-nvshmem-cu13==3.7.2
   - nvidia-nvtx==13.2.86
   - packaging==26.3
+  - pydantic==2.14.4
+  - pydantic-core==2.50.5
   - pygments==2.21.0
-  - pyyaml==6.0.3
-  - regex==2026.11.7
+  - pyyaml==6.0.4
+  - regex==2026.11.19
   - rich==15.0.0
   - safetensors==0.8.0
   - setuptools==84.2.1
@@ -773,11 +796,12 @@ components:
   - tokenizers==0.23.3
   - torch==2.15.0
   - tqdm==4.70.1
-  - transformers==5.22.2
+  - transformers==5.24.0
   - triton==3.9.0
   - truststore==0.10.5
-  - typer==0.28.0
+  - typer==0.29.2
   - typing-extensions==4.16.0
+  - typing-inspection==0.4.5
   dist: awembed
 - id: awevolve
   name: awevolve
@@ -807,7 +831,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -828,7 +852,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -864,9 +888,9 @@ components:
 - id: awgit
   name: awgit
   kind: pypi
-  version: 1.12.1
-  pin: sha256:a6cf6e52216656d6133a92ca78c9ae7cc8a5701bcc862a9587376b18eae9644c
-  url: https://files.pythonhosted.org/packages/01/ba/7dcec7d45e40b6680d00ba750dc7f0e0a06629698c631e6d8f892692edbf/awgit-1.12.1-py3-none-any.whl
+  version: 1.14.1
+  pin: sha256:e851a8f5c51626cba9154ca0a10b80dcfe3441d1e97cea34130899b1323ec2b3
+  url: https://files.pythonhosted.org/packages/78/96/5eed127acef444da54ccd8f8bd095655398f2ad07989e385f13caff0ef8b/awgit-1.14.1-py3-none-any.whl
   provides:
   - awgit
   requires_license: false
@@ -875,7 +899,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -885,9 +909,9 @@ components:
 - id: awgraph
   name: awgraph
   kind: pypi
-  version: 1.4.14
-  pin: sha256:d20dc3111decca873d1c4db94b86848389beb597999bbed1dad50c9037bf577e
-  url: https://files.pythonhosted.org/packages/99/8c/f1e98c89c05d272e96d7f77f9f6ea428375624a7d4d7a1384f35d2257827/awgraph-1.4.14-py3-none-any.whl
+  version: 1.4.19
+  pin: sha256:bed9b543049ff0d29e8f0d2da5e0045123ee72482271c32532613d59f141ec7f
+  url: https://files.pythonhosted.org/packages/42/65/662130e62786467de6b1ecaa313b1e5b5c6e5ec49c93bd84e7a1e6b0175b/awgraph-1.4.19-py3-none-any.whl
   provides:
   - awgraph
   requires_license: false
@@ -896,7 +920,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -956,9 +980,9 @@ components:
 - id: awkno
   name: awkno
   kind: pypi
-  version: 0.2.7
-  pin: sha256:0cd890bb3ba5ae51321a0ffae5e7737d3bd011eb25092d6bc48df59a5c7fec4c
-  url: https://files.pythonhosted.org/packages/fc/f8/069a63871e323e768b0e3716ce1ce1796c0c2e3cd93cbcdb6e964cf44aab/awkno-0.2.7-py3-none-any.whl
+  version: 0.3.0
+  pin: sha256:2c416afaf02c50200b3d6e71596ea433b7c5cd8734ecb675391a231880795469
+  url: https://files.pythonhosted.org/packages/39/dd/7ae12fd68be45cf1f1478dd7457be4d8952f15c5777107946d2057bb3441/awkno-0.3.0-py3-none-any.whl
   provides:
   - awkno
   requires_license: false
@@ -966,7 +990,7 @@ components:
   available: true
   reason: ''
   deps:
-  - pyyaml==6.0.3
+  - pyyaml==6.0.4
   dist: awkno
 - id: awknowledge
   name: awknowledge
@@ -1007,9 +1031,9 @@ components:
 - id: awm
   name: awm
   kind: pypi
-  version: 0.6.1
-  pin: sha256:08911e3a4343de68fda9fc23707f4a3bf906b5b17570f4dad531b8ab0026e71f
-  url: https://files.pythonhosted.org/packages/10/7d/9a5ab1bd32566cb7a659feb2bba3ba544386a82c754b1f22c937c2f28d99/awm-0.6.1-py3-none-any.whl
+  version: 0.6.3
+  pin: sha256:9c655cb25f278775af3e61cf38a88053100986772f0f8d84e04575d97e7a0c09
+  url: https://files.pythonhosted.org/packages/28/e0/aef655d43f583b5ec0f57ec5ab07c62663c199d660bfa31bee3d4f2c53dc/awm-0.6.3-py3-none-any.whl
   provides:
   - awm
   requires_license: false
@@ -1035,9 +1059,9 @@ components:
 - id: awmine
   name: awmine
   kind: git
-  version: 06e4d088edce
-  pin: 06e4d088edce0cc789dcbef2951ea16ff04439a2
-  url: git+https://github.com/Aitherium/awmine.git@06e4d088edce0cc789dcbef2951ea16ff04439a2
+  version: c6facc556d23
+  pin: c6facc556d23a9fe5f77e5889daf8a8cf31c28db
+  url: git+https://github.com/Aitherium/awmine.git@c6facc556d23a9fe5f77e5889daf8a8cf31c28db
   provides:
   - awmine
   requires_license: false
@@ -1086,7 +1110,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -1122,9 +1146,9 @@ components:
 - id: awnode
   name: awnode
   kind: pypi
-  version: 0.3.6
-  pin: sha256:46fa6ca5ad30dc4f7e971e4b6ad8a62e0b3071dbb32d14b907cffad263615f54
-  url: https://files.pythonhosted.org/packages/2f/7e/f4b51760ca92df322a76cd24fb81ad7073b285f1b87e18ec1e0564087bae/awnode-0.3.6-py3-none-any.whl
+  version: 0.3.7
+  pin: sha256:361a25070116630efe39b4a80299ce725c62d29f143b3f0176b8761b40e72ea6
+  url: https://files.pythonhosted.org/packages/64/03/65475f8d05ea373a25658431d25a32906e941b017cbb5ecb3316789f9027/awnode-0.3.7-py3-none-any.whl
   provides:
   - awnode
   - awnode-mcp
@@ -1134,29 +1158,29 @@ components:
   reason: ''
   deps:
   - aiosqlite==0.22.1
-  - annotated-doc==0.0.5
+  - annotated-doc==0.0.7
   - annotated-types==0.8.0
   - anyio==4.16.0
   - attrs==26.1.0
-  - awdk==3.8.97
-  - awgit==1.12.1
-  - awgraph==1.4.14
-  - awrelay==0.5.1
+  - awdk==3.8.108
+  - awgit==1.14.1
+  - awgraph==1.4.19
+  - awrelay==0.5.3
   - awreport==0.2.0
-  - awsettings==0.3.13
-  - certifi==2026.10.23
+  - awsettings==0.3.14
+  - certifi==2026.11.20
   - cffi==2.1.1
   - charset-normalizer==3.5.2
   - click==8.5.1
   - cryptography==50.0.2
   - ddgs==9.16.1
-  - fastapi==0.162.0
+  - fastapi==0.165.0
   - h11==0.16.0
   - httpcore==1.0.9
-  - httpcore2==2.16.0
+  - httpcore2==2.16.2
   - httptools==0.9.0
   - httpx==0.28.1
-  - httpx2==2.16.0
+  - httpx2==2.16.2
   - idna==3.20
   - jinja2==3.1.6
   - jsonschema==4.26.0
@@ -1168,17 +1192,17 @@ components:
   - opentelemetry-api==1.45.2
   - primp==2.0.1
   - pycparser==3.12
-  - pydantic==2.14.3
-  - pydantic-core==2.50.4
+  - pydantic==2.14.4
+  - pydantic-core==2.50.5
   - pyjwt==2.15.1
   - python-dotenv==1.2.4
-  - python-multipart==0.0.33
-  - pyyaml==6.0.3
+  - python-multipart==0.0.34
+  - pyyaml==6.0.4
   - qrcode==8.2
   - referencing==0.37.0
   - requests==2.34.2
   - rpds-py==2026.9.1
-  - sse-starlette==3.6.0
+  - sse-starlette==3.7.0
   - starlette==1.10.0
   - truststore==0.10.5
   - typing-extensions==4.16.0
@@ -1192,9 +1216,9 @@ components:
 - id: awpack
   name: awpack
   kind: git
-  version: 2526b88d5232
-  pin: 2526b88d52327a70ba5124aa138958436705a31e
-  url: git+https://github.com/Aitherium/awpack.git@2526b88d52327a70ba5124aa138958436705a31e
+  version: 3c6ce2b6e5fb
+  pin: 3c6ce2b6e5fbfba84a91564aa6817805a35d21b2
+  url: git+https://github.com/Aitherium/awpack.git@3c6ce2b6e5fbfba84a91564aa6817805a35d21b2
   provides:
   - awpack
   requires_license: true
@@ -1203,6 +1227,23 @@ components:
   reason: ''
   deps: []
   dist: awpack
+- id: awpermit
+  name: awpermit
+  kind: git
+  version: 255d780b339c
+  pin: 255d780b339ce987cb68748b4ee5d504b94925de
+  url: git+https://github.com/Aitherium/awpermit.git@255d780b339ce987cb68748b4ee5d504b94925de
+  provides:
+  - awpermit
+  requires_license: false
+  entitlement: core
+  available: true
+  reason: ''
+  deps:
+  - cffi==2.1.1
+  - cryptography==50.0.2
+  - pycparser==3.12
+  dist: awpermit
 - id: awpool
   name: awpool
   kind: pypi
@@ -1220,9 +1261,9 @@ components:
 - id: awpredict
   name: awpredict
   kind: git
-  version: 8580f1b1ee4c
-  pin: 8580f1b1ee4cf6f8c270bdf6d671530fa125c81d
-  url: git+https://github.com/Aitherium/awpredict.git@8580f1b1ee4cf6f8c270bdf6d671530fa125c81d
+  version: f8ef9221043d
+  pin: f8ef9221043d0112fe647080cafbd82a6788ef5e
+  url: git+https://github.com/Aitherium/awpredict.git@f8ef9221043d0112fe647080cafbd82a6788ef5e
   provides:
   - awpredict
   requires_license: false
@@ -1271,7 +1312,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -1310,7 +1351,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -1320,9 +1361,9 @@ components:
 - id: awrelay
   name: awrelay
   kind: pypi
-  version: 0.5.1
-  pin: sha256:ebf5d51739769c497ed387b711440f04a1b744dcf4298f2bdc6ce89ac502a3cb
-  url: https://files.pythonhosted.org/packages/01/e0/de9eef74aadc17220fe2d4e32c6e716fcadbc799a9603ccd9e73b45ba6b7/awrelay-0.5.1-py3-none-any.whl
+  version: 0.5.3
+  pin: sha256:99c5d78fc2e147d08c53d58b519b27ff4dd018e31a652aded4fa832aab398641
+  url: https://files.pythonhosted.org/packages/78/5f/2cca2c939bf2c5850c22eec8cf991609e3427f47b2d520eda43da453119d/awrelay-0.5.3-py3-none-any.whl
   provides:
   - awrelay
   requires_license: false
@@ -1331,7 +1372,7 @@ components:
   reason: ''
   deps:
   - anyio==4.16.0
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - h11==0.16.0
   - httpcore==1.0.9
   - httpx==0.28.1
@@ -1379,7 +1420,7 @@ components:
   available: true
   reason: ''
   deps:
-  - certifi==2026.10.23
+  - certifi==2026.11.20
   - charset-normalizer==3.5.2
   - idna==3.20
   - requests==2.34.2
@@ -1399,22 +1440,22 @@ components:
   reason: ''
   deps:
   - aiosqlite==0.22.1
-  - annotated-doc==0.0.5
+  - annotated-doc==0.0.7
   - annotated-types==0.8.0
   - anyio==4.16.0
-  - awdk==3.8.97
-  - awgit==1.12.1
-  - awgraph==1.4.14
-  - awrelay==0.5.1
+  - awdk==3.8.108
+  - awgit==1.14.1
+  - awgraph==1.4.19
+  - awrelay==0.5.3
   - awreport==0.2.0
-  - awsettings==0.3.13
-  - certifi==2026.10.23
+  - awsettings==0.3.14
+  - certifi==2026.11.20
   - cffi==2.1.1
   - charset-normalizer==3.5.2
   - click==8.5.1
   - cryptography==50.0.2
   - ddgs==9.16.1
-  - fastapi==0.162.0
+  - fastapi==0.165.0
   - h11==0.16.0
   - httpcore==1.0.9
   - httptools==0.9.0
@@ -1426,10 +1467,10 @@ components:
   - opentelemetry-api==1.45.2
   - primp==2.0.1
   - pycparser==3.12
-  - pydantic==2.14.3
-  - pydantic-core==2.50.4
+  - pydantic==2.14.4
+  - pydantic-core==2.50.5
   - python-dotenv==1.2.4
-  - pyyaml==6.0.3
+  - pyyaml==6.0.4
   - qrcode==8.2
   - requests==2.34.2
   - starlette==1.10.0
@@ -1456,9 +1497,9 @@ components:
 - id: awrise
   name: awrise
   kind: pypi
-  version: 0.4.1
-  pin: sha256:1a66ce29e8a437b25178976ef6c42527d869ddcbd0ac8a28f4d42c81835c564a
-  url: https://files.pythonhosted.org/packages/e7/55/29a204566caee13b91b6ee458491bdf004af8430bf4d0a0012c8158d5f69/awrise-0.4.1-py3-none-any.whl
+  version: 0.6.1
+  pin: sha256:30141e2e1d59b51ba55d17abd8ccfc8061c6aa58a371f59bfea7c4af77f610b7
+  url: https://files.pythonhosted.org/packages/60/6b/ec1705c6eb713149a55272353224ca7ac587092a77dd4d8e0e7ae44971dc/awrise-0.6.1-py3-none-any.whl
   provides:
   - awrise
   requires_license: false
@@ -1484,9 +1525,9 @@ components:
 - id: awrtifact
   name: awrtifact
   kind: pypi
-  version: 0.4.0
-  pin: sha256:8fb92eef72ec97b26186c156503dc410304f969f977707acb21abad6980d83fe
-  url: https://files.pythonhosted.org/packages/ca/08/ecb4808b396c4194c1c161777aa7a3262f90ac5dac6721084a73661789c6/awrtifact-0.4.0-py3-none-any.whl
+  version: 0.7.0
+  pin: sha256:3c91d19280b070f88b8a3ac64391e2ab87e8784289f96d5f9794f485887640bf
+  url: https://files.pythonhosted.org/packages/da/6e/8c887f92dbadb2d29e2cf177ce75721b04226deeaec2ffd006119f57bb8c/awrtifact-0.7.0-py3-none-any.whl
   provides:
   - awrtifact
   requires_license: false
@@ -1498,9 +1539,9 @@ components:
 - id: awrun
   name: awrun
   kind: pypi
-  version: 0.2.5
-  pin: sha256:7eb1928337ffc59471429cc79f23bd2a346df3472cd8eccb34a8e2fe7ad93f6c
-  url: https://files.pythonhosted.org/packages/69/0f/6b5b7fa4a9af87e25f573682961bf15311ebb36b4baac0f21c9f3e98d57a/awrun-0.2.5-py3-none-any.whl
+  version: 0.2.9
+  pin: sha256:7f20f821bbfe635b9c59f3d286f21a2efdf163b0078ef70678d33a0601839b35
+  url: https://files.pythonhosted.org/packages/d4/e0/c2bd8e59ed5e2a7090c81172edd3554d4baa3d26e028bb8914db58681da4/awrun-0.2.9-py3-none-any.whl
   provides:
   - awrun
   requires_license: false
@@ -1526,16 +1567,18 @@ components:
 - id: awscreen
   name: awscreen
   kind: pypi
-  version: 1.0.0
-  pin: sha256:6832e2e8c40615710bf6026cbd39a89b593259f7bf2b147c7932f0b5bde61ece
-  url: https://files.pythonhosted.org/packages/07/30/2831dc2ed5a33f619afc7aae5469bf832cbd61e8170351a798ed93913474/awscreen-1.0.0-py3-none-any.whl
+  version: 1.2.0
+  pin: sha256:552f54df235f54f98b6cb6a73abf5f137b03580c8e512a3768a2f7607bd8664b
+  url: https://files.pythonhosted.org/packages/fb/4f/43af6d80eee4e147945213a9c37ca43119ebeab261d95f4533c3d777deb4/awscreen-1.2.0-py3-none-any.whl
   provides:
   - awscreen
   requires_license: false
   entitlement: core
   available: true
   reason: ''
-  deps: []
+  deps:
+  - awvision==0.3.3
+  - pillow==13.0.0
   dist: awscreen
 - id: awseal
   name: awseal
@@ -1557,9 +1600,9 @@ components:
 - id: awsettings
   name: awsettings
   kind: pypi
-  version: 0.3.13
-  pin: sha256:9a03eba44a149cc78c1c9b00b13051ddcf3390cc551da9de55ce6be982d7b7f4
-  url: https://files.pythonhosted.org/packages/ee/db/702bf258baee523ec7b451a2cd3321e99f26088b37cc487075a445c4f3ba/awsettings-0.3.13-py3-none-any.whl
+  version: 0.3.14
+  pin: sha256:cb744a72dbf0971321bfbfcc36c210a747068825b154ecfd76bb3f774c57ce66
+  url: https://files.pythonhosted.org/packages/71/9b/06892d78c858e1830a3bb272b8741034dcd95fb5d68865d51bf6eea92049/awsettings-0.3.14-py3-none-any.whl
   provides:
   - awsettings
   requires_license: false
@@ -1570,15 +1613,19 @@ components:
   dist: awsettings
 - id: awsh
   name: awsh
-  kind: pypi
-  version: ''
-  pin: ''
-  url: ''
-  provides: []
+  kind: npm
+  version: 1.19.8
+  pin: sha512-hlfKIlKBg8kAG8eBLdlCT5GyAH+leSp5doLS3oReZYXp7MuGL6Tf3kBOkIcrLISLDy4uDerUD78w8Ndd0ELj5w==
+  url: npm:@aitherium/awsh@1.19.8
+  provides:
+  - aither
+  - aither-shell
+  - awsh
   requires_license: false
   entitlement: core
   available: false
-  reason: not a pip-installable brick (npm i -g @aitherium/awsh)
+  reason: 'npm-only brick: install with `npm i -g @aitherium/awsh`; the component installer manages pip
+    bricks'
   deps: []
 - id: awshare
   name: awshare
@@ -1635,9 +1682,9 @@ components:
 - id: awstorage
   name: awstorage
   kind: pypi
-  version: 0.5.4
-  pin: sha256:3cde5e45e2486d2c4ee4957c0d4f5bf6cafc34133601ed20cc2646645eee031d
-  url: https://files.pythonhosted.org/packages/80/ed/6a19878871ff3550a029b6de9642ec85b6b6e3f3d61dc18f970f19d2b36e/awstorage-0.5.4-py3-none-any.whl
+  version: 0.10.5
+  pin: sha256:44da605e30deefa261c3b0b92e98a38906020430d8ccb5824e5f40c5b8ab7bb7
+  url: https://files.pythonhosted.org/packages/dc/a0/7d1d018480908a060d580a0bf3a6e13a30b8fc3dea14e85871ac8bde6e08/awstorage-0.10.5-py3-none-any.whl
   provides:
   - awstorage
   requires_license: false
@@ -1646,6 +1693,20 @@ components:
   reason: ''
   deps: []
   dist: awstorage
+- id: awsuite
+  name: awsuite
+  kind: pypi
+  version: 0.1.1
+  pin: sha256:baecc3147f2c9b36a4ee5f8ea0afd7cc33737f05a7595f628735846e7054ca02
+  url: https://files.pythonhosted.org/packages/34/23/8b762595940474ca8d9e0c147b0d3d9a0e6f2fd2028d99226e68fe1a7700/awsuite-0.1.1-py3-none-any.whl
+  provides:
+  - awsuite
+  requires_license: false
+  entitlement: core
+  available: true
+  reason: ''
+  deps: []
+  dist: awsuite
 - id: awswarm
   name: awswarm
   kind: pypi
@@ -1689,14 +1750,14 @@ components:
   - flatbuffers==25.12.19
   - networkx==3.6.1
   - numpy==2.4.6
-  - onnxruntime==1.31.1
+  - onnxruntime==1.32.0
   - packaging==26.3
   - protobuf==7.36.2
   - psutil==7.2.2
   - pymupdf==2.1
   - pymupdf-layout==2.1
   - pymupdf4llm==2.1
-  - pyyaml==6.0.3
+  - pyyaml==6.0.4
   - tabulate==0.10.0
   dist: awtax
 - id: awtoll
@@ -1730,9 +1791,9 @@ components:
 - id: awvision
   name: awvision
   kind: pypi
-  version: 0.3.2
-  pin: sha256:5ebc3fe09401b2517c4feb019599e7a2451beaa9e710baf4542c70c77bd5d136
-  url: https://files.pythonhosted.org/packages/29/16/6ac054d573388faf8e724114a6fa14746400040ed53dcc88fc897dc1a87d/awvision-0.3.2-py3-none-any.whl
+  version: 0.3.3
+  pin: sha256:955956a7f6cbd13c424a7f8dc4d1b518cd2f23a320fa9358ccb90f65771d4c20
+  url: https://files.pythonhosted.org/packages/b5/4d/813271618bf0ff5954f4ada703af889bd18739464555e7357e53055dbad6/awvision-0.3.3-py3-none-any.whl
   provides:
   - awvision
   requires_license: false
@@ -1744,9 +1805,9 @@ components:
 - id: awvoice
   name: awvoice
   kind: pypi
-  version: 0.3.0
-  pin: sha256:59fc3db263bc815c18237d2ca107a1f2589fba99cdab0e81367250a3be89c479
-  url: https://files.pythonhosted.org/packages/80/b0/d47a04ba5dfe960cd14f4c9826d4b8a28b35d35967aa3d57e1d346b2aea7/awvoice-0.3.0-py3-none-any.whl
+  version: 0.5.2
+  pin: sha256:145b79c7e2fe1c18e3d972debb60ac467fe2395aa586978b3400c6f70ff33d7b
+  url: https://files.pythonhosted.org/packages/40/57/ea90e4ee17ad933a0fe4c7859e646c38e2ee1c957c96e482ebffe263dcf4/awvoice-0.5.2-py3-none-any.whl
   provides:
   - awvoice
   requires_license: false
@@ -1758,9 +1819,9 @@ components:
 - id: awwall
   name: awwall
   kind: pypi
-  version: 0.1.0
-  pin: sha256:2022ae6726ce6b36dd456137796da3e65b836cd5119495741e47bd4465226cb5
-  url: https://files.pythonhosted.org/packages/f4/12/50ba110929feb6ab31205826a321b990102a9b2c07c22b7ad0da240eb0c9/awwall-0.1.0-py3-none-any.whl
+  version: 0.1.1
+  pin: sha256:7c75386fa0d8f981b57e6c4f5590562b39b1b504681ebafdfb44a0260fd30517
+  url: https://files.pythonhosted.org/packages/df/97/6fc1227f2387ce86edef3b61333bb5d761e99c5032a715d10b6e431ea91c/awwall-0.1.1-py3-none-any.whl
   provides:
   - awwall
   requires_license: false
@@ -1817,7 +1878,7 @@ components:
   requires_license: true
   entitlement: addon:mesh
   available: false
-  reason: no published image ghcr.io/aitherium/aitheros-agentenv:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: aitherbooking
   name: AitherBooking
@@ -1834,23 +1895,15 @@ components:
 - id: aitherbrain
   name: AitherBrain
   kind: container
-  version: latest@9b125871971a
-  pin: sha256:9b125871971a43184d890f28dbcdf346be52918994dfdb25c122a0af8cf1f332
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-brain
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8271
-      container: 8271
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8271/health
 - id: aithercns
   name: AitherCNS
   kind: container
@@ -1885,7 +1938,7 @@ components:
   requires_license: true
   entitlement: core
   available: false
-  reason: no published image ghcr.io/aitherium/aitheros-claude-bridge:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: aithercommerce
   name: AitherCommerce
@@ -1974,23 +2027,15 @@ components:
 - id: autoresearch
   name: AutoResearch
   kind: container
-  version: latest@6fab48484722
-  pin: sha256:6fab48484722c35b8e12e6eae435d32762dd1f5f52f0f6573474223b50a314f2
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-autoresearch
   provides: []
   requires_license: true
   entitlement: addon:training
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8251
-      container: 8251
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8251/health
 - id: autorig
   name: AutoRig
   kind: container
@@ -2001,7 +2046,7 @@ components:
   requires_license: true
   entitlement: addon:creative
   available: false
-  reason: no published image ghcr.io/aitherium/aitheros-autorig:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: autoscale
   name: AutoScale
@@ -2025,7 +2070,7 @@ components:
   requires_license: true
   entitlement: addon:automation
   available: false
-  reason: no published image ghcr.io/aitherium/aitheros-automation-core:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: axiom
   name: Axiom
@@ -2061,7 +2106,7 @@ components:
   requires_license: true
   entitlement: addon:gpu-inference
   available: false
-  reason: no published image ghcr.io/aitherium/aither-benchmark-lab:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: bonsaiimage
   name: BonsaiImage
@@ -2102,23 +2147,15 @@ components:
 - id: chaosagent
   name: ChaosAgent
   kind: container
-  version: latest@9c6a01e6234c
-  pin: sha256:9c6a01e6234c6043c743e820201d0a72e375d3058533b2f985e94836317917c8
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-chaos-agent
   provides: []
   requires_license: true
   entitlement: addon:security-plus
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8787
-      container: 8787
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8787/health
 - id: chelle
   name: Chelle
   kind: container
@@ -2177,7 +2214,7 @@ components:
   requires_license: true
   entitlement: core
   available: false
-  reason: no published image ghcr.io/aitherium/aither-cognition-advanced:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: cognitionci
   name: CognitionCI
@@ -2189,48 +2226,32 @@ components:
   requires_license: true
   entitlement: core
   available: false
-  reason: no published image ghcr.io/aitherium/aither-cognition-ci:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: cognitioncore
   name: CognitionCore
   kind: container
-  version: latest@9b125871971a
-  pin: sha256:9b125871971a43184d890f28dbcdf346be52918994dfdb25c122a0af8cf1f332
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-cognition-core
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8097
-      container: 8097
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8097/health
 - id: comfyui3d
   name: ComfyUI3D
   kind: container
-  version: latest@f3f00807409e
-  pin: sha256:f3f00807409e816e35c1a1dcaa6d087cc10d5f44842b8f4aefacd7ce80ffd316
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-comfyui-3d
   provides: []
   requires_license: true
   entitlement: addon:creative
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8289
-      container: 8289
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8289/health
 - id: compute
   name: Compute
   kind: container
@@ -2265,7 +2286,7 @@ components:
   requires_license: true
   entitlement: addon:creative
   available: false
-  reason: no published image ghcr.io/aitherium/aitheros-creative-engine:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: dgg
   name: DGG
@@ -2313,7 +2334,7 @@ components:
   requires_license: true
   entitlement: core
   available: false
-  reason: no published image ghcr.io/aitherium/aither-desktop-web:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: directory
   name: Directory
@@ -2354,23 +2375,15 @@ components:
 - id: evolutioncore
   name: EvolutionCore
   kind: container
-  version: latest@c0471b6ed842
-  pin: sha256:c0471b6ed842c65e789c0982b4f95a263e889e7eaca1addcd833ad231db58f2d
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-evolution-core
   provides: []
   requires_license: true
   entitlement: addon:training
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8211
-      container: 8211
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8211/health
 - id: exo
   name: Exo
   kind: container
@@ -2429,28 +2442,20 @@ components:
   requires_license: true
   entitlement: core
   available: false
-  reason: no published image ghcr.io/aitherium/aither-flux:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: forgeidebackend
   name: ForgeIDEBackend
   kind: container
-  version: latest@66dff974b3a1
-  pin: sha256:66dff974b3a1084175891d44d03a974c6184e29dcd8371b5856c691f9250aba2
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-forge-ide
   provides: []
   requires_license: true
   entitlement: addon:automation
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8142
-      container: 8142
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8142/health
 - id: gargbot
   name: Gargbot
   kind: container
@@ -2478,23 +2483,15 @@ components:
 - id: genesis
   name: Genesis
   kind: container
-  version: latest@f1f3acf5cc6c
-  pin: sha256:f1f3acf5cc6caa4042a468f5b43a158d65b0d8c73df6b14ce3467d8cbfb29c23
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-genesis
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8001
-      container: 8001
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8001/health
 - id: geo
   name: Geo
   kind: container
@@ -2582,23 +2579,15 @@ components:
 - id: knowledgegraph
   name: KnowledgeGraph
   kind: container
-  version: latest@84158fde9eb7
-  pin: sha256:84158fde9eb783af38d322fae8af4ca8aad07115c5d5d26acd6b86bce9e9b969
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-knowledgegraph
   provides: []
   requires_license: true
   entitlement: addon:memory-plus
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8196
-      container: 8196
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8196/health
 - id: kodokevo
   name: KodokEvo
   kind: container
@@ -2614,23 +2603,15 @@ components:
 - id: livecontext
   name: LiveContext
   kind: container
-  version: latest@29e7753cbef0
-  pin: sha256:29e7753cbef001679c84486a3335dc7313908161b8b9818264b25cfe4eb3137a
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-livecontext
   provides: []
   requires_license: true
   entitlement: addon:memory-plus
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8098
-      container: 8098
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8098/health
 - id: loggraph
   name: LogGraph
   kind: container
@@ -2641,28 +2622,20 @@ components:
   requires_license: true
   entitlement: core
   available: false
-  reason: no published image ghcr.io/aitherium/aither-log-graph:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: lyrawiki
   name: LyraWiki
   kind: container
-  version: latest@682db49d7b81
-  pin: sha256:682db49d7b81942c27a891d008e06ef717be0e53570fbc0f993ad10eaa13b7e5
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-lyra
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8270
-      container: 8270
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8270/health
 - id: mailcore
   name: MailCore
   kind: container
@@ -2673,7 +2646,7 @@ components:
   requires_license: true
   entitlement: addon:business
   available: false
-  reason: no published image ghcr.io/aitherium/aitheros-mail:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: memorycore
   name: MemoryCore
@@ -2685,7 +2658,7 @@ components:
   requires_license: true
   entitlement: core
   available: false
-  reason: no published image ghcr.io/aitherium/aither-memory-core:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: mesh
   name: Mesh
@@ -2714,23 +2687,15 @@ components:
 - id: microscheduler
   name: MicroScheduler
   kind: container
-  version: latest@0caebdf454bd
-  pin: sha256:0caebdf454bd406b39be66c4980b1d0342bacdd211120b39b45b1e45bad67c13
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-microscheduler
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8150
-      container: 8150
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8150/health
 - id: mind
   name: Mind
   kind: container
@@ -2746,23 +2711,15 @@ components:
 - id: omninodesettlementreconciler
   name: OmniNodeSettlementReconciler
   kind: container
-  version: latest@66dff974b3a1
-  pin: sha256:66dff974b3a1084175891d44d03a974c6184e29dcd8371b5856c691f9250aba2
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-omninode-settlement
   provides: []
   requires_license: true
   entitlement: addon:mesh
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8160
-      container: 8160
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8160/health
 - id: omniparser
   name: OmniParser
   kind: container
@@ -2778,23 +2735,15 @@ components:
 - id: perceptioncore
   name: PerceptionCore
   kind: container
-  version: latest@ccc8372852ef
-  pin: sha256:ccc8372852ef3ea8f425d44396161a6da66dd27b1978ea4c08c1dca1e781a4b8
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-perception-core
   provides: []
   requires_license: true
   entitlement: addon:perception
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8096
-      container: 8096
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8096/health
 - id: perceptionmedia
   name: PerceptionMedia
   kind: container
@@ -2805,48 +2754,32 @@ components:
   requires_license: true
   entitlement: addon:perception
   available: false
-  reason: no published image ghcr.io/aitherium/aither-perception-media:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: portalgateway
   name: PortalGateway
   kind: container
-  version: latest@1116db697f18
-  pin: sha256:1116db697f1865e09272147d9df3413fd75b8c1eae4e631f1dd9b9f883169d8a
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-portal-gateway
   provides: []
   requires_license: true
   entitlement: addon:automation
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8206
-      container: 8206
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8206/health
 - id: prometheus
   name: Prometheus
   kind: container
-  version: latest@9b125871971a
-  pin: sha256:9b125871971a43184d890f28dbcdf346be52918994dfdb25c122a0af8cf1f332
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-worldengine
   provides: []
   requires_license: true
   entitlement: addon:creative
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8178
-      container: 8178
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8178/health
 - id: prometheusagent
   name: PrometheusAgent
   kind: container
@@ -2910,23 +2843,15 @@ components:
 - id: remotionrenderer
   name: RemotionRenderer
   kind: container
-  version: latest@3b961984e55d
-  pin: sha256:3b961984e55ddf4b815d48ebe2e0b3b72eba8c155635caf0a8f82391526b3741
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-remotion-renderer
   provides: []
   requires_license: true
   entitlement: addon:creative
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 3700
-      container: 3700
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:3700/health
 - id: safety
   name: Safety
   kind: container
@@ -2990,43 +2915,27 @@ components:
 - id: securitycore
   name: SecurityCore
   kind: container
-  version: latest@66dff974b3a1
-  pin: sha256:66dff974b3a1084175891d44d03a974c6184e29dcd8371b5856c691f9250aba2
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-security-core
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8115
-      container: 8115
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8115/health
 - id: securitydefense
   name: SecurityDefense
   kind: container
-  version: latest@60bd274cab4b
-  pin: sha256:60bd274cab4bef9367140296909de361aae4d0e9c5c99eeeda805b914999cd80
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-security-defense
   provides: []
   requires_license: true
   entitlement: addon:security-plus
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8127
-      container: 8127
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8127/health
 - id: shop
   name: Shop
   kind: container
@@ -3078,23 +2987,15 @@ components:
 - id: sovereignnode
   name: SovereignNode
   kind: container
-  version: latest@b6deb360955f
-  pin: sha256:b6deb360955f8ba6eeb38b617b7ae5333d25fc14beeafe083d5d6db4dfdf4b6a
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-sovereign-node
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8139
-      container: 8139
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8139/health
 - id: spirit
   name: Spirit
   kind: container
@@ -3105,7 +3006,7 @@ components:
   requires_license: true
   entitlement: core
   available: false
-  reason: no published image ghcr.io/aitherium/aither-spirit:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: strata
   name: Strata
@@ -3122,23 +3023,15 @@ components:
 - id: stratameshreplicationtrigger
   name: StrataMeshReplicationTrigger
   kind: container
-  version: latest@66dff974b3a1
-  pin: sha256:66dff974b3a1084175891d44d03a974c6184e29dcd8371b5856c691f9250aba2
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-strata-mesh-repl
   provides: []
   requires_license: true
   entitlement: addon:mesh
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 9999
-      container: 9999
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:9999/health
 - id: stream
   name: Stream
   kind: container
@@ -3161,7 +3054,7 @@ components:
   requires_license: true
   entitlement: addon:mesh
   available: false
-  reason: no published image ghcr.io/aitherium/sovereign-sync:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: tag
   name: Tag
@@ -3197,7 +3090,7 @@ components:
   requires_license: true
   entitlement: addon:perception
   available: false
-  reason: no published image ghcr.io/aitherium/aitheros-texel-studio:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: threatguard
   name: ThreatGuard
@@ -3209,7 +3102,7 @@ components:
   requires_license: true
   entitlement: addon:security-plus
   available: false
-  reason: no published image ghcr.io/aitherium/aither-threat-guard:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: trainingpipeline
   name: TrainingPipeline
@@ -3221,7 +3114,7 @@ components:
   requires_license: true
   entitlement: addon:gpu-inference
   available: false
-  reason: no published image ghcr.io/aitherium/aitheros-training-pipeline:latest
+  reason: 'registry token refused (HTTP 403): private image, resolved in CI with read:packages'
   deps: []
 - id: transcoder
   name: Transcoder
@@ -3238,23 +3131,15 @@ components:
 - id: tunnel
   name: Tunnel
   kind: container
-  version: latest@b6deb360955f
-  pin: sha256:b6deb360955f8ba6eeb38b617b7ae5333d25fc14beeafe083d5d6db4dfdf4b6a
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-tunnel-service
   provides: []
   requires_license: true
   entitlement: addon:mesh
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8310
-      container: 8310
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8310/health
 - id: vibe
   name: VIBE
   kind: container
@@ -3270,43 +3155,27 @@ components:
 - id: veil
   name: Veil
   kind: container
-  version: latest@7746a2464649
-  pin: sha256:7746a2464649f61211e966a03de99fede9649ea94f1d5ad008aa52c13a6429b4
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-veil
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 3000
-      container: 3000
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:3000/health
 - id: voicecloner
   name: VoiceCloner
   kind: container
-  version: latest@83d200f4812a
-  pin: sha256:83d200f4812ab3a96211e317c3f6bf73ca60364b04095f83aeebf053c7a1bfc3
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-voice-cloner
   provides: []
   requires_license: true
   entitlement: addon:perception
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8768
-      container: 8768
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8768/health
 - id: watch
   name: Watch
   kind: container
@@ -3334,43 +3203,27 @@ components:
 - id: workflowhub
   name: WorkflowHub
   kind: container
-  version: latest@1116db697f18
-  pin: sha256:1116db697f1865e09272147d9df3413fd75b8c1eae4e631f1dd9b9f883169d8a
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-workflow-hub
   provides: []
   requires_license: true
   entitlement: addon:automation
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8175
-      container: 8175
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8175/health
 - id: workingmemory
   name: WorkingMemory
   kind: container
-  version: latest@84158fde9eb7
-  pin: sha256:84158fde9eb783af38d322fae8af4ca8aad07115c5d5d26acd6b86bce9e9b969
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/aitheros-workingmemory
   provides: []
   requires_license: true
   entitlement: core
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
-  quadlet:
-    ports:
-    - host: 8101
-      container: 8101
-    volumes:
-    - dest: /data
-    env: []
-    health: http://127.0.0.1:8101/health
 - id: worldmodel
   name: WorldModel
   kind: container
@@ -3387,7 +3240,7 @@ components:
   name: aitherbrowser
   kind: pack
   version: 0.1.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 588157eb56ab65961ea74b0c9e2dece4823841c6
   url: awpack://aitherbrowser
   provides: []
   requires_license: true
@@ -3399,7 +3252,7 @@ components:
   name: awconnect
   kind: pack
   version: 0.1.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 01adf759bada9be429d9c363ede3b047d8d70c5a
   url: awpack://awconnect
   provides: []
   requires_license: true
@@ -3411,7 +3264,7 @@ components:
   name: bead-space
   kind: pack
   version: 0.2.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 2f5d62ddc883cf699c59278be92cfb319222950c
   url: awpack://bead-space
   provides: []
   requires_license: true
@@ -3423,7 +3276,7 @@ components:
   name: dgg-research
   kind: pack
   version: 0.1.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 429da6d6297657336cf93beb8c1cf1a7623ba42a
   url: awpack://dgg-research
   provides: []
   requires_license: true
@@ -3435,7 +3288,7 @@ components:
   name: free-cloud
   kind: pack
   version: 0.1.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: ba3acad6a1f46a4c0907bc8e83886a5371653be6
   url: awpack://free-cloud
   provides: []
   requires_license: true
@@ -3447,7 +3300,7 @@ components:
   name: gobbonet
   kind: pack
   version: 0.2.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 2f9befe8b63f28edabcbdf133dc11ecddcf68678
   url: awpack://gobbonet
   provides: []
   requires_license: true
@@ -3459,7 +3312,7 @@ components:
   name: persona
   kind: pack
   version: 0.1.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 1726e0fe6330b17fbe6c66bbccb3361312666966
   url: awpack://persona
   provides: []
   requires_license: true
@@ -3471,7 +3324,7 @@ components:
   name: ps5-bridge
   kind: pack
   version: 0.1.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 169419b58cb0ea197071da0b4ada0c6b049b2115
   url: awpack://ps5-bridge
   provides: []
   requires_license: true
@@ -3483,7 +3336,7 @@ components:
   name: salescompel
   kind: pack
   version: 0.1.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 01adf759bada9be429d9c363ede3b047d8d70c5a
   url: awpack://salescompel
   provides: []
   requires_license: true
@@ -3495,7 +3348,7 @@ components:
   name: zeroauthy
   kind: pack
   version: 0.1.0
-  pin: 40019c38e686cf76f947b44023c70655f4d305d8
+  pin: 01adf759bada9be429d9c363ede3b047d8d70c5a
   url: awpack://zeroauthy
   provides: []
   requires_license: true
@@ -3506,8 +3359,8 @@ components:
 - id: memory-postgres
   name: memory-postgres
   kind: container
-  version: 16-alpine@aa6cb33cf4c1
-  pin: sha256:aa6cb33cf4c19c765cefcf48d96176258800870a9a1e930ad126200f9d825139
+  version: 16-alpine@f2f98726820d
+  pin: sha256:f2f98726820d0342055351c6e9d36e705f5bfffb3dd53ff556325114b08afb6d
   url: docker.io/library/postgres
   provides: []
   requires_license: true
@@ -3555,8 +3408,8 @@ components:
 - id: memory-embedder
   name: memory-embedder
   kind: container
-  version: server@41988e510b6f
-  pin: sha256:41988e510b6fe0a0b5b9be00a9dbf91d9f0fa691da173d7b06d97d370329fe84
+  version: server@c2cf6c72d913
+  pin: sha256:c2cf6c72d913b6c89a5f0929f2a866e6161e09e7dc187e0f3b0f21e923e26db3
   url: ghcr.io/ggml-org/llama.cpp
   provides: []
   requires_license: true
@@ -3613,14 +3466,14 @@ components:
 - id: memory-secrets
   name: memory-secrets
   kind: container
-  version: latest@fdf027db871e
-  pin: sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/garg-memory-security
   provides: []
   requires_license: true
   entitlement: garg
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
   title: the vault (Secrets)
   stack: memory-stack
@@ -3666,14 +3519,14 @@ components:
 - id: memory-strata
   name: memory-strata
   kind: container
-  version: latest@fdf027db871e
-  pin: sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/garg-memory-security
   provides: []
   requires_license: true
   entitlement: garg
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
   title: the data plane (Strata)
   stack: memory-stack
@@ -3726,14 +3579,14 @@ components:
 - id: memory-nexus
   name: memory-nexus
   kind: container
-  version: latest@721e9bab6f1c
-  pin: sha256:721e9bab6f1c368aad7fffc24275aeb0864c7d4fd273adc029f1346634e6cf26
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/garg-memory
   provides: []
   requires_license: true
   entitlement: garg
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
   title: vector memory (Nexus)
   stack: memory-stack
@@ -3787,14 +3640,14 @@ components:
 - id: memory-knowledgegraph
   name: memory-knowledgegraph
   kind: container
-  version: latest@721e9bab6f1c
-  pin: sha256:721e9bab6f1c368aad7fffc24275aeb0864c7d4fd273adc029f1346634e6cf26
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/garg-memory
   provides: []
   requires_license: true
   entitlement: garg
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
   title: the knowledge graph
   stack: memory-stack
@@ -3843,14 +3696,14 @@ components:
 - id: memory-retrieval
   name: memory-retrieval
   kind: container
-  version: latest@fdf027db871e
-  pin: sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138
+  version: ''
+  pin: ''
   url: ghcr.io/aitherium/garg-memory-core
   provides: []
   requires_license: true
   entitlement: garg
-  available: true
-  reason: ''
+  available: false
+  reason: 'registry token refused (HTTP 401): private image, resolved in CI with read:packages'
   deps: []
   title: search (Retrieval)
   stack: memory-stack
@@ -3903,14 +3756,15 @@ components:
 - id: memory-stack
   name: memory-stack
   kind: bundle
-  version: stack@dbdd12e7d457
-  pin: sha256:dbdd12e7d45774f3780f6cd7c2c0b6309ddce5291faea725d9cd3297d822abf4
+  version: ''
+  pin: ''
   url: ''
   provides: []
   requires_license: true
   entitlement: garg
-  available: true
-  reason: ''
+  available: false
+  reason: 'member memory-secrets unavailable: registry token refused (HTTP 401): private image, resolved
+    in CI with read:packages'
   deps: []
   title: Memory & search (self-hosted)
   requires:
