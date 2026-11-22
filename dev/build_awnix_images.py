@@ -185,8 +185,25 @@ LAYERS: tuple[Layer, ...] = (
                      "&& test -x /usr/bin/awnix-setup "
                      "&& test -L /etc/systemd/system/multi-user.target.wants/awnix-setup.service "
                      "&& " + _AWNIX_PLANE_VERIFY +
+                     # A STALE BASE MUST FAIL ITS OWN VERIFY, not strand the fleet build.
+                     # --force-top skips an ancestor's BUILD but ALWAYS re-runs its VERIFY,
+                     # so asserting the fleet-join artifacts HERE is what lets a base that
+                     # predates the join path fail verify and trigger build_layer's
+                     # rebuild-once self-heal. Without this the fleet layer's inherited RUN
+                     # (Containerfile.aitheros-fleet) dies with "FATAL: ... awnix-fleet is
+                     # not in localhost/awnix-base:latest" BEFORE any verify, which the
+                     # self-heal never sees -- measured 2026-11-21, build-awnix-fleet run
+                     # 44896172951 red on every develop push. Mirrors the assertions in
+                     # Containerfile.awnix's own AWNIX_FLEET_JOIN_OK RUN.
+                     "&& test -x /usr/libexec/awnix/awnix-fleet "
+                     "&& test -x /usr/libexec/aither/aither-node-agent "
+                     "&& test -s /usr/share/awnix-setup/steps.d/60-fleet.json "
+                     "&& awnix --list-verbs | grep -qx fleet "
+                     "&& test -L /etc/systemd/system/multi-user.target.wants/"
+                     "aither-node-agent.service "
                      "&& echo AWNIX_BASE_IMPORTS_OK"),
-        verify_label="all seven aw* tools import and the first-boot setup is enabled",
+        verify_label="all seven aw* tools import, the first-boot setup is enabled, and "
+                     "the fleet-join path the fleet layer inherits is present",
     ),
     Layer(
         name="runner",
@@ -1643,6 +1660,22 @@ def _self_test() -> int:
     check("--force-top forces only the requested layer, never its ancestors",
           [force_for(x, _chain, False, True) for x in _chain] == [False, False, True]
           and all(force_for(x, _chain, True, False) for x in _chain))
+    # A STALE BASE MUST FAIL ITS OWN VERIFY. --force-top skips an ancestor's BUILD but
+    # always re-runs its VERIFY, and build_layer rebuilds-once on a verify failure. So
+    # the base verify_cmd must re-assert the fleet-join artifacts Containerfile.aitheros-
+    # fleet inherits; otherwise a base predating the join path passes an unrelated verify
+    # and the fleet layer's inherited RUN dies with a FATAL the self-heal never sees
+    # (measured 2026-11-21, build-awnix-fleet run 44896172951).
+    _base_layer = next(x for x in LAYERS if x.name == "base")
+    check("the base verify re-asserts the fleet-join artifacts the fleet layer inherits "
+          "(a stale cached base otherwise fails only inside the fleet RUN, before verify)",
+          all(tok in _base_layer.verify_cmd for tok in (
+              "/usr/libexec/awnix/awnix-fleet",
+              "/usr/libexec/aither/aither-node-agent",
+              "/usr/share/awnix-setup/steps.d/60-fleet.json",
+              "grep -qx fleet",
+              "/etc/systemd/system/multi-user.target.wants/aither-node-agent.service",
+          )))
     check("the awnix chain is intact (base -> runner -> runner-ai)",
           [x.name for x in LAYERS[:3]] == ["base", "runner", "runner-ai"])
     check("the appliance STACKS on awnix rather than running parallel to it",
