@@ -3,7 +3,7 @@
  "generated_by": "AitherOS/dev/tools/gen_awnix_component_lock.py",
  "catalogue_sha256": "b58ce142a9a88953097a5eec5df50a54cd6fd85780ecfec5da138350448b3b15",
  "stacks_sha256": "cda5aa14e842cebc95386a581bd4d056f0f92068ec9dc792c023df57336d107c",
- "generated_at": "2026-11-22T12:27:07Z",
+ "generated_at": "2026-11-22T17:02:06Z",
  "target": {
   "python": "3.11",
   "platform": "manylinux_2_34_x86_64"
@@ -803,9 +803,9 @@
    "id": "awdiscord",
    "name": "awdiscord",
    "kind": "git",
-   "version": "6296f1a12314",
-   "pin": "6296f1a12314f69ced57b5d7e079d5c61b8dd2e4",
-   "url": "git+https://github.com/Aitherium/awdiscord.git@6296f1a12314f69ced57b5d7e079d5c61b8dd2e4",
+   "version": "20228fc2fd39",
+   "pin": "20228fc2fd39f81b7e420827ef0b5a1ef26fbc14",
+   "url": "git+https://github.com/Aitherium/awdiscord.git@20228fc2fd39f81b7e420827ef0b5a1ef26fbc14",
    "provides": [
     "awdiscord"
    ],
@@ -1282,9 +1282,9 @@
    "id": "awmine",
    "name": "awmine",
    "kind": "git",
-   "version": "c6facc556d23",
-   "pin": "c6facc556d23a9fe5f77e5889daf8a8cf31c28db",
-   "url": "git+https://github.com/Aitherium/awmine.git@c6facc556d23a9fe5f77e5889daf8a8cf31c28db",
+   "version": "7c10111df0c1",
+   "pin": "7c10111df0c11540bc47b74c5450eb23e395b087",
+   "url": "git+https://github.com/Aitherium/awmine.git@7c10111df0c11540bc47b74c5450eb23e395b087",
    "provides": [
     "awmine"
    ],
@@ -1460,9 +1460,9 @@
    "id": "awpack",
    "name": "awpack",
    "kind": "git",
-   "version": "3c6ce2b6e5fb",
-   "pin": "3c6ce2b6e5fbfba84a91564aa6817805a35d21b2",
-   "url": "git+https://github.com/Aitherium/awpack.git@3c6ce2b6e5fbfba84a91564aa6817805a35d21b2",
+   "version": "9c6494cb7643",
+   "pin": "9c6494cb764344c356691395a34a8cd8c0d5df9d",
+   "url": "git+https://github.com/Aitherium/awpack.git@9c6494cb764344c356691395a34a8cd8c0d5df9d",
    "provides": [
     "awpack"
    ],
@@ -1477,9 +1477,9 @@
    "id": "awpermit",
    "name": "awpermit",
    "kind": "git",
-   "version": "255d780b339c",
-   "pin": "255d780b339ce987cb68748b4ee5d504b94925de",
-   "url": "git+https://github.com/Aitherium/awpermit.git@255d780b339ce987cb68748b4ee5d504b94925de",
+   "version": "8326e8682192",
+   "pin": "8326e86821920e84ef95d332f5ae4442d16df29f",
+   "url": "git+https://github.com/Aitherium/awpermit.git@8326e86821920e84ef95d332f5ae4442d16df29f",
    "provides": [
     "awpermit"
    ],
@@ -1515,9 +1515,9 @@
    "id": "awpredict",
    "name": "awpredict",
    "kind": "git",
-   "version": "f8ef9221043d",
-   "pin": "f8ef9221043d0112fe647080cafbd82a6788ef5e",
-   "url": "git+https://github.com/Aitherium/awpredict.git@f8ef9221043d0112fe647080cafbd82a6788ef5e",
+   "version": "a5eda6a0f684",
+   "pin": "a5eda6a0f6848100fe01c8f31e83a5519d7d2ba6",
+   "url": "git+https://github.com/Aitherium/awpredict.git@a5eda6a0f6848100fe01c8f31e83a5519d7d2ba6",
    "provides": [
     "awpredict"
    ],
@@ -2248,7 +2248,7 @@
    "requires_license": true,
    "entitlement": "addon:mesh",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aitheros-agentenv:latest",
    "deps": []
   },
   {
@@ -2269,15 +2269,30 @@
    "id": "aitherbrain",
    "name": "AitherBrain",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@e157f06d1e6c",
+   "pin": "sha256:e157f06d1e6c5bf4bf5cb8c13b1bf0af81b262eef3c903a518f60951264427fc",
    "url": "ghcr.io/aitherium/aitheros-brain",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8271,
+      "container": 8271
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8271/health"
+   }
   },
   {
    "id": "aithercns",
@@ -2318,7 +2333,7 @@
    "requires_license": true,
    "entitlement": "core",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aitheros-claude-bridge:latest",
    "deps": []
   },
   {
@@ -2423,15 +2438,30 @@
    "id": "autoresearch",
    "name": "AutoResearch",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@52adbb5749d7",
+   "pin": "sha256:52adbb5749d73703e457cf30e3d668ea649fbfed12f561a723facc8e97c5b361",
    "url": "ghcr.io/aitherium/aitheros-autoresearch",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:training",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8251,
+      "container": 8251
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8251/health"
+   }
   },
   {
    "id": "autorig",
@@ -2444,7 +2474,7 @@
    "requires_license": true,
    "entitlement": "addon:creative",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aitheros-autorig:latest",
    "deps": []
   },
   {
@@ -2472,7 +2502,7 @@
    "requires_license": true,
    "entitlement": "addon:automation",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aitheros-automation-core:latest",
    "deps": []
   },
   {
@@ -2514,7 +2544,7 @@
    "requires_license": true,
    "entitlement": "addon:gpu-inference",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-benchmark-lab:latest",
    "deps": []
   },
   {
@@ -2563,15 +2593,30 @@
    "id": "chaosagent",
    "name": "ChaosAgent",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@cb1d5c01165d",
+   "pin": "sha256:cb1d5c01165dfb0413a9e73ad4f86c529cba79249f973b0c91b9601bad4e6b59",
    "url": "ghcr.io/aitherium/aitheros-chaos-agent",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:security-plus",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8787,
+      "container": 8787
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8787/health"
+   }
   },
   {
    "id": "chelle",
@@ -2640,7 +2685,7 @@
    "requires_license": true,
    "entitlement": "core",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-cognition-advanced:latest",
    "deps": []
   },
   {
@@ -2654,36 +2699,66 @@
    "requires_license": true,
    "entitlement": "core",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-cognition-ci:latest",
    "deps": []
   },
   {
    "id": "cognitioncore",
    "name": "CognitionCore",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@e157f06d1e6c",
+   "pin": "sha256:e157f06d1e6c5bf4bf5cb8c13b1bf0af81b262eef3c903a518f60951264427fc",
    "url": "ghcr.io/aitherium/aitheros-cognition-core",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8097,
+      "container": 8097
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8097/health"
+   }
   },
   {
    "id": "comfyui3d",
    "name": "ComfyUI3D",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@f3f00807409e",
+   "pin": "sha256:f3f00807409e816e35c1a1dcaa6d087cc10d5f44842b8f4aefacd7ce80ffd316",
    "url": "ghcr.io/aitherium/aitheros-comfyui-3d",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:creative",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8289,
+      "container": 8289
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8289/health"
+   }
   },
   {
    "id": "compute",
@@ -2724,7 +2799,7 @@
    "requires_license": true,
    "entitlement": "addon:creative",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aitheros-creative-engine:latest",
    "deps": []
   },
   {
@@ -2780,7 +2855,7 @@
    "requires_license": true,
    "entitlement": "core",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-desktop-web:latest",
    "deps": []
   },
   {
@@ -2829,15 +2904,30 @@
    "id": "evolutioncore",
    "name": "EvolutionCore",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@905dda42b37a",
+   "pin": "sha256:905dda42b37a9a517122464285d436b91f716f74bae351f3fd18a675b85c91a3",
    "url": "ghcr.io/aitherium/aitheros-evolution-core",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:training",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8211,
+      "container": 8211
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8211/health"
+   }
   },
   {
    "id": "exo",
@@ -2906,22 +2996,37 @@
    "requires_license": true,
    "entitlement": "core",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-flux:latest",
    "deps": []
   },
   {
    "id": "forgeidebackend",
    "name": "ForgeIDEBackend",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@eb63ca60eabd",
+   "pin": "sha256:eb63ca60eabd3421a69922811a59bc0266ede8ebeba644fb768d862480eccf81",
    "url": "ghcr.io/aitherium/aitheros-forge-ide",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:automation",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8142,
+      "container": 8142
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8142/health"
+   }
   },
   {
    "id": "gargbot",
@@ -2955,15 +3060,30 @@
    "id": "genesis",
    "name": "Genesis",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@b7850d516b78",
+   "pin": "sha256:b7850d516b78a01a98602645adb161a77f1d149bf870f97aecf8bc8086c1f2de",
    "url": "ghcr.io/aitherium/aitheros-genesis",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8001,
+      "container": 8001
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8001/health"
+   }
   },
   {
    "id": "geo",
@@ -3067,15 +3187,30 @@
    "id": "knowledgegraph",
    "name": "KnowledgeGraph",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@2fa65eb1434d",
+   "pin": "sha256:2fa65eb1434dc195278ea35e46d6b7f2772a7a89b7c469b1e1ef0c2d6ee06989",
    "url": "ghcr.io/aitherium/aitheros-knowledgegraph",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:memory-plus",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8196,
+      "container": 8196
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8196/health"
+   }
   },
   {
    "id": "kodokevo",
@@ -3095,15 +3230,30 @@
    "id": "livecontext",
    "name": "LiveContext",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@29e7753cbef0",
+   "pin": "sha256:29e7753cbef001679c84486a3335dc7313908161b8b9818264b25cfe4eb3137a",
    "url": "ghcr.io/aitherium/aitheros-livecontext",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:memory-plus",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8098,
+      "container": 8098
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8098/health"
+   }
   },
   {
    "id": "loggraph",
@@ -3116,22 +3266,37 @@
    "requires_license": true,
    "entitlement": "core",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-log-graph:latest",
    "deps": []
   },
   {
    "id": "lyrawiki",
    "name": "LyraWiki",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@09f0aba93d91",
+   "pin": "sha256:09f0aba93d913a84d1c38ea6e5a75510c8ffadf83e1ba41d41cc0e616d0084ae",
    "url": "ghcr.io/aitherium/aitheros-lyra",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8270,
+      "container": 8270
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8270/health"
+   }
   },
   {
    "id": "mailcore",
@@ -3144,7 +3309,7 @@
    "requires_license": true,
    "entitlement": "addon:business",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aitheros-mail:latest",
    "deps": []
   },
   {
@@ -3158,7 +3323,7 @@
    "requires_license": true,
    "entitlement": "core",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-memory-core:latest",
    "deps": []
   },
   {
@@ -3193,15 +3358,30 @@
    "id": "microscheduler",
    "name": "MicroScheduler",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@e8255c51cf06",
+   "pin": "sha256:e8255c51cf06121810b8853065711d19d653a11442fefc8735dc5e62b7748694",
    "url": "ghcr.io/aitherium/aitheros-microscheduler",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8150,
+      "container": 8150
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8150/health"
+   }
   },
   {
    "id": "mind",
@@ -3221,15 +3401,30 @@
    "id": "omninodesettlementreconciler",
    "name": "OmniNodeSettlementReconciler",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@eb63ca60eabd",
+   "pin": "sha256:eb63ca60eabd3421a69922811a59bc0266ede8ebeba644fb768d862480eccf81",
    "url": "ghcr.io/aitherium/aitheros-omninode-settlement",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:mesh",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8160,
+      "container": 8160
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8160/health"
+   }
   },
   {
    "id": "omniparser",
@@ -3249,15 +3444,30 @@
    "id": "perceptioncore",
    "name": "PerceptionCore",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@43a7dce19282",
+   "pin": "sha256:43a7dce19282fc45bad396e5fad8394f7071cfa2f167fcc96a40602a32215a2d",
    "url": "ghcr.io/aitherium/aitheros-perception-core",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:perception",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8096,
+      "container": 8096
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8096/health"
+   }
   },
   {
    "id": "perceptionmedia",
@@ -3270,36 +3480,66 @@
    "requires_license": true,
    "entitlement": "addon:perception",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-perception-media:latest",
    "deps": []
   },
   {
    "id": "portalgateway",
    "name": "PortalGateway",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@c963a12ccaff",
+   "pin": "sha256:c963a12ccaff1f55cccf026425007cbb6bb4902c40813ef92bf288ef57989112",
    "url": "ghcr.io/aitherium/aitheros-portal-gateway",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:automation",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8206,
+      "container": 8206
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8206/health"
+   }
   },
   {
    "id": "prometheus",
    "name": "Prometheus",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@e157f06d1e6c",
+   "pin": "sha256:e157f06d1e6c5bf4bf5cb8c13b1bf0af81b262eef3c903a518f60951264427fc",
    "url": "ghcr.io/aitherium/aitheros-worldengine",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:creative",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8178,
+      "container": 8178
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8178/health"
+   }
   },
   {
    "id": "prometheusagent",
@@ -3375,15 +3615,30 @@
    "id": "remotionrenderer",
    "name": "RemotionRenderer",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@0fd421a1717c",
+   "pin": "sha256:0fd421a1717c796f040cfb121aaf7987428d9da9c6bf98937091cc24aee8f19a",
    "url": "ghcr.io/aitherium/aitheros-remotion-renderer",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:creative",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 3700,
+      "container": 3700
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:3700/health"
+   }
   },
   {
    "id": "safety",
@@ -3459,29 +3714,59 @@
    "id": "securitycore",
    "name": "SecurityCore",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@eb63ca60eabd",
+   "pin": "sha256:eb63ca60eabd3421a69922811a59bc0266ede8ebeba644fb768d862480eccf81",
    "url": "ghcr.io/aitherium/aitheros-security-core",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8115,
+      "container": 8115
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8115/health"
+   }
   },
   {
    "id": "securitydefense",
    "name": "SecurityDefense",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@3ab6fe545420",
+   "pin": "sha256:3ab6fe545420d46cb214a6162707095fe7ccc4294eae306cbd460acd5bb9e24a",
    "url": "ghcr.io/aitherium/aitheros-security-defense",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:security-plus",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8127,
+      "container": 8127
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8127/health"
+   }
   },
   {
    "id": "shop",
@@ -3543,15 +3828,30 @@
    "id": "sovereignnode",
    "name": "SovereignNode",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@c3910788ab5e",
+   "pin": "sha256:c3910788ab5ece0655142812fbff44db8b2cfdc0d5857af0bdd9bbb79a17e805",
    "url": "ghcr.io/aitherium/aitheros-sovereign-node",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8139,
+      "container": 8139
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8139/health"
+   }
   },
   {
    "id": "spirit",
@@ -3564,7 +3864,7 @@
    "requires_license": true,
    "entitlement": "core",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-spirit:latest",
    "deps": []
   },
   {
@@ -3585,15 +3885,30 @@
    "id": "stratameshreplicationtrigger",
    "name": "StrataMeshReplicationTrigger",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@eb63ca60eabd",
+   "pin": "sha256:eb63ca60eabd3421a69922811a59bc0266ede8ebeba644fb768d862480eccf81",
    "url": "ghcr.io/aitherium/aitheros-strata-mesh-repl",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:mesh",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 9999,
+      "container": 9999
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:9999/health"
+   }
   },
   {
    "id": "stream",
@@ -3620,7 +3935,7 @@
    "requires_license": true,
    "entitlement": "addon:mesh",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/sovereign-sync:latest",
    "deps": []
   },
   {
@@ -3662,7 +3977,7 @@
    "requires_license": true,
    "entitlement": "addon:perception",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aitheros-texel-studio:latest",
    "deps": []
   },
   {
@@ -3676,7 +3991,7 @@
    "requires_license": true,
    "entitlement": "addon:security-plus",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aither-threat-guard:latest",
    "deps": []
   },
   {
@@ -3690,7 +4005,7 @@
    "requires_license": true,
    "entitlement": "addon:gpu-inference",
    "available": false,
-   "reason": "registry token refused (HTTP 403): private image, resolved in CI with read:packages",
+   "reason": "no published image ghcr.io/aitherium/aitheros-training-pipeline:latest",
    "deps": []
   },
   {
@@ -3711,15 +4026,30 @@
    "id": "tunnel",
    "name": "Tunnel",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@0d79e211a4ee",
+   "pin": "sha256:0d79e211a4eed09abc56c9970544e78a644b9755e6b6a424038fd783d42d4a07",
    "url": "ghcr.io/aitherium/aitheros-tunnel-service",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:mesh",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8310,
+      "container": 8310
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8310/health"
+   }
   },
   {
    "id": "vibe",
@@ -3739,29 +4069,59 @@
    "id": "veil",
    "name": "Veil",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@7c06c10f6b69",
+   "pin": "sha256:7c06c10f6b69f427d3a1695f0a28e6dca367965bcf9640a35f87a11007837e7f",
    "url": "ghcr.io/aitherium/aitheros-veil",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 3000,
+      "container": 3000
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:3000/health"
+   }
   },
   {
    "id": "voicecloner",
    "name": "VoiceCloner",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@83d200f4812a",
+   "pin": "sha256:83d200f4812ab3a96211e317c3f6bf73ca60364b04095f83aeebf053c7a1bfc3",
    "url": "ghcr.io/aitherium/aitheros-voice-cloner",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:perception",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8768,
+      "container": 8768
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8768/health"
+   }
   },
   {
    "id": "watch",
@@ -3795,29 +4155,59 @@
    "id": "workflowhub",
    "name": "WorkflowHub",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@c963a12ccaff",
+   "pin": "sha256:c963a12ccaff1f55cccf026425007cbb6bb4902c40813ef92bf288ef57989112",
    "url": "ghcr.io/aitherium/aitheros-workflow-hub",
    "provides": [],
    "requires_license": true,
    "entitlement": "addon:automation",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8175,
+      "container": 8175
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8175/health"
+   }
   },
   {
    "id": "workingmemory",
    "name": "WorkingMemory",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@2fa65eb1434d",
+   "pin": "sha256:2fa65eb1434dc195278ea35e46d6b7f2772a7a89b7c469b1e1ef0c2d6ee06989",
    "url": "ghcr.io/aitherium/aitheros-workingmemory",
    "provides": [],
    "requires_license": true,
    "entitlement": "core",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
-   "deps": []
+   "available": true,
+   "reason": "",
+   "deps": [],
+   "quadlet": {
+    "ports": [
+     {
+      "host": 8101,
+      "container": 8101
+     }
+    ],
+    "volumes": [
+     {
+      "dest": "/data"
+     }
+    ],
+    "env": [],
+    "health": "http://127.0.0.1:8101/health"
+   }
   },
   {
    "id": "worldmodel",
@@ -4114,14 +4504,14 @@
    "id": "memory-secrets",
    "name": "memory-secrets",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@fdf027db871e",
+   "pin": "sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138",
    "url": "ghcr.io/aitherium/garg-memory-security",
    "provides": [],
    "requires_license": true,
    "entitlement": "garg",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
+   "available": true,
+   "reason": "",
    "deps": [],
    "title": "the vault (Secrets)",
    "stack": "memory-stack",
@@ -4179,14 +4569,14 @@
    "id": "memory-strata",
    "name": "memory-strata",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@fdf027db871e",
+   "pin": "sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138",
    "url": "ghcr.io/aitherium/garg-memory-security",
    "provides": [],
    "requires_license": true,
    "entitlement": "garg",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
+   "available": true,
+   "reason": "",
    "deps": [],
    "title": "the data plane (Strata)",
    "stack": "memory-stack",
@@ -4252,14 +4642,14 @@
    "id": "memory-nexus",
    "name": "memory-nexus",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@721e9bab6f1c",
+   "pin": "sha256:721e9bab6f1c368aad7fffc24275aeb0864c7d4fd273adc029f1346634e6cf26",
    "url": "ghcr.io/aitherium/garg-memory",
    "provides": [],
    "requires_license": true,
    "entitlement": "garg",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
+   "available": true,
+   "reason": "",
    "deps": [],
    "title": "vector memory (Nexus)",
    "stack": "memory-stack",
@@ -4328,14 +4718,14 @@
    "id": "memory-knowledgegraph",
    "name": "memory-knowledgegraph",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@721e9bab6f1c",
+   "pin": "sha256:721e9bab6f1c368aad7fffc24275aeb0864c7d4fd273adc029f1346634e6cf26",
    "url": "ghcr.io/aitherium/garg-memory",
    "provides": [],
    "requires_license": true,
    "entitlement": "garg",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
+   "available": true,
+   "reason": "",
    "deps": [],
    "title": "the knowledge graph",
    "stack": "memory-stack",
@@ -4397,14 +4787,14 @@
    "id": "memory-retrieval",
    "name": "memory-retrieval",
    "kind": "container",
-   "version": "",
-   "pin": "",
+   "version": "latest@fdf027db871e",
+   "pin": "sha256:fdf027db871e8a58ebc5b78f36aa1748cbaec5208a714218409b9f6a567ba138",
    "url": "ghcr.io/aitherium/garg-memory-core",
    "provides": [],
    "requires_license": true,
    "entitlement": "garg",
-   "available": false,
-   "reason": "registry token refused (HTTP 401): private image, resolved in CI with read:packages",
+   "available": true,
+   "reason": "",
    "deps": [],
    "title": "search (Retrieval)",
    "stack": "memory-stack",
@@ -4470,14 +4860,14 @@
    "id": "memory-stack",
    "name": "memory-stack",
    "kind": "bundle",
-   "version": "",
-   "pin": "",
+   "version": "stack@a0f87b595a95",
+   "pin": "sha256:a0f87b595a95f5417ce17437cf801288d14a5d90a2955112cf4c2e4d47209d62",
    "url": "",
    "provides": [],
    "requires_license": true,
    "entitlement": "garg",
-   "available": false,
-   "reason": "member memory-secrets unavailable: registry token refused (HTTP 401): private image, resolved in CI with read:packages",
+   "available": true,
+   "reason": "",
    "deps": [],
    "title": "Memory & search (self-hosted)",
    "requires": [

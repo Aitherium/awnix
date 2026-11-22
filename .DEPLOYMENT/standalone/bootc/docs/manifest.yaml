@@ -12,7 +12,7 @@ version: 1
 
 variants: [awnix, awnix-ai, awnix-full, awnix-ai-full, gobbonet-appliance, garg-appliance, aitheros, aitheros-cloud, awnix-hypr]
 
-public: [awnix, awnix-ai, awnix-full, awnix-ai-full, gobbonet-appliance]
+public: [awnix, awnix-ai, awnix-full, awnix-ai-full]
 
 out_of_scope:
   awnix-desktop: D-2697
