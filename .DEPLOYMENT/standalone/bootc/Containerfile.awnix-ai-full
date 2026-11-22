@@ -5,8 +5,13 @@
 #     plain awnix  ->  awnix + the aw* stack core  ->  + Bonsai-27B (or smaller)
 # and the first two shipped while the third did not. What shipped as `awnix-ai`
 # is Containerfile.awnix-runner-ai: awnix-base -> awnix-runner -> +llama.cpp.
-# That chain is built on the GITHUB ACTIONS RUNNER layer and carries no aw*
-# package at all, so it is inference on a CI box, not inference on the stack.
+# That chain is built on the GITHUB ACTIONS RUNNER layer. It DOES carry the
+# base's aw* stack -- Containerfile.awnix-runner is `FROM localhost/awnix-base`
+# and runner-ai adds llama.cpp on top, so every brick the base installs is
+# inherited (runner-ai asserts `import awgit, awm, awgraph, adk` to prove it,
+# not assume it). What awnix-ai lacks is not the stack but the UI: it ships
+# inference with the tools and no GobboNet front end, which is why this rung
+# exists -- the stack AND inference AND the UI in one image.
 #
 # awnix-variants.yaml says this outright in the gobbonet-appliance entry:
 #   "awnix-full ships the GobboNet UI with no inference and awnix-ai ships
@@ -112,10 +117,44 @@ RUN sed -i 's/\r$//' /usr/lib/systemd/system/awnix-bonsai.service \
 
 # The image must LOAD a model, not merely start llama-server: on 2026-09-27 this
 # image passed every other check and shipped unable to load any model (#9468).
-# Runs the real serve script on the smallest catalogue model; weights are deleted
-# before this layer closes. See awnix-model-load-check.sh.
+# Runs the real serve script on the smallest LADDER model and passes it explicitly:
+# the default ladder starts at Bonsai 2 2B (PTQ1_0 / Hadamard v2, the path every
+# pinned prism-b12128 image serves), not the superseded Bonsai 1.7B (PQ2_0).
+# Weights are deleted before this layer closes. See awnix-model-load-check.sh.
 COPY --chown=root:root awnix-model-load-check.sh /usr/local/libexec/awnix-model-load-check.sh
-RUN bash /usr/local/libexec/awnix-model-load-check.sh
+RUN AWNIX_CHECK_MODEL=bonsai2-2b bash /usr/local/libexec/awnix-model-load-check.sh
+
+# ── adk pinned to the local model, by a SHIPPED file ───────────────────────────
+# The ai-full image is the one customers run agents on, so awdk (adk) must point at
+# the box's own llama.cpp on 127.0.0.1:8199 rather than the fleet or a cloud default.
+# That pointer used to reach users only through awsh's package default; the vendor
+# env, the loopback daemon and its boot proof sat in the repo uncopied, so `adk` on a
+# fresh box had no local endpoint at all (BON2-06). Stage them and prove the units
+# parse. check_awdk_on_awnix.py AWK005 enforces every line of this block.
+COPY --chown=root:root awdk/awdk-local.service awdk/awdk-local-health.service /usr/lib/systemd/system/
+COPY --chown=root:root awdk/air_gap.yaml awdk/awdk.env /usr/lib/awdk/
+COPY --chown=root:root awdk/awnix-awdk.py /usr/libexec/awnix/awnix-awdk
+RUN sed -i 's/\r$//' /usr/libexec/awnix/awnix-awdk /usr/lib/awdk/awdk.env \
+    && chmod 0755 /usr/libexec/awnix/awnix-awdk \
+    && /usr/libexec/awnix/awnix-awdk --self-test \
+    && systemctl enable awdk-local.service awdk-local-health.service
+
+# ── the memory half ────────────────────────────────────────────────────────────────
+# These images ship llama.cpp (generation) and, until 2026-10-27, NOTHING that could
+# embed -- so the box could generate and never remember. awembed's `serve` verb runs an
+# exported student on onnxruntime (CPU, or CUDA where the runtime provides it) over
+# /v1/embeddings; weights come from artifact.aitherium.com by RELEASE (awrtifact, added
+# to the base the same day) instead of being baked, so a new model is a pull, not a rebuild.
+RUN python3.11 -m pip install --no-cache-dir "awembed[serve]" onnxruntime
+
+# Assert the import, do not assume it. An image that installs a package nobody can
+# import is exactly the failure this file already records about its own aw* count.
+RUN python3.11 -c "import onnxruntime; from awembed import serve; print('onnxruntime', onnxruntime.__version__)"
+
+# Rewrite the baked inventory so `awnix component list` reports awembed (this layer's
+# only first-party add) as baked alongside the full stack it inherits.
+RUN /usr/libexec/awnix/awnix-baked-inventory --variant awnix-ai-full \
+        --out /usr/share/awnix/components.d/baked.yaml
 
 LABEL com.aitheros.layer="awnix-ai-full" \
       com.aitheros.base="awnix-full" \

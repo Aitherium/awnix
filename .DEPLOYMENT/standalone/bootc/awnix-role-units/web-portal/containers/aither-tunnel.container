@@ -111,7 +111,6 @@ Environment=AITHER_VLLM_FASTCONTEXT_URL=
 Environment=AITHER_LLM_TIMEOUT=120
 Environment=AITHER_VLLM_DGX_SERVED_MODEL=deepseek-v4-flash
 Environment=AITHER_DGX_SPARK_ENABLED=true
-Environment=AITHER_GRID_OLLAMA_URL=http://aither-ollama-optiplex:11435
 Environment=AITHER_LOCAL_LLAMACPP_URL=http://aither-llamacpp-bonsai:8090
 Environment=AITHER_LLMFIT_URL=http://aither-llmfit:8793
 Environment=AITHER_STRATA_URL=https://aitheros-strata:8136

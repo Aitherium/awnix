@@ -39,6 +39,14 @@ sources:
     # asset is capped at 2 GiB -- the same wall the awnix ISO hit. Anything with
     # `parts:` is concatenated back in order before use, and the join is verified
     # against sha256 when one is recorded.
+  weights:
+    kind: direct
+    base: "https://weights.aitherium.com/"
+    # OUR first-party mirror of the Bonsai 2 family (the aither-model-weights R2 bucket,
+    # stitched from aitherkvcache/bonsai2-v1 by the bonsai-weights Worker). A model with
+    # `mirror_path:` gets a `fallback_urls` entry here, tried AFTER the primary when the
+    # primary is unreachable from first boot. All four ladder tiers are under the 2 GiB
+    # cap, so each is served whole by bare filename (BON2-03).
 
 # BONSAI 1 FILES ARE THE PQ2_0 GGUFS (2026-09-27). The PrismML build every awnix
 # image pins (prism-b10685) reads `Q2_0` as the upstream group-64 format and REFUSES the
@@ -127,6 +135,7 @@ models:
     source: huggingface
     path: "Ternary-Bonsai-2-2B-gguf/resolve/main/Ternary-Bonsai-2-2B-PTQ1_0.gguf"
     file: "Ternary-Bonsai-2-2B-PTQ1_0.gguf"
+    mirror_path: "Ternary-Bonsai-2-2B-PTQ1_0.gguf"   # weights.aitherium.com fallback (same bytes)
     min_engine: "prism-b12128"   # Hadamard v2; b10687 refuses it (measured 2026-11-09)
     size_mb: 409
     size_bytes: 429183456
@@ -139,6 +148,7 @@ models:
     source: huggingface
     path: "Ternary-Bonsai-2-4B-gguf/resolve/main/Ternary-Bonsai-2-4B-PTQ1_0.gguf"
     file: "Ternary-Bonsai-2-4B-PTQ1_0.gguf"
+    mirror_path: "Ternary-Bonsai-2-4B-PTQ1_0.gguf"   # weights.aitherium.com fallback (same bytes)
     min_engine: "prism-b12128"   # Hadamard v2; b10687 refuses it (measured 2026-11-09)
     size_mb: 905
     size_bytes: 949549920
@@ -151,6 +161,7 @@ models:
     source: huggingface
     path: "Ternary-Bonsai-2-9B-gguf/resolve/main/Ternary-Bonsai-2-9B-PTQ1_0.gguf"
     file: "Ternary-Bonsai-2-9B-PTQ1_0.gguf"
+    mirror_path: "Ternary-Bonsai-2-9B-PTQ1_0.gguf"   # weights.aitherium.com fallback (same bytes)
     min_engine: "prism-b12128"   # Hadamard v2; b10687 refuses it (measured 2026-11-09)
     size_mb: 1904
     size_bytes: 1997486976
@@ -163,6 +174,7 @@ models:
     source: huggingface
     path: "Ternary-Bonsai-2-27B-gguf/resolve/main/Ternary-Bonsai-2-27B-PTQ1_0.gguf"
     file: "Ternary-Bonsai-2-27B-PTQ1_0.gguf"
+    mirror_path: "Ternary-Bonsai-2-27B-PTQ1_0.gguf"   # weights.aitherium.com stitches bonsai2-v1 parts under this name
     size_mb: 5671
     size_bytes: 5946648928
     # The Hugging Face LFS object id (X-Linked-ETag), read 2026-09-26 from the live

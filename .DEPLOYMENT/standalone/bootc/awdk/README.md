@@ -1,8 +1,8 @@
 # awdk on awnix — the local agent, air-gapped
 
-This directory ships `adk` (awdk) as a loopback-only daemon on the awnix ai-full and
-garg appliance images. It runs against the box's own llama.cpp server and never
-reaches the network.
+This directory ships `adk` (awdk) as a loopback-only daemon on the awnix-ai,
+awnix-ai-full (and its awnix-ai-offline child) and garg appliance images. It runs
+against the box's own llama.cpp server and never reaches the network.
 
 ## Files and where they land
 
@@ -81,12 +81,14 @@ configured URL, so a wildcard listener shows as `bind=0.0.0.0:9001`.
 
 ## What is and is not proven
 
-Everything above is measured at unit level only (pytest against stub servers). No
-image ships these files yet (D-2699: the Containerfile COPY/enable is not done, and
-the images install awdk from PyPI, whose releases up to 3.8.29 have no
-`adk.compliance.egress_guard`). The appliance air gap is not measured until an image
+Everything above is measured at unit level only (pytest against stub servers). The
+Containerfiles for awnix-ai, awnix-ai-full and garg now COPY and enable these files
+(D-2699 closed; `check_awdk_on_awnix.py` AWK005 enforces it per image), and each image
+installs a PyPI awdk whose `adk.compliance.egress_guard` the CLI and server entry
+points install. The appliance air gap is still not PROVEN end-to-end until an image
 built with this wiring boots with `--network=none` and `awnix awdk health --json`
-exits 0. Audit rows are unsigned unless `AITHER_AUDIT_SIGNING_KEY` is provisioned,
-and neither env file provisions one, so they are not tamper-evident.
+exits 0; that boot proof is the remaining step, not the wiring. Audit rows are
+unsigned unless `AITHER_AUDIT_SIGNING_KEY` is provisioned, and neither env file
+provisions one, so they are not tamper-evident.
 
 The static checker is `AitherOS/dev/tools/check_awdk_on_awnix.py` (AWK001–AWK007).

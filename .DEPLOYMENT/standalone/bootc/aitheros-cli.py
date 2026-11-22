@@ -20,7 +20,7 @@ exchanged at AITHER_LICENSE_EXCHANGE_URL for a 1 h ghcr pull token, written atom
 result is recorded in /var/lib/aither/license/status.json, which every other surface reads
 and never re-derives. The status file never contains the envelope or the token.
 
-This program VERIFIES only. It holds no signing key and has no signing code (LIP002,
+This program VERIFIES only. It holds no signing key and has no signing code (see
 check_licence_issuer_not_published.py): the self-test uses a baked, pre-signed throwaway
 vector whose private half was discarded when it was made.
 

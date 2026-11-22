@@ -34,7 +34,7 @@ RUNNER_VERSION="${AWNIX_BUILD_RUNNER_VERSION:-2.336.0}"
 # AWNIX_BUILD_RUNNER_VERSION must come with its own AWNIX_BUILD_RUNNER_SHA256.
 RUNNER_SHA256="${AWNIX_BUILD_RUNNER_SHA256:-58b758e420b87093fbd4bfddd368074960053e2f1388f01848c82624b90f27d1}"
 RUNNER_NAME="${AWNIX_BUILD_RUNNER_NAME:-spark-arm64-build}"
-LABELS="spark-build,offbox"        # config.sh adds self-hosted,Linux,ARM64 itself; offbox = SHW015 pool
+LABELS="spark-build,offbox"        # config.sh adds self-hosted,Linux,ARM64 itself; offbox = off-box build pool
 BUILD_USER=awnix-build
 HOME_DIR=/var/lib/awnix-build
 STORE_CONF=/etc/awnix-build/storage.conf

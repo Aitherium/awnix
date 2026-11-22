@@ -23,25 +23,43 @@ podman build -t awnix:latest -f Containerfile .
 That builds it from source. The OS is a container image: you build it, you sign it,
 you roll it back.
 
+There are two images, and they are not the same box:
+
+| | built from | what it is |
+|---|---|---|
+| **the minimal source build** | `awnix/Containerfile` (the command above) | the reference base: 20 `aw` tools, a locked `awnix` service account, loopback-only Cockpit, and a firewall that opens only key-only SSH and DHCPv6-client |
+| **the released server ISOs** | the bootc Containerfiles in `.DEPLOYMENT/standalone/bootc/` (base: `Containerfile.awnix`) | its own build, carrying the administrator plane: first-boot setup, an admin account **you** name, `man awnix`, the `:9443` web console, `awnix update` / `awnix component`, and greenboot auto-rollback |
+
+Claims below say which image they are about. A sentence that is true of one is not
+silently a promise about the other.
+
 ## Download and install
 
 Every build is a bootable ISO. Pick one, download it in one piece, check it, boot it.
 
 | Variant | What you get | Download |
 |---|---|---|
-| **awnix-ai-full** (recommended) | the whole aw* stack + a local model sized to your hardware on first boot (Bonsai 1.7B up to Bonsai 2 27B) | [awnix-ai-full-x86_64.iso](https://artifact.aitherium.com/awnix-ai-full-x86_64.iso) |
+| **awnix-ai-full** (recommended) | the whole aw* stack + a local model sized to your hardware on first boot (Bonsai 2 2B up to Bonsai 2 27B, served text-only — no vision projector; Bonsai 1 fetchable with `--model`) | [awnix-ai-full-x86_64.iso](https://artifact.aitherium.com/awnix-ai-full-x86_64.iso) |
 | awnix-full | the whole aw* stack, no local model | [awnix-full-x86_64.iso](https://artifact.aitherium.com/awnix-full-x86_64.iso) |
 | awnix-ai | runner + local model | [awnix-ai-x86_64.iso](https://artifact.aitherium.com/awnix-ai-x86_64.iso) |
 | awnix | the immutable base + the aw* tools | [awnix-x86_64.iso](https://artifact.aitherium.com/awnix-x86_64.iso) |
-| awnix-desktop-open | a keyboard-first tiling desktop: `Super+A` opens the agent on the local model | [awnix-desktop-open-x86_64.iso](https://artifact.aitherium.com/awnix-desktop-open-x86_64.iso) |
+| awnix-desktop-open | a keyboard-first tiling desktop: `Super+A` opens the agent shell (no local model is bundled — point it at one with `awsh --base-url`) | [awnix-desktop-open-x86_64.iso](https://artifact.aitherium.com/awnix-desktop-open-x86_64.iso) |
 
-Each file is the same bytes as the matching [GitHub release](https://github.com/Aitherium/awnix/releases),
-which also carries the split parts, an assemble script and `SHA256SUMS`.
+Each file is the newest build of its variant, stitched from the parts of the matching
+[GitHub release](https://github.com/Aitherium/awnix/releases), which also carries the
+split parts, an assemble script and `SHA256SUMS`. As of 2026-11-22 that is
+**2026.11.22** for awnix, awnix-ai, awnix-full and awnix-ai-full, and **2026.09.27**
+for awnix-desktop-open (the newest desktop-open build).
 
 ```bash
 curl -LO https://artifact.aitherium.com/awnix-ai-full-x86_64.iso
 sha256sum awnix-ai-full-x86_64.iso
-# compare with SHA256SUMS on the matching release page (awnix-iso-ai-full-<date>)
+# compare that hash to the SHA256SUMS entry on the matching release page
+# (awnix-iso-ai-full-2026.11.22). The checksum line names the release's INTERNAL
+# file -- `install.iso` on new builds, `awnix-x86_64.iso` on older ones -- NOT the
+# served awnix-ai-full-x86_64.iso filename. Same bytes, different name: compare
+# the HASH. (There is no single artifact-root SHA256SUMS; per-variant checksums
+# live only on each release.)
 ```
 
 **Windows, without leaving it (WSL2) — one line, no account:**
@@ -85,9 +103,11 @@ not a merge conflict, it's lost work. That's why the tooling below has leases.
 out cheaply. Snapshots and verified artifacts make "what did it actually do" a
 command instead of an investigation.
 
-**It will need credentials, and shouldn't get yours.** awnix ships **no
-password at all** — the account is locked, access is by SSH key, and there is
-nothing to leak because nothing was ever set.
+**It will need credentials, and shouldn't get yours.** awnix ships **no shared
+password at all** — the source build's `awnix` account is locked and reached by
+SSH key, and the released server ISO bakes no account: setup creates the admin
+you name.
+There is nothing shared to leak because nothing shared was ever set.
 
 If you're running agents on someone else's platform, all four are handled by
 trusting the platform. awnix is the other bet: you can verify everything, so you
@@ -97,16 +117,39 @@ have to trust nothing.
 
 ## What you actually get
 
-- **podman, buildah, skopeo, crun** — rootless containers, no daemon
-- **cloud-init** — so a key-only image is genuinely reachable
-- **Cockpit** on 9090 — a web console for a machine with no desktop
-- **firewalld** with an `awnix` zone and **zero ports opened**
-- an unprivileged `awnix` account, **locked**, with NOPASSWD sudo
-- **bootc** — atomic updates, real rollback
+**Both images** are immutable bootc systems with rootless **podman, buildah,
+skopeo and crun** (no daemon), **cloud-init** so key-only provisioning can reach
+the box, and **bootc** atomic updates with a real rollback.
 
-- **the eleven `aw` tools**, preinstalled and importable (the table below)
+**The minimal source build** (`podman build -t awnix:latest -f Containerfile .`,
+i.e. `awnix/Containerfile`) adds:
 
-No services. No agent. No account. What runs on top is yours.
+- **the twenty `aw` tools**, preinstalled and importable — the full install set is
+  in `awnix/Containerfile`; the table below names the eight the base leans on
+- an unprivileged `awnix` account, **locked**, with NOPASSWD sudo and key-only SSH
+- **Cockpit** on `127.0.0.1:9090` only — reachable through an SSH tunnel, not from
+  the network
+- **firewalld** with an `awnix` default zone that opens only key-only SSH and the
+  DHCPv6 client; for genuinely zero open ports, layer the airgap profile on top
+  (`awnix-zero-ports apply --profile airgap`)
+
+**The released server ISOs** (`awnix`, `awnix-ai`, `awnix-full`, `awnix-ai-full`,
+built from the bootc Containerfiles in `.DEPLOYMENT/standalone/bootc/`, not from
+`awnix/Containerfile`) carry the administrator plane:
+
+- first-boot setup, and an **admin account you name** with the SSH key or password
+  you give it — no account is baked into the image
+- `man awnix` and the offline HTML guide, and the **`https://<box>:9443` web console**
+- `awnix update status|check|apply|rollback` and
+  `awnix component list|install|rollback`
+- **greenboot** automatic rollback after three failed boots
+- the full `aw` set that its Containerfile installs
+
+Neither image starts a workload for you, and neither ships a password or a shared
+login: the source build creates only the locked `awnix` service account, reachable
+by your key; the ISO creates only the admin you name during setup. What runs on top
+is yours. (The ISO's own admin plane — setup, console, updater — is the OS
+administering itself.)
 
 The `aw` tools are not an exception to that line — they are tools, not services.
 Nothing runs, nothing listens, nothing has an account. `awgit` does not start a
@@ -121,17 +164,26 @@ command-not-found on a machine whose whole pitch is that tooling.
 
 ## Getting an agent onto it
 
-awnix deliberately ships no agent, and that is the honest answer to "how do I run
-one": **you layer it on.** A base image that arrives with an agent already running
-has decided what you are doing with your machine.
+Neither image needs `pip install` to run an agent: the `awdk` runtime (the `adk`
+CLI) and the `awsh` shell are already on both, with the bundled `aither` identity and
+its packs — including the free **`aither-core` base agent pack**, "the sovereign
+orchestrator". Neither runs one for you, though: no daemon and no model answers until
+you start it.
 
-The layer is small, because the capabilities are already here:
-
-```dockerfile
-FROM awnix:latest
-RUN pip3 install --no-cache-dir awdk         # the agent runtime
-# ...your skills, packs and credentials
+```sh
+adk pack list                  # packs bundled in the wheel (aither-core, arc-brainpack, ...)
+adk pack install aither-core   # resolve the base Aither agent pack (offline, no download)
+awnix awdk status              # env files, URLs, adk version (no network)
 ```
+
+On **awnix-ai** and **awnix-ai-full** (and the private appliance image) the local
+Bonsai is served on boot and the loopback agent daemon `awdk-local.service` is enabled
+at boot and answers `awsh` on `127.0.0.1:9001`, pointed by `/usr/lib/awdk/awdk.env`
+at the model the image serves itself on `127.0.0.1:8199` — do not start a second llama
+server on `:8080`; prove it with `awnix awdk health`. On **awnix-desktop-open**,
+`Super+A` opens `awsh` but that image ships no model: run `aither bonsai start`, or
+point it at a model with `awsh --base-url`. Everywhere else, start one interactively
+with `adk run` (or serve it with `adk serve`).
 
 `awdk` finds the `aw` tools by import — they are already on the image — so the
 agent gets leases, the call graph, messaging, scoped memory, snapshots and
@@ -163,8 +215,14 @@ while you are still deciding what it should do.
 
 ## The credential model, and why it's this one
 
-The `awnix` account has **no password**. Access is by SSH key: cloud-init injects
-your launch keypair on a cloud image; on bare metal you place one.
+**The minimal source build** creates the `awnix` account with **no password**.
+Access is by SSH key: cloud-init injects your launch keypair on a cloud image; on
+bare metal you place one.
+
+**The released server ISOs bake no account at all.** First-boot setup (or the installer's
+seed) creates the admin you name and installs the SSH key or password you give it.
+A key-only admin gets a NOPASSWD sudo drop-in; an admin with a password keeps
+password sudo. There is no `awnix` account to log in as.
 
 Two details that look optional and are not:
 
@@ -178,8 +236,10 @@ sudo at all if sudo demands a password. Key-only login without it gives you a
 machine you can reach and cannot administer. `ec2-user` and `ubuntu` work the
 same way, for the same reason.
 
-Password authentication is off in sshd. With no password anywhere it's dead
-weight, and image scanners flag it — correctly.
+In the minimal source build, password authentication is off in sshd: with no
+password anywhere it's dead weight, and image scanners flag it — correctly. The
+ISO leaves sshd's stock policy and relies on the admin you created having a key;
+it does not promise a key-only sshd.
 
 ---
 
@@ -212,12 +272,17 @@ the hard way:
 
 ## Administering it
 
-The full admin guide ships in every image and is one command away: `man awnix`. The same
-pages are in `/usr/share/doc/awnix/html` and in the web console's Guide tab.
+Everything in this section belongs to the **released server ISOs**. The minimal
+`podman build -f Containerfile` image does not ship the admin plane — no man pages,
+no `awnix` dispatcher, no `:9443` console, no updater. The full admin guide ships
+in every released server ISO and is one command away: `man awnix`. The same pages are in
+`/usr/share/doc/awnix/html` and in the web console's Guide tab.
 
 ### Install
 
-Download an ISO from the table above and check it against `SHA256SUMS`. Write it with
+Download an ISO from the table above and check it against the `SHA256SUMS` on its
+matching release page (compare the hash — the line names the internal `install.iso` /
+`awnix-x86_64.iso`, not the served variant filename). Write it with
 `write-awnix-usb` (it verifies what it wrote and refuses the disk you booted from) or any
 USB writer in DD mode. For an unattended install, make a second stick with
 `make-awnix-seed`: it names the disk, the admin user and SSH keys, and answers first-boot

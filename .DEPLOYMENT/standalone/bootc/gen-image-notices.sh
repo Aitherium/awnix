@@ -15,13 +15,30 @@
 #   THIRD-PARTY-INVENTORY.tsv   source<TAB>name<TAB>version<TAB>license, one row per
 #                               RPM (rpm -qa) and per Python distribution (*.dist-info)
 #
+# The notices cut is FILTERED to what THIS image actually contains. The repo notices
+# list everything the whole platform redistributes; several of those components (vLLM,
+# PyTorch, Repowise, and vendored trees like AOS-1 / Diagram Design / i-have-adhd) are
+# baked into fleet or desktop images and are NOT in any awnix variant. Shipping their
+# attribution in an awnix image names a project the image does not carry -- the one
+# KV-compression name a customer would read (vLLM TurboQuant) would be a project the
+# image lacks. SCOPE_TABLE below declares, per component, the probe that proves presence:
+#   <component>|<probe>
+#     probe  pkg:NAME   keep only when a Python distribution / RPM named NAME is in the
+#                       inventory (case-insensitive). Repeat the line to offer alternates.
+#     probe  absent      the component is known to ship in NO awnix variant; always drop.
+#   A component with no line here is KEPT unconditionally. That default is deliberate:
+#   tarball- and git-installed components (llama.cpp, Obscura, Node.js, GobboNet) have no
+#   RPM or dist-info row, so an inventory probe cannot see them -- dropping them on an
+#   empty probe would omit a licence the image really owes. Only inventory-detectable or
+#   provably-absent components are scoped.
+#
 # RPM per-package licence TEXTS stay where the RPMs put them (/usr/share/licenses/<pkg>);
 # this file is the index a buyer's compliance reviewer asks for first. It is regenerated
 # in every leaf image because each layer adds packages -- a base-layer inventory is
 # stale the moment awnix-runner-ai or garg-appliance installs one more RPM.
 #
-# Exit: 0 written · 1 the inventory would be empty or the notices are missing ·
-# 2 bad arguments. An empty inventory is a failure, never a pass.
+# Exit: 0 written · 1 the inventory would be empty or the notices are missing · 2 bad
+# arguments. An empty inventory is a failure, never a pass.
 set -u
 
 OUT="/usr/share/licenses/awnix"
@@ -31,26 +48,79 @@ RPM="${RPM:-rpm}"
 # Where Python distributions live in a bootc image (system + /opt venvs).
 SITE_GLOBS="${SITE_GLOBS:-/usr/lib/python3*/site-packages /usr/lib64/python3*/site-packages /usr/local/lib/python3*/site-packages /usr/local/lib64/python3*/site-packages /opt/*/lib/python3*/site-packages /opt/*/*/lib/python3*/site-packages}"
 
+# Component -> presence probe (see the header). Overridable as AWNIX_NOTICES_SCOPE for
+# the self-test only; in an image build this stays at its default.
+DEFAULT_SCOPE='PyTorch|pkg:torch
+vLLM|pkg:vllm
+vLLM TurboQuant|pkg:vllm-turboquant
+vLLM TurboQuant|pkg:turboquant
+Repowise|pkg:repowise
+AOS-1 Agent Orchestration Standard|absent
+Diagram Design|absent
+i-have-adhd|absent'
+
 die() { echo "gen-image-notices: $1" >&2; exit "${2:-2}"; }
 
 # Customer-facing notices: stdin = the repo notices, stdout = the image cut (see header).
+# $1 = the inventory TSV built for this image; SCOPE decides which components survive.
 image_notices() {
-    tr -d '\r' | awk '
+    inv="$1"
+    tr -d '\r' | awk -v inv="$inv" -v scope_data="${AWNIX_NOTICES_SCOPE-$DEFAULT_SCOPE}" '
+        function flush(   keep, j, pr, nm) {
+            if (cname == "") return
+            keep = 1
+            if (cname in scnt) {
+                keep = 0
+                for (j = 1; j <= scnt[cname]; j++) {
+                    pr = sprobe[cname, j]
+                    if (pr == "absent") { keep = 0; break }
+                    if (substr(pr, 1, 4) == "pkg:") {
+                        nm = tolower(substr(pr, 5))
+                        if (nm in present) { keep = 1; break }
+                    }
+                }
+            }
+            if (keep) {
+                print ""
+                print "### " cname
+                print ""
+                for (j = 1; j <= nb; j++) print body[j]
+                n++
+            }
+            cname = ""; nb = 0
+        }
         BEGIN {
+            while ((getline line < inv) > 0) {
+                m = split(line, f, "\t")
+                if (m >= 2 && f[2] != "name") present[tolower(f[2])] = 1
+            }
+            close(inv)
+            k = split(scope_data, sl, "\n")
+            for (i = 1; i <= k; i++) {
+                l = sl[i]
+                if (l == "" || substr(l, 1, 1) == "#") continue
+                p = index(l, "|")
+                if (p == 0) continue
+                comp = substr(l, 1, p - 1); probe = substr(l, p + 1)
+                scnt[comp]++; sprobe[comp, scnt[comp]] = probe
+            }
             print "# Third-party notices"
             print ""
             print "This image redistributes the open-source components below. Each keeps its own"
             print "licence. The complete per-package list for THIS image (every RPM and Python"
             print "distribution, with its licence) is THIRD-PARTY-INVENTORY.tsv in this directory;"
             print "RPM licence texts are under /usr/share/licenses/<package>."
+            print ""
+            print "Components the platform redistributes into OTHER images but not into this one"
+            print "are omitted; the inventory TSV is the complete list for this image."
         }
         /^<!--/ { incomment = 1 }
         incomment { if (/-->/) incomment = 0; next }
-        /^## / { insec = ($0 == "## Redistributed"); next }
+        /^## / { flush(); insec = ($0 == "## Redistributed"); next }
         !insec { next }
-        /^### / { print ""; print $0; print ""; n++; next }
-        /^- \*\*(Upstream|Licence|Version pinned|Modified|Our fork|Licence text ships at)\*\*:/ { print; next }
-        END { if (!n) exit 1 }'
+        /^### / { flush(); cname = substr($0, 5); next }
+        /^- \*\*(Upstream|Licence|Version pinned|Modified|Our fork|Licence text ships at)\*\*:/ { if (cname != "") body[++nb] = $0; next }
+        END { flush(); if (!n) exit 1 }'
 }
 
 # One TSV row per *.dist-info/METADATA: name, version, licence. Licence preference:
@@ -102,8 +172,8 @@ generate() {
     fi
     { printf 'source\tname\tversion\tlicense\n'; cat "$tmp.body"; } > "$OUT/THIRD-PARTY-INVENTORY.tsv"
     rm -f "$tmp.body"
-    image_notices < "$NOTICES" > "$OUT/THIRD-PARTY-NOTICES.md" \
-        || { rm -f "$OUT/THIRD-PARTY-NOTICES.md"; die "no '## Redistributed' components in $NOTICES -- refusing" 1; }
+    image_notices "$OUT/THIRD-PARTY-INVENTORY.tsv" < "$NOTICES" > "$OUT/THIRD-PARTY-NOTICES.md" \
+        || { rm -f "$OUT/THIRD-PARTY-NOTICES.md"; die "no redistributable component matched this image in $NOTICES -- refusing" 1; }
     chmod 0644 "$OUT/THIRD-PARTY-INVENTORY.tsv" "$OUT/THIRD-PARTY-NOTICES.md"
     nrpm=$(grep -c '^rpm	' "$OUT/THIRD-PARTY-INVENTORY.tsv" || true)
     npy=$(grep -c '^python	' "$OUT/THIRD-PARTY-INVENTORY.tsv" || true)
@@ -171,6 +241,46 @@ EOF
     printf '# notices\n## Integrated\n### X\n' > "$tmp/N2.md"
     ( RPM="$tmp/bin/rpm" SITE_GLOBS="$tmp/site" sh "$SELF" --notices "$tmp/N2.md" --out "$tmp/o4" ) >/dev/null 2>&1
     t "notices with no Redistributed component is a failure" "$?" 1
+
+    # Filter: an inventory-absent component and a known-absent component are dropped; a
+    # present component and an unscoped component are kept.
+    cat > "$tmp/N3.md" <<'EOF'
+<!-- x -->
+# Third-party notices
+
+## Redistributed
+
+### Foo
+
+- **Upstream**: https://example.invalid/foo
+- **Licence**: MIT
+
+### Bar
+
+- **Upstream**: https://example.invalid/bar
+- **Licence**: Apache-2.0
+
+### Baz
+
+- **Upstream**: https://example.invalid/baz
+- **Licence**: MIT
+
+### Qux
+
+- **Upstream**: https://example.invalid/qux
+- **Licence**: BSD-3-Clause
+EOF
+    scope='Foo|pkg:foo
+Bar|pkg:not-in-this-image
+Baz|absent'
+    ( AWNIX_NOTICES_SCOPE="$scope" RPM="$tmp/bin/rpm" SITE_GLOBS="$tmp/site" \
+        sh "$SELF" --notices "$tmp/N3.md" --out "$tmp/o5" ) >/dev/null 2>&1
+    t "scoped notices generate" "$?" 0
+    fnt="$tmp/o5/THIRD-PARTY-NOTICES.md"
+    grep -qx '### Foo' "$fnt"; t "  present pkg probe keeps the component" "$?" 0
+    grep -qx '### Bar' "$fnt"; t "  absent pkg probe drops the component" "$?" 1
+    grep -qx '### Baz' "$fnt"; t "  'absent' probe drops the component" "$?" 1
+    grep -qx '### Qux' "$fnt"; t "  unscoped component is kept (licence-safe default)" "$?" 0
 
     ( RPM="$tmp/nope" SITE_GLOBS="$tmp/empty" sh "$SELF" --notices "$tmp/N.md" --out "$tmp/o2" ) >/dev/null 2>&1
     t "empty inventory is a failure" "$?" 1

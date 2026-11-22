@@ -5,8 +5,11 @@
 # selector names, sha256-checked against that catalogue -- and tells the server unit to
 # serve the largest BAKED model instead of downloading a bigger one.
 #
-# Bonsai only: 1.7B (441 MB) runs on plain CPU, 4B (1025 MB) is the 4 GB-card model.
-# Bigger rungs stay one `AWNIX_MODEL=bonsai-8b` + network away.
+# Bonsai 2 only: 2B (409 MB) runs on plain CPU, 4B (905 MB) is the 4 GB-card model.
+# Both are smaller than the Bonsai 1 1.7B/4B they replace AND exercise the Hadamard-v2
+# path every pinned prism-b12128 image serves, so the offline load-check proves the
+# same model family the online ladder serves. Bigger rungs stay one `AWNIX_MODEL=` +
+# network away.
 FROM localhost/awnix-ai-full:latest
 
 # Bake EXACTLY what the model selector would fetch: file name, URL(s) and sha256 all come
@@ -14,9 +17,10 @@ FROM localhost/awnix-ai-full:latest
 # awnix-model-select.py. The first version hardcoded the legacy Q2_0 file names; the
 # catalogue had moved to the PQ2_0 GGUFs this llama.cpp build loads, so the offline
 # fallback never found a baked model (boot-smoke 37188948217: "offline and no baked
-# model fits (wanted bonsai-4b)").
+# model fits (wanted bonsai-4b)"). Bake the CURRENT bottom two ladder rungs -- Bonsai 2
+# 2B/4B (PTQ1_0) -- so an offline box serves the same Hadamard-v2 family as online.
 COPY --chown=root:root bake-offline-models.py /usr/local/libexec/bake-offline-models.py
-RUN python3.11 /usr/local/libexec/bake-offline-models.py bonsai-1.7b bonsai-4b \
+RUN python3.11 /usr/local/libexec/bake-offline-models.py bonsai2-2b bonsai2-4b \
     && chown -R bonsai:bonsai /opt/bonsai/models \
     && ls -lh /opt/bonsai/models/
 
@@ -30,12 +34,12 @@ RUN mkdir -p /usr/lib/systemd/system/awnix-bonsai.service.d \
 # a copy without that line; the serve script finds the baked file and downloads nothing.
 RUN sed 's#find /opt/bonsai/models -mindepth 1 -delete#true#' \
         /usr/local/libexec/awnix-model-load-check.sh > /tmp/offline-load-check.sh \
-    && AWNIX_CHECK_MODEL=bonsai-1.7b bash /tmp/offline-load-check.sh \
+    && AWNIX_CHECK_MODEL=bonsai2-2b bash /tmp/offline-load-check.sh \
     && rm -f /tmp/offline-load-check.sh \
     && test "$(ls /opt/bonsai/models/*.gguf | wc -l)" -ge 2
 
 LABEL com.aitheros.layer="awnix-ai-offline" \
       com.aitheros.base="awnix-ai-full" \
-      com.aitheros.description="Every aw* package, PrismML llama.cpp and baked Bonsai 1.7B + 4B -- local AI with no internet" \
+      com.aitheros.description="Every aw* package, PrismML llama.cpp and baked Bonsai 2 2B + 4B -- local AI with no internet" \
       org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
       com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium, LLC with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/. The baked Ternary-Bonsai weights are prism-ml's, under the terms on their Hugging Face model cards."

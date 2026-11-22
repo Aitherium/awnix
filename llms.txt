@@ -48,13 +48,17 @@ boot the ISO directly in a VM.
 
 `SHA256SUMS` lives on the matching release at
 https://github.com/Aitherium/awnix/releases (same bytes there, split into parts).
+Compare the HASH: the checksum line names the release's internal `install.iso` (new
+builds) or `awnix-x86_64.iso` (older), not the served variant filename. As of
+2026-11-22: awnix, awnix-ai, awnix-full and awnix-ai-full = release 2026.11.22;
+awnix-desktop-open = 2026.09.27. There is no single artifact-root SHA256SUMS.
 
 ### Any machine with a container engine
 
 The public images pull anonymously — no login, no token:
 
 ```bash
-podman pull ghcr.io/aitherium/awnix-ai-full:2026.10.05   # or awnix / awnix-full, :latest
+podman pull ghcr.io/aitherium/awnix-ai-full:2026.11.16   # or awnix / awnix-full, a dated tag
 ```
 
 ## After awnix boots: the stack on top, still no account

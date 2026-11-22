@@ -8,8 +8,15 @@
 # first boot, so this runs exactly that: the real serve script, the real catalogue,
 # the smallest model, one completion. The download is deleted before this RUN ends,
 # so the image carries no weights.
+#
+# THE DEFAULT IS BONSAI 2, NOT BONSAI 1. Every image pins prism-b12128, which loads
+# the Hadamard-v2 Bonsai 2 (PTQ1_0) small sizes; Bonsai 1 (PQ2_0) is superseded and
+# fetchable only with an explicit --model. A gate that loaded Bonsai 1 proved nothing
+# about the Bonsai 2 path a customer actually gets, so the smallest ladder model --
+# bonsai2-2b (409 MB, the catalogue's floor) -- is the default. The image build lines
+# also pass AWNIX_CHECK_MODEL explicitly so the gate cannot silently fall back here.
 set -eu
-MODEL="${AWNIX_CHECK_MODEL:-bonsai-1.7b}"
+MODEL="${AWNIX_CHECK_MODEL:-bonsai2-2b}"
 PORT=$((21000 + $$ % 900))
 LOG=/tmp/awnix-model-load-check.log
 cleanup() {

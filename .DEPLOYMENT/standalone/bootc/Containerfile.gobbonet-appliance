@@ -59,11 +59,14 @@ RUN python3.11 -m pip install --no-cache-dir \
 # is true of the 27B and false of the bottom of the ladder, and the difference
 # decides whether a first boot can answer at all.
 #
-#   bonsai-1.7b    441 MB   phone-class GPU or plain CPU
-#   bonsai-4b     1025 MB   the 4 GB-card model
-#   bonsai-27b    6833 MB   NOT baked -- fetched on first use, sized to the box
+#   bonsai2-2b     409 MB   phone-class GPU or plain CPU (PTQ1_0, Hadamard v2)
+#   bonsai2-4b     905 MB   the 4 GB-card model
+#   bonsai2-27b   5671 MB   NOT baked -- fetched on first use, sized to the box
 #
-# ~1.5 GB buys an appliance that boots with no network and answers immediately.
+# ~1.3 GB buys an appliance that boots with no network and answers immediately.
+# These are the CURRENT ladder floor rungs (Bonsai 2), smaller than the Bonsai 1
+# 1.7B/4B they replace and the same Hadamard-v2 family every pinned prism-b12128
+# image serves, so the offline smoke test proves the path a customer actually gets.
 # serve-awnix-bonsai.sh guards its fetch with `[ ! -s "$GGUF" ]`, so a baked file
 # is used as-is and nothing is re-downloaded.
 #
@@ -78,8 +81,8 @@ ARG BONSAI_BASE=https://huggingface.co/prism-ml
 RUN set -eu; \
     mkdir -p /opt/bonsai/models; \
     for spec in \
-        "Ternary-Bonsai-1.7B-gguf/resolve/main/Ternary-Bonsai-1.7B-PQ2_0.gguf|Ternary-Bonsai-1.7B-PQ2_0.gguf|441" \
-        "Ternary-Bonsai-4B-gguf/resolve/main/Ternary-Bonsai-4B-PQ2_0.gguf|Ternary-Bonsai-4B-PQ2_0.gguf|1025" \
+        "Ternary-Bonsai-2-2B-gguf/resolve/main/Ternary-Bonsai-2-2B-PTQ1_0.gguf|Ternary-Bonsai-2-2B-PTQ1_0.gguf|409" \
+        "Ternary-Bonsai-2-4B-gguf/resolve/main/Ternary-Bonsai-2-4B-PTQ1_0.gguf|Ternary-Bonsai-2-4B-PTQ1_0.gguf|905" \
     ; do \
         path="${spec%%|*}"; rest="${spec#*|}"; file="${rest%%|*}"; want_mb="${rest#*|}"; \
         echo "baking $file (~${want_mb} MB)"; \
@@ -163,8 +166,8 @@ RUN git clone --depth 1 --branch "${GOBBONET_REF}" "${GOBBONET_REPO}" /opt/gobbo
 # command a stranger runs on their own machine, so this image is not a second way
 # of starting the app that only we can debug.
 RUN set -eu; \
-    test -s /opt/bonsai/models/Ternary-Bonsai-1.7B-PQ2_0.gguf; \
-    test -s /opt/bonsai/models/Ternary-Bonsai-4B-PQ2_0.gguf; \
+    test -s /opt/bonsai/models/Ternary-Bonsai-2-2B-PTQ1_0.gguf; \
+    test -s /opt/bonsai/models/Ternary-Bonsai-2-4B-PTQ1_0.gguf; \
     python3.11 -c "from adk.packs.gobbonet import campaign_memory, cards, retrieval; print('gobbonet pack ok')"; \
     adk gobbonet --ui /opt/gobbonet --port 8080 --no-open >/tmp/gobbonet.log 2>&1 & \
     ok=0; \
@@ -198,7 +201,7 @@ RUN set -eu; \
     for attempt in 1 2 3; do \
         PORT=$((21000 + attempt * 137 + $$ % 97)); \
         /opt/bonsai/lib/ld-linux-x86-64.so.2 --library-path "/opt/bonsai/lib:$D" "$BIN" \
-            -m /opt/bonsai/models/Ternary-Bonsai-1.7B-PQ2_0.gguf \
+            -m /opt/bonsai/models/Ternary-Bonsai-2-2B-PTQ1_0.gguf \
             --host 127.0.0.1 --port "$PORT" -c 512 >/tmp/llama.log 2>&1 & \
         pid=$!; \
         up=0; \

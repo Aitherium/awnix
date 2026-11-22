@@ -24,11 +24,15 @@ gobbonet-appliance
 
 ## Download and verify
 
-Download the ISO and the `SHA256SUMS` file from the matching release, then compare:
+Download the ISO and the `SHA256SUMS` file from the matching release, then compare the
+HASH. The checksum line names the release's INTERNAL file — `install.iso` on new builds,
+`awnix-x86_64.iso` on older ones — not the variant filename you downloaded, so do not
+`grep` the variant name:
 
 ```
 sha256sum awnix-ai-full-x86_64.iso
-grep awnix-ai-full-x86_64.iso SHA256SUMS
+# take the single non-".part" line from SHA256SUMS (its filename may be install.iso)
+grep -v '\.part' SHA256SUMS
 ```
 
 Do not boot an image whose checksum does not match.

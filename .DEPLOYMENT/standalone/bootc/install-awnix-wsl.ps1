@@ -21,8 +21,10 @@
        step the distro starts but runs no services.
 
   Defaults: the awnix-ai-full image (the whole aw* stack; the model sized to
-  this machine downloads on first boot). Pass -Image for awnix or awnix-full,
-  or any dated tag instead of :latest. Needs ~2 GB of download and ~10 GB free.
+  this machine downloads on first boot). The default is a DATE TAG, not :latest:
+  :latest resolves to an old build (2026.07.31 as of 2026-11-22) and silently
+  installs an OS months behind the ISO lane. Pass -Image for awnix or awnix-full,
+  or any OTHER dated tag. Needs ~2 GB of download and ~10 GB free.
 
   On a machine whose live fleet runs in a WSL distro, use bootstrap-awnix.ps1
   -Target wsl beside this script instead -- it carries the fleet refusals.
@@ -31,7 +33,7 @@
 
 .EXAMPLE
   irm https://raw.githubusercontent.com/Aitherium/awnix/main/.DEPLOYMENT/standalone/bootc/install-awnix-wsl.ps1 | iex
-  .\install-awnix-wsl.ps1 -Image ghcr.io/aitherium/awnix-full:2026.10.05
+  .\install-awnix-wsl.ps1 -Image ghcr.io/aitherium/awnix-full:2026.11.07
   .\install-awnix-wsl.ps1 -Name myawnix -StageDir D:\awnix -Force
   .\install-awnix-wsl.ps1 -SelfTest
 
@@ -43,7 +45,7 @@
 [CmdletBinding()]
 param(
     [string]$Name = 'awnix',
-    [string]$Image = 'ghcr.io/aitherium/awnix-ai-full:latest',
+    [string]$Image = 'ghcr.io/aitherium/awnix-ai-full:2026.11.07',
     [string]$StageDir = $(if ($env:AWNIX_WSL_STAGE) { $env:AWNIX_WSL_STAGE } else { Join-Path $env:LOCALAPPDATA 'awnix\wsl' }),
     [string]$ExportDistro = '',
     [switch]$Force,
@@ -297,6 +299,11 @@ function Invoke-SelfTest {
     Ck '3.8 GB free refuses a 10 GB need' ([bool](Test-FreeSpacePure -FreeBytes ([int64](3.8 * 1GB)) -NeedBytes ([int64](10GB)) -Where 'C:'))
     Ck '220 GB free admits a 10 GB need' ($null -eq (Test-FreeSpacePure -FreeBytes ([int64](220GB)) -NeedBytes ([int64](10GB)) -Where 'E:'))
     Ck 'unknown free space refuses' ([bool](Test-FreeSpacePure -FreeBytes -1 -NeedBytes 1 -Where 'X:'))
+
+    # G-05: :latest resolved to a months-old build (2026.07.31 while the ISO lane
+    # shipped 2026.11.x), so the default MUST be a date tag. This fails the
+    # self-test the moment someone "simplifies" it back to :latest.
+    Ck 'default image is a dated tag, not :latest' ($Image -match ':20\d\d\.\d\d\.\d\d$')
 
     Write-Host ''
     if ($script:fail -eq 0) { Write-Host 'SELF-TEST PASS'; return 0 }

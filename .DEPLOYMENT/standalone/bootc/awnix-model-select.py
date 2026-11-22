@@ -67,6 +67,17 @@ def _load(path: Path = None) -> dict:
 
 def _scalar(v: str):
     v = v.strip()
+    # Strip a trailing inline comment ("  # ...") BEFORE deciding the value. The image
+    # has no PyYAML (this mini reader is the only parser there), and an inline comment
+    # left on a scalar once became part of a mirror_path, producing a malformed fallback
+    # URL on exactly the box that could not use PyYAML. A quoted value keeps everything
+    # through its closing quote; only the text after that is a comment.
+    if v[:1] in ("'", '"'):
+        end = v.find(v[0], 1)
+        if end != -1:
+            v = v[: end + 1]
+    else:
+        v = re.sub(r"\s+#.*$", "", v).strip()
     if v.startswith("[") and v.endswith("]"):
         return [x.strip() for x in v[1:-1].split(",") if x.strip()]
     if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
@@ -185,6 +196,17 @@ def plan(cfg: dict, model_id: str) -> dict:
         urls = [f"{base}{m['path']}"]
         if parts:
             raise Dead(f"'{model_id}' declares parts on a direct source — unsupported")
+
+    # A bare filename under our own mirror (weights.aitherium.com), tried AFTER the
+    # primary URL when the primary is unreachable. Same bytes, first-party host, so a
+    # first boot that picked a small tier still works if Hugging Face moves (BON2-03).
+    fallback_urls: list[str] = []
+    mirror_path = m.get("mirror_path")
+    if mirror_path:
+        msrc = srcs.get("weights")
+        if not msrc or not msrc.get("base"):
+            raise Dead(f"'{model_id}' names a mirror_path but no 'weights' source is defined")
+        fallback_urls = [f"{str(msrc['base'])}{mirror_path}"]
     return {
         "id": model_id,
         "file": m["file"],
@@ -192,6 +214,7 @@ def plan(cfg: dict, model_id: str) -> dict:
         "parts": parts,
         "join": parts > 1,
         "urls": urls,
+        "fallback_urls": fallback_urls,
         "opt_in": bool(m.get("opt_in", False)),
     }
 
@@ -261,6 +284,27 @@ def self_test() -> int:
     chk(all(u.startswith("https://github.com/Aitherium/aitherkvcache/releases/download/")
             for u in g["urls"]), "mirrored URLs point at aitherkvcache releases")
     chk(g["opt_in"] is True, "a fleet model is flagged opt-in in its plan")
+    chk(g["fallback_urls"] == [], "a model with no mirror_path carries no fallback")
+
+    # Every default-ladder Bonsai 2 tier MUST carry our-infra fallback (BON2-03): the
+    # primary is Hugging Face, the fallback is weights.aitherium.com under the bare name.
+    for mid in ladder:
+        fp = plan(cfg, mid)
+        chk(len(fp["fallback_urls"]) == 1
+            and fp["fallback_urls"][0] == f"https://weights.aitherium.com/{fp['file']}",
+            f"{mid} falls back to weights.aitherium.com/{fp['file']}")
+        chk(fp["urls"][0].startswith("https://huggingface.co/"),
+            f"{mid} primary is still Hugging Face")
+
+    # The IMAGE runs with no PyYAML, so the mini reader is the only parser there; it
+    # must agree with this plan. A trailing inline comment on `mirror_path` once stayed
+    # inside the value and produced a malformed fallback URL on exactly such a box.
+    _mini = _mini_yaml(CATALOG.read_text(encoding="utf-8"))
+    _pm = plan(_mini, "bonsai2-2b")
+    chk(_pm["fallback_urls"] == ["https://weights.aitherium.com/Ternary-Bonsai-2-2B-PTQ1_0.gguf"],
+        "the no-PyYAML reader strips an inline comment from mirror_path")
+    chk(_pm["urls"] == plan(cfg, "bonsai2-2b")["urls"],
+        "the mini reader yields the same primary URL as PyYAML")
 
     try:
         plan(cfg, "nope")

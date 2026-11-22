@@ -6,7 +6,7 @@
 # base (Ollama, Cockpit, a 272-port firewall, an `aither` service account) —
 # awnix is the opposite by design: "No services. No agent. No account."
 # (AitherOS/config/ecosystem.yaml, awnix entry). Capabilities go in the base
-# (the 19 aw* tools below); the AGENT layers on top separately (three
+# (the 30 aw* tools below); the AGENT layers on top separately (three
 # lines in a Dockerfile — see the agent-runner layer this base is built for).
 # Putting the agent in the base instead would mean swapping agents loses
 # every guarantee the base provides.
@@ -57,22 +57,22 @@ RUN dnf install -y --setopt=install_weak_deps=False cloud-init \
 # awrun plan's Phase 15/16: docker/podman-group-equivalent-to-root and
 # blanket NOPASSWD sudo are the same hole with extra steps, and awnix's own
 # "no agent, no account" philosophy is the wrong place to compromise on it.
-# C toolchain for the runner pool (SHW009). Measured 2026-08-21:
+# C toolchain for the runner pool. Measured 2026-08-21:
 # node-gyp deps (better-sqlite3) died `gyp ERR! not found: make` on
 # aitheros-aws-2; this image has never carried make/gcc/g++, so the
 # aws pool could not compile any native npm module. The jobs on the
 # pool are pinned for this in check_selfhosted_workflow_contract.py
-# (SHW009_PIN); the pool is re-provisioned from this image so the
+# (the runner-pool pin); the pool is re-provisioned from this image so the
 # pin can ratchet DOWN. patch is for node-gyp's apply step.
 # NOTE (2026-08-31, AWV007): this comment MUST stay ABOVE the RUN — a
 # comment between backslash continuations is prepended to the shell
 # command, commenting out every package after it (the toolchain silently
 # never installed; caught by check_awnix_variants.py).
-# C toolchain for the runner pool (SHW009). Measured 2026-08-21: node-gyp deps
+# C toolchain for the runner pool. Measured 2026-08-21: node-gyp deps
 # (better-sqlite3) died `gyp ERR! not found: make` on aitheros-aws-2; this image
 # had never carried make/gcc/g++, so the aws pool could not compile any native
 # npm module. The jobs on the pool are pinned for this in
-# check_selfhosted_workflow_contract.py (SHW009_PIN); the pool is re-provisioned
+# check_selfhosted_workflow_contract.py (the runner-pool pin); the pool is re-provisioned
 # from this image so the pin can ratchet DOWN. patch is for node-gyp's apply step.
 #
 # 🚨 THIS COMMENT LIVES ABOVE THE RUN, AND MUST STAY THERE. It sat INSIDE the
@@ -80,7 +80,7 @@ RUN dnf install -y --setopt=install_weak_deps=False cloud-init \
 # backslash continuation joins the lines, so the `#` commented out the remainder
 # of the joined command -- gcc, gcc-c++, make, patch AND `dnf clean all` never
 # ran. The image built fine and reported success; the toolchain was simply
-# absent, which is the exact SHW009 symptom the comment describes as fixed.
+# absent, which is the exact symptom the comment describes as fixed.
 # The warning against this shape was written four lines above the line that did
 # it. check_awnix_variants.py AWV007 is what actually catches it.
 RUN dnf install -y --setopt=install_weak_deps=False \
@@ -91,7 +91,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
     && dnf clean all
 
 # CentOS Stream 9's DEFAULT `python3` is 3.9.25 (kept old on purpose — it's
-# the system python dnf/yum depend on, never touch it). All 19 aw* tools
+# the system python dnf/yum depend on, never touch it). All 30 aw* tools
 # declare `requires-python >= 3.10` (measured live 2026-08-20: pip on 3.9
 # reports "Could not find a version that satisfies the requirement awgit
 # (from versions: none)" even though the PyPI index answers fine — every
@@ -213,7 +213,17 @@ COPY storage.conf /etc/containers/storage.conf
 # "absent is a status, not an omission" doctrine (aw-family.md) — rather
 # than silently dropping the gap or blocking the whole build on it.
 RUN python3.11 -m pip install --no-cache-dir awdit \
-        awgit awgraph awrelay awm awshare
+        awgit awgraph awrelay awm awshare awask awrtifact \
+        awkno awfind awfocus awmine awtoll awflow awdecide awstorage
+# The eight capabilities an agentic Linux cannot do without, added 2026-10-27
+# (all PyPI 200 before the line was written): awkno is the world's man page, so an
+# AIRGAPPED box can still look things up; awfind searches the machine; awfocus sees
+# and steers every agent session; awmine turns transcripts into lessons; awtoll
+# prices context; awflow runs journaled workflows that resume; awdecide records
+# typed decisions with a Brier ledger; awstorage keeps the storage ledger.
+# Deliberately NOT here: awpermit/awresume/awlog/awcache/awscope (not on PyPI --
+# they install from source like awrecover) and the workload bricks (awtax, awsaga,
+# awiris, awplay, awrena) which are things you RUN on the OS, not the OS.
 
 # ...and the two that are NOT on PyPI, from source. That TODO is now closed.
 #
@@ -231,6 +241,14 @@ RUN python3.11 -m pip install --no-cache-dir awdit \
 RUN python3.11 -m pip install --no-cache-dir \
         "git+https://github.com/Aitherium/awrecover.git@main" \
         "git+https://github.com/Aitherium/awseal.git@main"
+
+# awpermit, added 2026-10-27: the PERMISSIONS brick, and the one an agentic Linux
+# is least defensible without -- an Ed25519 permit with a scope and a spend cap that
+# a platform verifies OFFLINE, so a box with no network can still answer "is this
+# agent allowed to do that?". Public repo (200) and a pyproject before the line was
+# written, same rule as the two above; it has no PyPI slot, so it installs from git.
+RUN python3.11 -m pip install --no-cache-dir \
+        "git+https://github.com/Aitherium/awpermit.git@main"
 
 # ── the senses, plus the two that guard and wake things ─────────────────────────────
 #
@@ -338,6 +356,33 @@ RUN rm -f /usr/local/bin/aither /usr/local/bin/aither-shell /usr/local/bin/awsh 
     && npm install -g @aitherium/awsh@1.19.0 \
     && command -v aither && command -v aither-shell && command -v awsh
 
+# ── proof: every brick the base installs actually IMPORTS, and awdk can see them ────
+# A package can pip-install and FAIL TO IMPORT (a missing runtime dep, a namespace
+# collision) and the difference only shows on the user's machine, at the moment they
+# reach for the thing this OS exists to give them. Until 2026-11-21 the base installed
+# 30 aw* bricks and asserted NONE of them -- check_awnix_ships_claim.py ANS005 reported
+# "30 install(s) outside any proof loop", so an "installed but unimportable" brick
+# could ship silently. This loop is FAIL-CLOSED (`|| exit 1`): a brick that installs
+# but does not import breaks the BUILD, not the customer's box. awdk's distribution
+# name is `awdk` but its module is `adk`; asserting the dist name would pass on an
+# import that fails, so the loop lists `adk` (the same alias ANS005 carries).
+RUN for m in awask awrtifact awkno awfind awfocus awmine awtoll awflow awdecide \
+        awstorage awdit awgit awgraph awrelay awm awshare awrecover awseal awpermit \
+        awvoice awvision awscreen awrise awwall awbrain adk awbrowse awnode awnet \
+        awtunnel; do python3.11 -c "import $m" || exit 1; done
+
+# And prove the RUNTIME can read the composed-harness index and enumerate the parts --
+# the thing that turns "30 distributions are importable" into "awdk can FIND them".
+# `adk harness parts` exits 0 when every composed part is present, 1 when some are
+# missing (EXPECTED on the base: it ships the core, not the workload bricks awtax/
+# awsaga/awiris/awplay/awrena), and 2 when the family index carries no harness block.
+# 0 and 1 both prove the hub runs and can see the box; 2 means the registry claims a
+# harness the installed awdk cannot read -- a real defect, so it fails the build.
+RUN adk harness parts --json >/dev/null 2>/tmp/hp.err; rc=$?; \
+    if [ "$rc" -ge 2 ]; then cat /tmp/hp.err >&2; \
+        echo "adk harness parts could not read the family index (rc=$rc)" >&2; exit 1; fi; \
+    rm -f /tmp/hp.err
+
 # ── first-boot setup ────────────────────────────────────────────────────────────────# The thing that turns "an image that builds" into "an OS someone can install": the
 # questions every Linux asks after install -- hostname, which optional components, and
 # whether to link this box to a fleet. All three are declinable, because awnix's whole
@@ -444,6 +489,12 @@ COPY awnix-doctor.sh /usr/libexec/awnix/awnix-doctor
 COPY awnix-console-issue.sh /usr/libexec/awnix/awnix-console-issue.sh
 COPY awnix-update.sh /usr/libexec/awnix/awnix-update
 COPY awnix-component.py /usr/libexec/awnix/awnix-component
+# The baked-inventory generator. `awnix component list` can only report a brick as
+# `baked` if the image carries a manifest of what it baked; without one every brick is
+# read from the lock (older than the installed version) or as `pypi available`, and an
+# npm brick like awsh reads `unavailable` on a box that ships it. Copied here, run in
+# the plane RUN below so it reflects the installs that already happened.
+COPY awnix-baked-inventory.py /usr/libexec/awnix/awnix-baked-inventory
 COPY awnix-endpoints.py /usr/libexec/awnix/awnix-endpoints
 COPY awnix_console /usr/lib/awnix-console/awnix_console
 COPY awnix_setup /usr/lib/awnix-setup/awnix_setup
@@ -566,7 +617,9 @@ RUN set -eu; \
         head -1 "$f" | grep -qx '#!/usr/bin/python3.11' \
             || { echo "FATAL: $f does not start with #!/usr/bin/python3.11" >&2; exit 1; }; \
     done; \
-    mkdir -p /usr/lib/awnix; \
+    mkdir -p /usr/lib/awnix /usr/share/awnix/components.d; \
+    /usr/libexec/awnix/awnix-baked-inventory --variant "$AWNIX_VARIANT" \
+        --out /usr/share/awnix/components.d/baked.yaml; \
     epoch="${SOURCE_DATE_EPOCH:-$(date -u +%s)}"; \
     printf '%s\n' "$epoch" > /usr/lib/awnix/build-epoch; \
     printf 'AWNIX_VARIANT=%s\nAWNIX_IMAGE_REPO=%s\nAWNIX_BUILD_EPOCH=%s\n' \
@@ -740,7 +793,7 @@ RUN . /usr/lib/os-release \
 # files at boot. A renderer or guard fix is therefore ONE change here, reaching every
 # image built FROM this one. Brand-neutral: the engine names no product, host or port.
 # Source of truth: AitherOS/lib/core/aither_spec.py (+ schema, base layer), mirrored
-# into this build context byte-for-byte (check_aither_spec.py SPEC010).
+# into this build context byte-for-byte (check_aither_spec.py).
 # Design: docs/architecture/SOVEREIGN-CONFIG-PLANE.md.
 #
 # The unit keeps default dependencies (never Before=sysinit) and requests a reload
@@ -773,6 +826,6 @@ RUN sed -i 's/\r$//' /tmp/notices/gen-image-notices.sh \
     && rm -rf /tmp/notices
 
 LABEL com.aitheros.layer="awnix-base" \
-      com.aitheros.description="awnix — immutable Linux + the 19 aw* tools, no services/agent/account" \
+      com.aitheros.description="awnix — immutable Linux + the 30 aw* tools, no services/agent/account" \
       org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
       com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium, LLC with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix/."

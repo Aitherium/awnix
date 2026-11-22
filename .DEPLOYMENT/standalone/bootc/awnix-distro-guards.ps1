@@ -18,8 +18,9 @@
 #      (case-insensitive: WSL distro names are);
 #   2. a registration that holds cutover state is protected: its name is the source
 #      or target recorded in the awnix migration state file (current-migration.json),
-#      its BasePath is the directory named after that target (the live `awnix` is
-#      registered at ...\wsl\aitheros-fleet), or its BasePath shares the fleet's;
+#      its BasePath is the directory named after that target (the live fleet distro is
+#      registered under a directory named after that target), or its BasePath shares
+#      the fleet's;
 #   3. no second distro is imported/started while the fleet distro is Running
 #      (check_wsl_cotenancy: attaching a second disk to the shared utility VM failed
 #      the fleet's vhdx writes and rebooted it twice on 2026-09-20).
@@ -41,11 +42,24 @@ if (Test-Path -LiteralPath $script:AwnixFleetDistroPs1) {
     }
 }
 
+function Get-AwnixDataRoot {
+    <#
+      Where this box keeps WSL stage/state data, as a forward-slash path. Override with
+      AITHER_WSL_DATA_ROOT; otherwise under the user profile. Never a literal host path:
+      this file ships to other machines, and one operator's drive layout is not another's.
+    #>
+    param([hashtable]$Env = $null)
+    $v = if ($Env) { $Env['AITHER_WSL_DATA_ROOT'] } else { $env:AITHER_WSL_DATA_ROOT }
+    if ($v -and $v.Trim()) { return ($v.Trim() -replace '\\', '/').TrimEnd('/') }
+    $base = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { $env:TEMP }
+    return ((Join-Path $base 'AitherOS/wsl') -replace '\\', '/').TrimEnd('/')
+}
+
 function Get-AwnixStateFileCandidates {
     <# Where the migration writes current-migration.json (awnix-migration.yaml target.export_dir). #>
     $c = @()
     if ($env:AITHER_AWNIX_STATE_FILE) { $c += $env:AITHER_AWNIX_STATE_FILE }
-    $c += 'C:/AitherOS-Data/wsl/_export/current-migration.json'
+    $c += ((Resolve-AwnixStageRoot) + '/_export/current-migration.json')
     return $c
 }
 
@@ -167,14 +181,16 @@ function Test-AwnixCotenancy {
 function Resolve-AwnixStageRoot {
     <#
       Where rootfs tarballs and throwaway distros land (Windows form, forward slashes).
-      env AITHER_WSL_STAGE_DIR, else E:/AitherOS-Data/wsl when E: exists, else C:.
-      C: had 3.8 GB free on 2026-09-27 and a fleet rootfs is ~3 GB before import.
+      env AITHER_WSL_STAGE_DIR, else the box's data root (Get-AwnixDataRoot) moved onto
+      E: when E: exists. E: had room where C: had 3.8 GB free on 2026-09-27 and a fleet
+      rootfs is ~3 GB before import -- but the path is derived, never hard-coded.
     #>
     param([hashtable]$Env = $null, [scriptblock]$DriveExists = { param($d) Test-Path "${d}:\" })
     $v = if ($Env) { $Env['AITHER_WSL_STAGE_DIR'] } else { $env:AITHER_WSL_STAGE_DIR }
     if ($v -and $v.Trim()) { return ($v.Trim() -replace '\\', '/').TrimEnd('/') }
-    if (& $DriveExists 'E') { return 'E:/AitherOS-Data/wsl' }
-    return 'C:/AitherOS-Data/wsl'
+    $root = Get-AwnixDataRoot -Env $Env
+    if (& $DriveExists 'E') { return ($root -replace '^[A-Za-z]:', 'E:') }
+    return $root
 }
 
 function ConvertTo-AwnixWslPath {
@@ -207,12 +223,12 @@ function Invoke-AwnixGuardSelfTest {
     <# Proves each refusal fires and does not cry wolf. Returns the failure count. #>
     function _ck([string]$n, [bool]$c) { if ($c) { Write-Host "  ok   $n" } else { Write-Host "  FAIL $n"; $script:__awg_fail++ } }
     $script:__awg_fail = 0
-    $regs = @{ 'awnix' = 'C:/AitherOS-Data/wsl/aitheros-fleet'; 'awnix-rehearse' = 'E:/AitherOS-Data/wsl/awnix-rehearse'; 'twin' = 'C:\AitherOS-Data\wsl\aitheros-fleet\' }
-    $st = @{ Source = 'Debian'; Target = 'aitheros-fleet' }
+    $regs = @{ 'awnix' = 'D:/stage/fleet'; 'awnix-rehearse' = 'D:/stage/rehearse'; 'twin' = 'D:\stage\fleet\' }
+    $st = @{ Source = 'Debian'; Target = 'fleet' }
     _ck 'the fleet distro is protected' ([bool](Test-AwnixDistroProtectedPure -Name 'awnix' -FleetDistro 'awnix' -Registrations $regs -State $st))
     _ck 'the fleet distro is protected case-insensitively' ([bool](Test-AwnixDistroProtectedPure -Name 'AWNIX' -FleetDistro 'awnix'))
     _ck 'the cutover source is protected' ([bool](Test-AwnixDistroProtectedPure -Name 'Debian' -FleetDistro 'awnix' -State $st))
-    _ck 'the cutover target name is protected' ([bool](Test-AwnixDistroProtectedPure -Name 'aitheros-fleet' -FleetDistro 'awnix' -State $st))
+    _ck 'the cutover target name is protected' ([bool](Test-AwnixDistroProtectedPure -Name 'fleet' -FleetDistro 'awnix' -State $st))
     _ck "a registration in the target's install dir is protected" ([bool](Test-AwnixDistroProtectedPure -Name 'awnix' -FleetDistro 'other' -Registrations $regs -State $st))
     _ck "a registration sharing the fleet's BasePath is protected" ([bool](Test-AwnixDistroProtectedPure -Name 'twin' -FleetDistro 'awnix' -Registrations $regs))
     _ck 'a throwaway rehearsal distro is NOT protected' ($null -eq (Test-AwnixDistroProtectedPure -Name 'awnix-rehearse' -FleetDistro 'awnix' -Registrations $regs -State $st))
@@ -222,9 +238,9 @@ function Invoke-AwnixGuardSelfTest {
     _ck 'importing beside a STOPPED fleet is allowed' ($null -eq (Test-AwnixCotenancyPure -Name 'awnix-rehearse' -FleetDistro 'awnix' -States @{ awnix = 'Stopped' }))
     _ck 'the fleet itself is never a co-tenant of itself' ($null -eq (Test-AwnixCotenancyPure -Name 'awnix' -FleetDistro 'awnix' -States $lv))
     _ck 'stage root honours AITHER_WSL_STAGE_DIR' ((Resolve-AwnixStageRoot -Env @{ AITHER_WSL_STAGE_DIR = 'F:\stage\' }) -eq 'F:/stage')
-    _ck 'stage root defaults to E: when present' ((Resolve-AwnixStageRoot -Env @{} -DriveExists { param($d) $d -eq 'E' }) -eq 'E:/AitherOS-Data/wsl')
-    _ck 'stage root falls back to C: without E:' ((Resolve-AwnixStageRoot -Env @{} -DriveExists { param($d) $false }) -eq 'C:/AitherOS-Data/wsl')
-    _ck 'a Windows path maps to its /mnt form' ((ConvertTo-AwnixWslPath 'E:/AitherOS-Data/wsl') -eq '/mnt/e/AitherOS-Data/wsl')
+    _ck 'stage root defaults to E: when present' ((Resolve-AwnixStageRoot -Env @{} -DriveExists { param($d) $d -eq 'E' }) -eq ((Get-AwnixDataRoot) -replace '^[A-Za-z]:', 'E:'))
+    _ck 'stage root falls back without E:' ((Resolve-AwnixStageRoot -Env @{} -DriveExists { param($d) $false }) -eq (Get-AwnixDataRoot))
+    _ck 'a Windows path maps to its /mnt form' ((ConvertTo-AwnixWslPath 'D:/stage/x') -eq '/mnt/d/stage/x')
     _ck '3.8 GB free refuses a 3 GB rootfs' ([bool](Test-AwnixFreeSpacePure -FreeBytes ([int64](3.8 * 1GB)) -NeedBytes 3GB -Where 'C:'))
     _ck '220 GB free admits a 3 GB rootfs' ($null -eq (Test-AwnixFreeSpacePure -FreeBytes 220GB -NeedBytes 3GB -Where 'E:'))
     _ck 'unknown free space refuses' ([bool](Test-AwnixFreeSpacePure -FreeBytes -1 -NeedBytes 1 -Where 'X:'))

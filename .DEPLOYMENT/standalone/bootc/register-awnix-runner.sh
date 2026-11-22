@@ -107,7 +107,7 @@ RestartSec=15
 # svc.sh ships KillMode=process: a stop kills only runsvc.sh and leaves
 # Runner.Listener running, still holding the GitHub session. Every restart
 # after that exits "Session Conflict" (awnix-host-1, 2026-11-18, orphan pid
-# 1080). control-group reaps the whole unit on stop. Card d-erzx.
+# 1080). control-group reaps the whole unit on stop.
 KillMode=control-group
 RESTART
   chown runner:runner "$RUNNER_HOME/.config/systemd/user/$SVC_NAME.d/restart.conf"
@@ -122,7 +122,7 @@ RestartSec=15
 # svc.sh ships KillMode=process: a stop kills only runsvc.sh and leaves
 # Runner.Listener running, still holding the GitHub session. Every restart
 # after that exits "Session Conflict" (awnix-host-1, 2026-11-18, orphan pid
-# 1080). control-group reaps the whole unit on stop. Card d-erzx.
+# 1080). control-group reaps the whole unit on stop.
 KillMode=control-group
 RESTART
   systemctl daemon-reload

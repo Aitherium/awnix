@@ -27,7 +27,7 @@ die() { echo "serve-awnix-bonsai: $*" >&2; exit 1; }
 #
 # Copying this script per image was the obvious alternative and it is the wrong
 # one: two copies of one launcher drift, which is the same defect as the sync
-# exclude list that leaked five private files (see APL005). One script, one
+# exclude list that leaked five private files. One script, one
 # variable.
 BONSAI_USER="${BONSAI_USER:-runner}"
 # Refuse rather than fall back to root: the whole point of dropping privileges
@@ -134,13 +134,33 @@ if [ ! -s "$GGUF" ]; then
   # llama.cpp handed a half-written GGUF fails in a way that reads as a bad model.
   rm -f "$GGUF.part"
   i=0
-  echo "$PLAN" | jq -r '.urls[]' | while IFS= read -r url; do
-    i=$((i + 1))
-    [ "$N_URLS" -gt 1 ] && echo "  part $i/$N_URLS"
-    # -C - resumes; appending each slice in order reassembles the original file.
-    sudo -u "$BONSAI_USER" curl -fL --progress-bar "$url" >> "$GGUF.part" \
-      || die "download failed on $url"
-  done
+  if [ "$NEEDS_JOIN" = "true" ]; then
+    # Multi-part: append each slice IN ORDER to rebuild one file. A part has no
+    # alternate source -- a different mirror's part boundaries would not line up --
+    # so a failed part is fatal and the next run resumes it.
+    echo "$PLAN" | jq -r '.urls[]' | while IFS= read -r url; do
+      i=$((i + 1))
+      echo "  part $i/$N_URLS"
+      # -C - resumes; appending each slice in order reassembles the original file.
+      sudo -u "$BONSAI_USER" curl -fL --progress-bar "$url" >> "$GGUF.part" \
+        || die "download failed on $url"
+    done
+  else
+    # Single file: the primary (Hugging Face) first, then OUR mirror, so a first boot
+    # still gets the model if the primary is unreachable (BON2-03; weights.aitherium.com
+    # serves the same bytes). -o, not >>: a fallback REPLACES a failed attempt, it must
+    # not append to its partial bytes.
+    mapfile -t _sources < <(echo "$PLAN" | jq -r '(.urls + (.fallback_urls // []))[]')
+    _got=0
+    for url in "${_sources[@]}"; do
+      rm -f "$GGUF.part"
+      if sudo -u "$BONSAI_USER" curl -fL --progress-bar "$url" -o "$GGUF.part"; then
+        _got=1; break
+      fi
+      echo "  source unreachable, trying the next: $url" >&2
+    done
+    [ "$_got" = "1" ] || die "every source failed for $MODEL_ID"
+  fi
 
   # `while` runs in a subshell here, so its exit status is not the loop body's -- check
   # the artefact instead. Trusting the pipeline's status would call a failed fetch a

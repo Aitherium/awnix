@@ -146,6 +146,13 @@ RUN python3.11 -m pip install --no-cache-dir \
 # fail to import -- a missing runtime dep, a namespace collision -- and the difference
 # only shows up on the user's machine, at the moment they reach for the thing they
 # installed this variant to get.
+# THE LIST IS THE UNION OF BOTH LAYERS. This file builds FROM awnix-base, so the base's
+# 30 bricks are present here too -- but until 2026-11-21 this assertion named only the
+# 20 -full adds, leaving the 15 base-only bricks (awask awrtifact awfocus awmine awtoll
+# awflow awdecide awstorage awvoice awvision awscreen awrise awwall awbrain awpermit)
+# unproven in the image that ships them. A brick that survives the base build and then
+# breaks in a later layer is exactly the "installed but unimportable" seam this file
+# exists to close, so every brick both layers install is asserted here.
 # NO HEREDOC. `RUN python3.11 - <<'PY'` is BuildKit syntax; podman/buildah
 # does not support it and never consumes the body -- it parses each Python
 # line as a Containerfile INSTRUCTION and dies on the first one:
@@ -157,7 +164,13 @@ RUN python3.11 -m pip install --no-cache-dir \
 # pip-installed. Names that differ from their distribution are listed by
 # IMPORT name -- awdk imports as `adk`; awnode was confirmed by installing
 # it and listing the top-level modules, not assumed.
-RUN python3.11 -c "import importlib.util, sys; mods='awgit awgraph awrelay awm awshare awrecover awseal adk awnode awprism awreason awrecurse awrepl awbac awbrowse awdit awfind awiam awkno awmail awnboard awnest awnet awpredict awresearch awrun awtunnel'.split(); missing=[m for m in mods if importlib.util.find_spec(m) is None]; sys.exit('awnix-full: these installed but do not import: ' + ', '.join(missing)) if missing else print('awnix-full: all %d aw* packages import' % len(mods))"
+RUN python3.11 -c "import importlib.util, sys; mods='awgit awgraph awrelay awm awshare awrecover awseal adk awnode awprism awreason awrecurse awrepl awbac awbrowse awdit awfind awiam awkno awmail awnboard awnest awnet awpredict awresearch awrun awtunnel awask awrtifact awfocus awmine awtoll awflow awdecide awstorage awvoice awvision awscreen awrise awwall awbrain awpermit'.split(); missing=[m for m in mods if importlib.util.find_spec(m) is None]; sys.exit('awnix-full: these installed but do not import: ' + ', '.join(missing)) if missing else print('awnix-full: all %d aw* packages import' % len(mods))"
+
+# Rewrite the baked inventory so `awnix component list` reports the 20 bricks THIS layer
+# adds (it inherits the base's manifest at components.d/baked.yaml; overwriting it with
+# a fresh sweep of the full install set keeps the box's own truth, not the parent's).
+RUN /usr/libexec/awnix/awnix-baked-inventory --variant awnix-full \
+        --out /usr/share/awnix/components.d/baked.yaml
 
 LABEL com.aitheros.layer="awnix-full" \
       com.aitheros.base="awnix" \

@@ -36,6 +36,16 @@ awnix-ai-full
 gobbonet-appliance
 : GobboNet with a local model baked in, answering with no network on first boot.
 
+## Local inference and the KV cache
+
+The inference variants (`awnix-ai`, `awnix-ai-full`, `gobbonet-appliance`, and the separately licensed appliance) serve models with a llama.cpp runtime. Context memory is bounded by quantising the KV cache: `serve-awnix-bonsai.sh` runs `-ctk q4_0 -ctv q4_0` by default. Measured on mainline llama.cpp b10335 with Bonsai-27B — a model whose KV lives in only 16 of its 64 layers — a q4_0 cache costs 18 KiB/token, so 65,536 tokens is 1.15 GB (+150 MB recurrent state); the f16 default is 4x that, which is why the window was 16k before this. `AWNIX_CTX` (tokens) and `AWNIX_KV` (cache type) are the knobs.
+
+## What is not in the image
+
+`aitherkvcache` is a standalone research brick, not part of any awnix variant. The only KV compression an awnix image actually applies is the llama.cpp-native q4_0 cache above. The brick's published numbers are tensor-level — roughly 3.8-7.1x over FP16 for TurboQuant and 14-26x for TriAttention at F=8-16 — with an explicit quality caveat at its F=12 default (cosine 0.91, but mean top-32 attention overlap 0.41); no end-to-end awnix measurement exists.
+
+The awnix model chooser does use the `Aitherium/aitherkvcache` GitHub *release store* as a mirror: four opt-in fleet weights (`fleet-orchestrator-v18-q8`, `fleet-gemma4-12b-q4`, `fleet-qwen36-27b-q4`, `fleet-deepseek-v4flash-iq2m`) are published as chunked release assets there and fetched from it (see `awnix-models.yaml`). That is a model-file mirror, not the KV library.
+
 ## Licensed appliances {variants: garg-appliance, aitheros, aitheros-cloud}
 
 garg-appliance

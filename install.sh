@@ -31,10 +31,15 @@ set -eu
 
 REL_BASE="${AWNIX_ARM64_BASE:-https://github.com/Aitherium/awnix/releases/download/awnix-arm64-2026.11.18}"
 X86_BASE="${AWNIX_X86_BASE:-https://artifact.aitherium.com}"
-X86_SUMS="${AWNIX_X86_SUMS:-https://github.com/Aitherium/awnix/releases/download/awnix-iso-2026.09.27/SHA256SUMS}"
+X86_SUMS="${AWNIX_X86_SUMS:-https://github.com/Aitherium/awnix/releases/download/awnix-iso-2026.11.22/SHA256SUMS}"
 # The assembled image each release published (manifest / SHA256SUMS of those tags).
+# The base ISO served at artifact.aitherium.com/awnix-x86_64.iso is PROXIED live from
+# this release's parts, so this pin must move WITH the awrtifact spec pin
+# (.DEPLOYMENT/workers/awrtifact/awrtifact.yaml, id awnix-iso-base). AW011 fails when
+# either lags the newest awnix-iso-<date> release; a mismatch here makes this script
+# refuse ("the release now publishes X but this script pins Y") -- loudly, by design.
 ARM64_SHA256="4acdf336945018a32e82c8bbd179a4737970e2898bd484dda09fe096e5ed4e15"
-X86_SHA256="ef2778a42f0fb2bb7c33a4f2133300ce29f0546088d5fc5af8f278fec490a5ce"
+X86_SHA256="9c6c1a37feb196184cd2c8f18fe03a6f4caa3fe335609d35a70000c9c1f010a6"
 DISK=""; YES=0; DRY=0; TOKEN=""; WANT_SHA=""
 
 say() { printf '%s\n' "awnix-install: $*" >&2; }
@@ -75,7 +80,7 @@ published_sha() {
     arm64)  curl -fsSL --max-time 30 "$BASE/$IMAGE.manifest.json" 2>/dev/null \
               | sed -n 's/^  "sha256": "\([0-9a-f]\{64\}\)".*/\1/p' | head -n 1 ;;
     x86_64) curl -fsSL --max-time 30 "$X86_SUMS" 2>/dev/null \
-              | awk -v f="$IMAGE" '$2 == f || $2 == "*" f { print $1; exit }' ;;
+              | awk '$2 !~ /\.part[0-9]+$/ { print $1; exit }' ;;
   esac
 }
 

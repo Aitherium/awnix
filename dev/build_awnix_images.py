@@ -60,7 +60,6 @@ for _s in (sys.stdout, sys.stderr):
             _enc_note = f"could not set UTF-8 output: {_e}"
 
 DISTRO = os.environ.get("AITHER_FLEET_DISTRO", "awnix")
-BOOTC_DIR = "AitherOS-Fresh/.DEPLOYMENT/standalone/bootc"  # WSL-side, relative to the C: mount
 
 #: GB of free space the preflight must see before ANY layer build starts
 #: (the ENOSPC guard, see main()). The chain's biggest single layer
@@ -82,19 +81,26 @@ def _shell_bootc_dir() -> str:
     Python keeps the last definition, so this one was shadowed and silently never ran.
 
     The second half of the same host assumption `_host_prefix` fixes. On the Windows
-    workstation podman lives in the distro and the repo is reached through the C: mount,
-    so the path is `/mnt/c/AitherOS-Fresh/...`. On a Linux host -- the AWS awnix runner,
-    where these builds belong -- the checkout is wherever Actions put it
+    workstation podman lives in the distro and the repo is reached through the drive
+    mount, so the path is `/mnt/c/<checkout>/...` with the checkout derived from THIS
+    file's own resolved location. On a Linux host -- the AWS awnix runner, where these
+    builds belong -- the checkout is wherever Actions put it
     (`/opt/actions-runner/_work/AitherOS/AitherOS`), which is nowhere near `/mnt/c`.
 
     Derived from THIS FILE's own location rather than an env var: the tool already knows
     where it is, and a variable someone must remember to set is wrong by default on the
     machine that needs it most.
     """
+    here = _bootc_dir().resolve()
     if shutil.which("wsl"):
-        return f"/mnt/c/{BOOTC_DIR}"
-    here = Path(__file__).resolve()
-    for parent in here.parents:
+        # A Windows checkout (`C:\<checkout>\...`) is `/mnt/c/<checkout>/...`
+        # inside the distro. There is no literal repo name anywhere: the checkout may
+        # be anywhere, and the public mirror's is not called AitherOS-Fresh at all.
+        m = re.match(r"^([A-Za-z]):[/\\](.*)$", str(here))
+        if m:
+            return "/mnt/{}/{}".format(m.group(1).lower(), m.group(2).replace("\\", "/"))
+        return here.as_posix()
+    for parent in Path(__file__).resolve().parents:
         candidate = parent / ".DEPLOYMENT/standalone/bootc"
         if candidate.is_dir():
             return candidate.as_posix()
@@ -102,7 +108,7 @@ def _shell_bootc_dir() -> str:
     # about the directory, which reads as a missing checkout rather than a wrong root.
     raise DeadError(
         "cannot locate .DEPLOYMENT/standalone/bootc from "
-        f"{here} -- this tool must run inside the repo")
+        f"{Path(__file__).resolve()} -- this tool must run inside the repo")
 
 
 class DeadError(Exception):
@@ -577,7 +583,7 @@ LAYERS: tuple[Layer, ...] = (
                      "bootc updater masked (a WSL import is not a bootc deployment)",
     ),
     # ── the garg single-tenant appliance ─────────────────────────────────────────
-    # The self-service fallback for garg.aitherium.com. NOT built by the generic
+    # The self-service fallback for a single-tenant deployment. NOT built by the generic
     # podman build alone: the Containerfile COPYs .gargbot-backend (the tenant's
     # backend, staged by build-garg-appliance.sh locally or by the workflow's
     # "Stage the tenant backend" step — the tenant repo is PRIVATE, an in-image

@@ -10,7 +10,12 @@
 #
 # What it is:
 #   sway + waybar + foot + wofi + mako, greetd/tuigreet login, one palette
-#   Super+A      awsh -- the agent, answering from the local model
+#   Super+A      awsh -- the agent shell. THIS IMAGE SHIPS NO LOCAL MODEL (no PrismML
+#                llama-server, no weights, no awnix-model.service): awsh opens, reports
+#                that no local model is configured, and is pointed at one with
+#                `awsh --base-url` / the FLEET. The awnix-hypr child layer adds the
+#                runtime and serves 127.0.0.1:8199; desktop-open deliberately does not
+#                (BON2-02). The binding must not promise a model this image lacks.
 #   Super+Space  launcher        Super+Ctrl+Print  screen text -> clipboard (tesseract)
 #   awdk + awsh baked in; greenboot rolls a failed update back (same check as awnix)
 #
@@ -55,6 +60,48 @@ RUN cd /usr/lib/awsh-npm \
     && command -v awsh \
     && awsh --version >/dev/null
 
+# ── the STACK LIFECYCLE plane ───────────────────────────────────────────────────────
+# This image bakes awdk + awsh but, until 2026-11-21, shipped NO way to manage them: no
+# `awnix` dispatcher, no awnix-update, no awnix-component, no lock, no baked inventory.
+# Those bricks could only change by replacing the whole image, and nothing on the box
+# could list or roll them -- while the (unpublished) awnix-hypr layer that builds FROM
+# this one DOES copy the plane, so the inversion was: the published desktop cannot
+# manage its stack, the unpublished one can. Same plane the base carries, trimmed to the
+# four verbs a desktop needs (update, component + its lock/inventory). Fedora's python
+# is 3.13 under /usr/bin/python3 and the tools are stdlib-only (3.10+), so their
+# `#!/usr/bin/python3.11` shebang is pointed at the interpreter this base actually has.
+RUN dnf install -y --setopt=install_weak_deps=False skopeo \
+    && dnf clean all
+COPY sign-awnix-image.sh /usr/libexec/awnix/sign-awnix-image.sh
+RUN sed -i 's/\r$//' /usr/libexec/awnix/sign-awnix-image.sh \
+    && bash /usr/libexec/awnix/sign-awnix-image.sh install /usr/bin \
+    && cosign version >/dev/null
+COPY awnix-dispatch.sh /usr/bin/awnix
+COPY awnix-update.sh /usr/libexec/awnix/awnix-update
+COPY awnix-component.py /usr/libexec/awnix/awnix-component
+COPY awnix-baked-inventory.py /usr/libexec/awnix/awnix-baked-inventory
+COPY awnix-components.lock.yaml awnix-components.lock.json /usr/share/awnix/
+COPY awnix-update.conf /etc/awnix/update.conf
+COPY awnix-update.service awnix-update.timer /usr/lib/systemd/system/
+COPY awnix-signers.conf /usr/share/awnix/signers.conf
+COPY containers-policy.json /etc/containers/policy.json
+COPY registries.d-aitherium.yaml /etc/containers/registries.d/aitherium.yaml
+RUN set -eu; \
+    sed -i 's/\r$//' /usr/bin/awnix /usr/libexec/awnix/*; \
+    for f in awnix-component awnix-baked-inventory; do \
+        sed -i '1s|^#!/usr/bin/python3\.11$|#!/usr/bin/python3|' "/usr/libexec/awnix/$f"; \
+    done; \
+    chmod 0755 /usr/bin/awnix /usr/libexec/awnix/awnix-update \
+        /usr/libexec/awnix/awnix-component /usr/libexec/awnix/awnix-baked-inventory \
+        /usr/libexec/awnix/sign-awnix-image.sh; \
+    awnix --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-component --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-update --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-baked-inventory --variant awnix-desktop-open \
+        --out /usr/share/awnix/components.d/baked.yaml; \
+    systemctl enable awnix-update.timer; \
+    systemctl mask bootc-fetch-apply-updates.timer
+
 # The licence texts the label names, each a byte copy of its repo source (AWV013):
 # awnix/LICENSE, awdk/LICENSE and .PRODUCTS/.AITHERSHELL/cli/LICENSE (awsh).
 COPY licenses/LICENSE.Apache-2.0 licenses/LICENSE.BUSL-1.1.awdk licenses/LICENSE.BUSL-1.1.awsh /usr/share/licenses/awnix-desktop-open/
@@ -95,6 +142,6 @@ RUN cp /usr/bin/sway /tmp/sway-validate \
     && bootc container lint
 
 LABEL com.aitheros.layer="awnix-desktop-open" \
-      com.aitheros.description="awnix open desktop: sway tiling Wayland, Super+A local agent, greenboot rollback" \
+      com.aitheros.description="awnix open desktop: sway tiling Wayland, Super+A opens awsh (no model bundled), greenboot rollback" \
       org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
       com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium, LLC with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix-desktop-open/."

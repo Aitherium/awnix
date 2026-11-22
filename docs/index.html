@@ -430,7 +430,7 @@ you roll it back.</p>
 <tbody>
 <tr>
 <td><strong>awnix-ai-full</strong> (recommended)</td>
-<td>the whole aw* stack + a local model sized to your hardware on first boot (Bonsai 1.7B up to Bonsai 2 27B)</td>
+<td>the whole aw* stack + a local model sized to your hardware on first boot (Bonsai 2 2B up to Bonsai 2 27B, served text-only — no vision projector; Bonsai 1 fetchable with <code>--model</code>)</td>
 <td><a href="https://artifact.aitherium.com/awnix-ai-full-x86_64.iso">awnix-ai-full-x86_64.iso</a></td>
 </tr>
 <tr>
@@ -450,18 +450,23 @@ you roll it back.</p>
 </tr>
 <tr>
 <td>awnix-desktop-open</td>
-<td>a keyboard-first tiling desktop: <code>Super+A</code> opens the agent on the local model</td>
+<td>a keyboard-first tiling desktop: <code>Super+A</code> opens the agent shell (no local model is bundled — point it at one with <code>awsh --base-url</code>)</td>
 <td><a href="https://artifact.aitherium.com/awnix-desktop-open-x86_64.iso">awnix-desktop-open-x86_64.iso</a></td>
 </tr>
 </tbody>
 </table>
-<p>Each file is the same bytes as the matching <a href="https://github.com/Aitherium/awnix/releases">GitHub release</a>,
-which also carries the split parts, an assemble script and <code>SHA256SUMS</code>.</p>
+<p>Each file is the newest build of its variant, stitched from the matching <a href="https://github.com/Aitherium/awnix/releases">GitHub release</a>,
+which also carries the split parts, an assemble script and <code>SHA256SUMS</code>. As of 2026-11-22:
+awnix, awnix-ai, awnix-full and awnix-ai-full are all release <strong>2026.11.22</strong>, and
+awnix-desktop-open is <strong>2026.09.27</strong>.</p>
 
 <pre><code>```bash
 curl -LO https://artifact.aitherium.com/awnix-ai-full-x86_64.iso
 sha256sum awnix-ai-full-x86_64.iso
-# compare with SHA256SUMS on the matching release page (awnix-iso-ai-full-&lt;date&gt;)
+# compare that hash to the SHA256SUMS entry on the matching release page
+# (awnix-iso-ai-full-2026.11.22). The line names the release's INTERNAL file
+# -- install.iso (new) or awnix-x86_64.iso (older) -- not the served filename;
+# compare the HASH. There is no single artifact-root SHA256SUMS.
 </code></pre>
 <p><strong>Windows, without leaving it (WSL2) — one line, no account:</strong></p>
 
@@ -654,7 +659,9 @@ the hard way:</p>
 <p>The full admin guide ships in every image and is one command away: <code>man awnix</code>. The same
 pages are in <code>/usr/share/doc/awnix/html</code> and in the web console's Guide tab.</p>
 <h3>Install</h3>
-<p>Download an ISO from the table above and check it against <code>SHA256SUMS</code>. Write it with
+<p>Download an ISO from the table above and check it against the <code>SHA256SUMS</code> on its
+matching release page (compare the hash — the line names the internal <code>install.iso</code> /
+<code>awnix-x86_64.iso</code>, not the served variant filename). Write it with
 <code>write-awnix-usb</code> (it verifies what it wrote and refuses the disk you booted from) or any
 USB writer in DD mode. For an unattended install, make a second stick with
 <code>make-awnix-seed</code>: it names the disk, the admin user and SSH keys, and answers first-boot

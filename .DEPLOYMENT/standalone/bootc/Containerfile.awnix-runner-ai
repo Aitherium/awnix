@@ -135,10 +135,51 @@ RUN chmod 755 /usr/local/sbin/serve-awnix-bonsai.sh              /usr/local/sbin
 
 # The image must LOAD a model, not merely start llama-server: on 2026-09-27 this
 # image passed every other check and shipped unable to load any model (#9468).
-# Runs the real serve script on the smallest catalogue model; weights are deleted
-# before this layer closes. See awnix-model-load-check.sh.
+# Runs the real serve script on the smallest LADDER model, named explicitly so the
+# gate exercises the Bonsai 2 (PTQ1_0 / Hadamard v2) path this pinned prism-b12128
+# build serves -- not the superseded Bonsai 1.7B (PQ2_0). Weights are deleted before
+# this layer closes. See awnix-model-load-check.sh.
 COPY --chown=root:root awnix-model-load-check.sh /usr/local/libexec/awnix-model-load-check.sh
-RUN bash /usr/local/libexec/awnix-model-load-check.sh
+RUN AWNIX_CHECK_MODEL=bonsai2-2b bash /usr/local/libexec/awnix-model-load-check.sh
+
+# PROVE the inherited stack, do not assume it. This layer is FROM awnix-runner which
+# is FROM awnix-base, and the base installs the ~30 aw* tools -- but nothing here used
+# to assert a single one, so an `awnix-ai` that quietly lost the base's bricks (a
+# dropped FROM, a base rebuild that skipped a layer) would still build and ship as
+# "inference on the stack". awdk imports as `adk` (dist name != module name); a broken
+# or missing one raises ImportError and fails the build here, on the box that would
+# have hidden it. Deliberately minimal (the four the agent runtime and the shell reach
+# for) so a future brick added to the base does not silently break this layer.
+RUN python3.11 -c "import awgit, awm, awgraph, adk; print('awnix-runner-ai: inherited aw* stack imports')"
+
+# ── serve the local model on boot, with no operator ─────────────────────────────
+# This layer carried the serve script, the chooser and the catalogue but nothing ran
+# them, so an installed awnix-ai box served no AI unless an operator invoked the script
+# by hand -- the header's "first-boot serve script" had no unit (the same gap awnix-ai-full
+# closed, #9468). Enable the unit awnix-ai-full uses, but name BONSAI_USER=runner: THIS
+# layer drops privileges to the runner account it already has, not the `bonsai` system
+# account awnix-ai-full creates, and the serve script REFUSES to start when the named
+# user is missing. The drop-in wins over the unit's `BONSAI_USER=bonsai` default.
+COPY --chown=root:root awnix-bonsai.service /usr/lib/systemd/system/awnix-bonsai.service
+RUN mkdir -p /usr/lib/systemd/system/awnix-bonsai.service.d \
+    && printf '[Service]\nEnvironment=BONSAI_USER=runner\n' \
+        > /usr/lib/systemd/system/awnix-bonsai.service.d/10-bonsai-user.conf \
+    && sed -i 's/\r$//' /usr/lib/systemd/system/awnix-bonsai.service \
+    && systemctl enable awnix-bonsai.service \
+    && test "$(systemctl is-enabled awnix-bonsai.service)" = enabled
+
+# ── adk pinned to the local model, by a SHIPPED file ───────────────────────────
+# awnix-ai serves its own Bonsai on 127.0.0.1:8199, so the agent must reach THAT, not
+# the historical :8150 default or a second server nobody started. Same files and same
+# :8199 env as awnix-ai-full; check_awdk_on_awnix.py AWK005 enforces every line of this
+# block, so the daemon, the profile and the env cannot drift out of the image again.
+COPY --chown=root:root awdk/awdk-local.service awdk/awdk-local-health.service /usr/lib/systemd/system/
+COPY --chown=root:root awdk/air_gap.yaml awdk/awdk.env /usr/lib/awdk/
+COPY --chown=root:root awdk/awnix-awdk.py /usr/libexec/awnix/awnix-awdk
+RUN sed -i 's/\r$//' /usr/libexec/awnix/awnix-awdk /usr/lib/awdk/awdk.env \
+    && chmod 0755 /usr/libexec/awnix/awnix-awdk \
+    && /usr/libexec/awnix/awnix-awdk --self-test \
+    && systemctl enable awdk-local.service awdk-local-health.service
 
 LABEL com.aitheros.layer="awnix-runner-ai" \
       com.aitheros.description="awnix-runner + PrismML llama.cpp binary (Bonsai-capable, model fetched at first boot)" \
