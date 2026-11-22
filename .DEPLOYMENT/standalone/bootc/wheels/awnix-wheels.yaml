@@ -19,6 +19,20 @@
 # AVW001/AVW003/AVW004 under D-2700), so at the IMAGE level G12 is at most
 # BUILT-UNMEASURED: nothing here proves an image builds or boots offline.
 #
+# A9 (audit wf_05d8648f, 2026-11-22): the weekly refresh FAILED every run from
+# 2026-10-19 to 2026-11-16 because the AWS self-hosted runner's system python3 has
+# no ensurepip, so `python3 -m venv` died before a lock could be resolved; that was
+# fixed in commit 4145fdd1da by using actions/setup-python (whose toolcache
+# interpreter always carries venv) -- run 44992492730 (2026-11-22) is green. The
+# remaining gap is that NO image consumes the wheelhouse output. This lane is NOT
+# the pin source for the baked bricks: its base.lock.txt predates the ten bricks
+# added to the base (2026-10-27) and the pins it does carry are older than the
+# component lock. The pin source for the image's baked bricks is therefore the
+# component lock, read through awnix-components.constraints.txt
+# (gen_awnix_constraints.py) and enforced by check_awnix_pins.py. Wire this
+# wheelhouse into the image build when its target list is refreshed to cover every
+# baked brick (G12), at which point AVW003/AVW004 must be cleared first.
+#
 # Editing a layer here changes its input_sha256, so `refresh --check` and
 # check_awnix_vendored_wheels.py AVW006 go red until the lock is regenerated
 # (`python AitherOS/dev/tools/refresh_awnix_wheel_lock.py --write`, or the

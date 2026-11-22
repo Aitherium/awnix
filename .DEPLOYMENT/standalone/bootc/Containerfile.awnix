@@ -212,9 +212,21 @@ COPY storage.conf /etc/containers/storage.conf
 # Installing only what's actually published — per this codebase's own
 # "absent is a status, not an omission" doctrine (aw-family.md) — rather
 # than silently dropping the gap or blocking the whole build on it.
-RUN python3.11 -m pip install --no-cache-dir awdit \
-        awgit awgraph awrelay awm awshare awask awrtifact \
-        awkno awfind awfocus awmine awtoll awflow awdecide awstorage
+# Every version below comes from ONE file: awnix-components.constraints.txt,
+# generated from the component lock by AitherOS/dev/tools/gen_awnix_constraints.py.
+# The bricks stay named here (so the ANS001/ANS003/ANS005 import-proof checkers
+# still read them); `-c` pins the exact version. Pinning is not cosmetic: a bare
+# name resolves to whatever PyPI served that day, so two builds of one tag ship
+# different bricks -- the property an immutable image sells against (audit
+# wf_05d8648f, A1, 2026-11-22).
+# NOTE awmine and awflow are NOT here: `awflow` on PyPI is a STRANGER'S package
+# (Joeri Hermans, github.com/JoeriHermans/awflow), so a bare `pip install awflow`
+# installs the wrong project; both install from a pinned git commit below.
+COPY awnix-components.constraints.txt /usr/share/awnix/components.constraints.txt
+RUN python3.11 -m pip install --no-cache-dir \
+        -c /usr/share/awnix/components.constraints.txt \
+        awdit awgit awgraph awrelay awm awshare awask awrtifact \
+        awkno awfind awfocus awtoll awdecide awstorage
 # The eight capabilities an agentic Linux cannot do without, added 2026-10-27
 # (all PyPI 200 before the line was written): awkno is the world's man page, so an
 # AIRGAPPED box can still look things up; awfind searches the machine; awfocus sees
@@ -233,22 +245,27 @@ RUN python3.11 -m pip install --no-cache-dir awdit \
 # 2026-08-21). Reading that 404 as 'not ready yet' is what left this image shipping
 # FIVE of the seven aw* tools while its own LABEL below claims seven.
 #
-# Pinned to a branch rather than floating on a default: an image that resolves
-# differently on every rebuild is not immutable, which is the one property awnix
-# sells. Bump these deliberately.
+# Pinned to an exact commit, not a branch: an image that resolves differently on
+# every rebuild is not immutable, which is the one property awnix sells. Bump
+# these deliberately.
 #
 # `git` is installed above, so a git+https target resolves without another layer.
 RUN python3.11 -m pip install --no-cache-dir \
-        "git+https://github.com/Aitherium/awrecover.git@main" \
-        "git+https://github.com/Aitherium/awseal.git@main"
+        "git+https://github.com/Aitherium/awrecover.git@4010faccffc9bbf3fb3320db666b29addf2f30f4" \
+        "git+https://github.com/Aitherium/awseal.git@3e1736af5640e75e376a78457e60daeede8bff86"
 
 # awpermit, added 2026-10-27: the PERMISSIONS brick, and the one an agentic Linux
 # is least defensible without -- an Ed25519 permit with a scope and a spend cap that
 # a platform verifies OFFLINE, so a box with no network can still answer "is this
 # agent allowed to do that?". Public repo (200) and a pyproject before the line was
 # written, same rule as the two above; it has no PyPI slot, so it installs from git.
+# awmine and awflow join it here, each pinned to an exact commit: awmine is git in
+# the component lock, and awflow's PyPI name is a third party's (see above), so
+# neither can come from the constraints file.
 RUN python3.11 -m pip install --no-cache-dir \
-        "git+https://github.com/Aitherium/awpermit.git@main"
+        "git+https://github.com/Aitherium/awpermit.git@255d780b339ce987cb68748b4ee5d504b94925de" \
+        "git+https://github.com/Aitherium/awmine.git@06e4d088edce0cc789dcbef2951ea16ff04439a2" \
+        "git+https://github.com/Aitherium/awflow.git@99f15677a1a5dad486484a3f7cd5531c983ce5d6"
 
 # ── the senses, plus the two that guard and wake things ─────────────────────────────
 #
@@ -273,16 +290,16 @@ RUN python3.11 -m pip install --no-cache-dir \
 # ANS002 --online checks every target here still resolves. Add a name here and the
 # "aw* tools" count in the comments must move with it, or the gate says so.
 #
-# Pinned to @main deliberately, like the two above: an image that resolves
+# Pinned to an exact commit, like the blocks above: an image that resolves
 # differently on every rebuild is not immutable, which is the one property awnix
 # sells.
 RUN python3.11 -m pip install --no-cache-dir \
-        "git+https://github.com/Aitherium/awvoice.git@main" \
-        "git+https://github.com/Aitherium/awvision.git@main" \
-        "git+https://github.com/Aitherium/awscreen.git@main" \
-        "git+https://github.com/Aitherium/awrise.git@main" \
-        "git+https://github.com/Aitherium/awwall.git@main" \
-        "git+https://github.com/Aitherium/awbrain.git@main"
+        "git+https://github.com/Aitherium/awvoice.git@e1930853d4387731d69c42508e4872b9cabaf5d8" \
+        "git+https://github.com/Aitherium/awvision.git@87a4ab1d524b367a0949e53d45a0c3858da90998" \
+        "git+https://github.com/Aitherium/awscreen.git@80af5acb160644c6dd08f145a48a077988c99086" \
+        "git+https://github.com/Aitherium/awrise.git@9638f0c2120bcf21c38e4d2e463574a7d6beed8e" \
+        "git+https://github.com/Aitherium/awwall.git@f0eb998fcc754ef5d2afb1e59d5a9d21b84c994b" \
+        "git+https://github.com/Aitherium/awbrain.git@c4aaf918ff6a6befedc84fe296f0b78f6fca5921"
 
 # awbrain, added 2026-09-12. The registry has listed it in awnix.includes
 # since the entry was written, and THIS file never installed it -- so every
@@ -342,11 +359,12 @@ RUN sed -i 's/\r$//' /usr/libexec/aither/awnix-node.sh /etc/systemd/system/aithe
     && dnf clean all
 
 RUN python3.11 -m pip install --no-cache-dir \
+        -c /usr/share/awnix/components.constraints.txt \
         awdk awbrowse awnode
 
 RUN python3.11 -m pip install --no-cache-dir \
-        "git+https://github.com/Aitherium/awnet.git@main" \
-        "git+https://github.com/Aitherium/awtunnel.git@main"
+        "git+https://github.com/Aitherium/awnet.git@c34fbcbf74f2718fbe124227c073ef224e268f99" \
+        "git+https://github.com/Aitherium/awtunnel.git@be66e2576a58b4c9fda42e612a3c3fc6785521d9"
 
 # Pinned, same as awnix-full: the BUSL-1.1 text this image ships
 # (licenses/LICENSE.BUSL-1.1.awsh) is the one the 1.19.0 package carries, and an
