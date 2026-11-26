@@ -65,9 +65,9 @@ probe_cmd_for() {
     Containerfile.awnix-desktop-open)
       echo 'test "$(uname -m)" = aarch64 && command -v sway >/dev/null && command -v awsh >/dev/null && command -v adk >/dev/null && echo DESKTOP_OPEN_ARM64_OK' ;;
     Containerfile.awnix-hypr)
-      echo 'test "$(uname -m)" = aarch64 && Hyprland --version | grep -q Hyprland && command -v awnix-theme >/dev/null && command -v awnix-keys >/dev/null && echo HYPR_ARM64_OK' ;;
+      echo 'test "$(uname -m)" = aarch64 && mkdir -p -m 0700 /tmp/xdg && XDG_RUNTIME_DIR=/tmp/xdg Hyprland --version | grep -q Hyprland && command -v awnix-theme >/dev/null && command -v awnix-keys >/dev/null && echo HYPR_ARM64_OK' ;;
     Containerfile.awnix-hypr-gpu)
-      echo 'test "$(uname -m)" = aarch64 && KVER="$(ls /usr/lib/modules | head -n1)" && find "/usr/lib/modules/${KVER}" -name "nvidia*.ko*" | grep -q . && find "/usr/lib/modules/${KVER}" -name "mt7925e.ko*" | grep -q . && ls /usr/lib/firmware/mediatek/mt7925* >/dev/null 2>&1 && command -v nvidia-smi >/dev/null && command -v nvidia-ctk >/dev/null && command -v tailscale >/dev/null && command -v sshd >/dev/null && Hyprland --version | grep -q Hyprland && echo HYPR_GPU_ARM64_OK' ;;
+      echo 'test "$(uname -m)" = aarch64 && KVER="$(ls /usr/lib/modules | head -n1)" && find "/usr/lib/modules/${KVER}" -name "nvidia*.ko*" | grep -q . && find "/usr/lib/modules/${KVER}" -name "mt7925e.ko*" | grep -q . && find /usr/lib/firmware/mediatek -iname "*mt7925*" | grep -q . && command -v nvidia-smi >/dev/null && command -v nvidia-ctk >/dev/null && command -v tailscale >/dev/null && command -v sshd >/dev/null && mkdir -p -m 0700 /tmp/xdg && XDG_RUNTIME_DIR=/tmp/xdg Hyprland --version | grep -q Hyprland && echo HYPR_GPU_ARM64_OK' ;;
     Containerfile.awnix-runner)
       echo 'test "$(uname -m)" = aarch64 && test -x /opt/actions-runner/config.sh && id runner >/dev/null && test "$(od -An -tx1 -j18 -N2 /opt/actions-runner/bin/Runner.Listener | tr -d " ")" = b700 && ls -d /opt/actions-runner/_work/_tool/Python/3.1*/arm64 && echo RUNNER_ARM64_OK' ;;
     Containerfile.awnix-runner-ai)
