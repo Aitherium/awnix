@@ -46,10 +46,12 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
     KBASE="${KVER%.*}" && \
     KUP="${KBASE%%-*}" && \
     KREL="${KBASE#*-}" && \
-    (dnf install -y --setopt=install_weak_deps=False "kernel-devel-${KVER}" || \
-        dnf install -y --setopt=install_weak_deps=False \
-            "https://kojipkgs.fedoraproject.org/packages/kernel/${KUP}/${KREL}/${KARCH}/kernel-devel-${KVER}.rpm") && \
-    dnf install -y --setopt=install_weak_deps=False \
+    (dnf install -y --disablerepo=updates-archive --setopt=install_weak_deps=False \
+        "kernel-devel-${KVER}" "kernel-devel-matched-${KVER}" || \
+        dnf install -y --disablerepo=updates-archive --setopt=install_weak_deps=False \
+            "https://kojipkgs.fedoraproject.org/packages/kernel/${KUP}/${KREL}/${KARCH}/kernel-devel-${KVER}.rpm" \
+            "https://kojipkgs.fedoraproject.org/packages/kernel/${KUP}/${KREL}/${KARCH}/kernel-devel-matched-${KVER}.rpm") && \
+    dnf install -y --disablerepo=updates-archive --setopt=install_weak_deps=False \
         dkms gcc make elfutils-libelf-devel openssl mokutil xz zstd \
         nvidia-driver nvidia-driver-cuda nvidia-driver-libs kmod-nvidia-open-dkms \
         cuda-toolkit \
