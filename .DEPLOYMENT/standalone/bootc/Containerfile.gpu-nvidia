@@ -16,7 +16,8 @@
 # never in a layer and never on a box. The image ships the public DER only.
 # Guide: docs/guide/11-secure-boot-nvidia.md · man awnix-secureboot(8) · gate SBN.
 # ═══════════════════════════════════════════════════════════════════════════════
-FROM localhost/aitheros-bootc-desktop:latest
+ARG BASE_IMAGE=localhost/aitheros-bootc-desktop:latest
+FROM ${BASE_IMAGE}
 
 ARG AWNIX_REQUIRE_SIGNED=0
 
@@ -35,11 +36,24 @@ RUN case "${TARGETARCH:-$(uname -m)}" in \
       arm64|aarch64) CUDA_REPO_ARCH=sbsa ;; \
       *) echo "gpu-nvidia: unsupported arch ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
     esac; \
+    (rpm -q epel-release >/dev/null 2>&1 || \
+        dnf install -y --setopt=install_weak_deps=False epel-release || \
+        dnf install -y --setopt=install_weak_deps=False \
+            https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm) && \
+    dnf install -y --setopt=install_weak_deps=False dnf-plugins-core && \
+    (dnf config-manager --set-enabled crb 2>/dev/null || true) && \
     dnf config-manager --add-repo \
         "https://developer.download.nvidia.com/compute/cuda/repos/rhel9/${CUDA_REPO_ARCH}/cuda-rhel9.repo" && \
     KVER="$(ls /usr/lib/modules | head -n1)" && \
+    KARCH="${KVER##*.}" && \
+    KBASE="${KVER%.*}" && \
+    KUP="${KBASE%%-*}" && \
+    KREL="${KBASE#*-}" && \
+    (dnf install -y --setopt=install_weak_deps=False "kernel-devel-${KVER}" || \
+        dnf install -y --setopt=install_weak_deps=False \
+            "https://kojihub.stream.centos.org/kojifiles/packages/kernel/${KUP}/${KREL}/${KARCH}/kernel-devel-${KVER}.rpm") && \
     dnf install -y --setopt=install_weak_deps=False \
-        "kernel-devel-${KVER}" dkms openssl mokutil xz zstd python3.11 \
+        dkms elfutils-libelf-devel openssl mokutil xz zstd python3.11 \
         nvidia-driver nvidia-driver-cuda kmod-nvidia-open-dkms \
         cuda-toolkit \
     && dnf clean all
