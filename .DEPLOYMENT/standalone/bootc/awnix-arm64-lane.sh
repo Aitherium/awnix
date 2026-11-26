@@ -4,7 +4,7 @@
 # kept as a script so the hosted and Spark jobs run the same bytes.
 #
 # Usage:
-#   awnix-arm64-lane.sh --layer awnix|gpu|runner|runner-ai|garg --runner-kind hosted|spark
+#   awnix-arm64-lane.sh --layer awnix|gpu|hypr-gpu|runner|runner-ai|garg --runner-kind hosted|spark
 #                       [--iso] [--boot-smoke] [--evidence FILE] [--self-test]
 #
 # Exit: 0 every requested stage passed, 1 a stage failed, 2 could not judge (wrong
@@ -38,12 +38,16 @@ log() { echo "[arm64-lane] $*"; }
 chain_for() {
   local base="localhost/awnix-base:latest|Containerfile.awnix"
   local gpu="localhost/awnix-gpu:latest|Containerfile.gpu-nvidia"
+  local dopen="localhost/awnix-desktop-open:latest|Containerfile.awnix-desktop-open"
+  local hypr="localhost/awnix-hypr:latest|Containerfile.awnix-hypr"
+  local hyprgpu="localhost/awnix-hypr-gpu:latest|Containerfile.awnix-hypr-gpu"
   local runner="localhost/awnix-runner:latest|Containerfile.awnix-runner"
   local ai="localhost/awnix-runner-ai:latest|Containerfile.awnix-runner-ai"
   local garg="localhost/garg-appliance:latest|Containerfile.garg-appliance"
   case "$1" in
     awnix)     echo "$base" ;;
     gpu)       echo "$base $gpu" ;;
+    hypr-gpu)  echo "$dopen $hypr $hyprgpu" ;;
     runner)    echo "$base $runner" ;;
     runner-ai) echo "$base $runner $ai" ;;
     garg)      echo "$base $runner $ai $garg" ;;
@@ -58,6 +62,12 @@ probe_cmd_for() {
       echo 'test "$(uname -m)" = aarch64 && python3.11 -c "import awgit, awgraph, awrelay, awm, awshare, awrecover, awseal" && grep -q "^NAME=.awnix.$" /usr/lib/os-release && test -x /usr/bin/awnix-setup && pwsh -NoLogo -NoProfile -Command "exit 0" && echo BASE_ARM64_OK' ;;
     Containerfile.gpu-nvidia)
       echo 'test "$(uname -m)" = aarch64 && KVER="$(ls /usr/lib/modules | head -n1)" && find "/usr/lib/modules/${KVER}" -name "nvidia*.ko*" | grep -q . && command -v nvidia-smi >/dev/null && command -v nvidia-ctk >/dev/null && test -s /usr/share/awnix/secureboot/kmod-manifest.json && echo GPU_ARM64_OK' ;;
+    Containerfile.awnix-desktop-open)
+      echo 'test "$(uname -m)" = aarch64 && command -v sway >/dev/null && command -v awsh >/dev/null && command -v adk >/dev/null && echo DESKTOP_OPEN_ARM64_OK' ;;
+    Containerfile.awnix-hypr)
+      echo 'test "$(uname -m)" = aarch64 && Hyprland --version | grep -q Hyprland && command -v awnix-theme >/dev/null && command -v awnix-keys >/dev/null && echo HYPR_ARM64_OK' ;;
+    Containerfile.awnix-hypr-gpu)
+      echo 'test "$(uname -m)" = aarch64 && KVER="$(ls /usr/lib/modules | head -n1)" && find "/usr/lib/modules/${KVER}" -name "nvidia*.ko*" | grep -q . && find "/usr/lib/modules/${KVER}" -name "mt7925e.ko*" | grep -q . && ls /usr/lib/firmware/mediatek/mt7925* >/dev/null 2>&1 && command -v nvidia-smi >/dev/null && command -v nvidia-ctk >/dev/null && command -v tailscale >/dev/null && command -v sshd >/dev/null && Hyprland --version | grep -q Hyprland && echo HYPR_GPU_ARM64_OK' ;;
     Containerfile.awnix-runner)
       echo 'test "$(uname -m)" = aarch64 && test -x /opt/actions-runner/config.sh && id runner >/dev/null && test "$(od -An -tx1 -j18 -N2 /opt/actions-runner/bin/Runner.Listener | tr -d " ")" = b700 && ls -d /opt/actions-runner/_work/_tool/Python/3.1*/arm64 && echo RUNNER_ARM64_OK' ;;
     Containerfile.awnix-runner-ai)
@@ -132,13 +142,14 @@ markers_json() {
 
 self_test() {
   local bad=0
-  for l in awnix gpu runner runner-ai garg; do
+  for l in awnix gpu hypr-gpu runner runner-ai garg; do
     chain_for "$l" >/dev/null || { echo "  [FAIL] no chain for $l"; bad=1; }
   done
   chain_for bogus >/dev/null 2>&1 && { echo "  [FAIL] unknown layer accepted"; bad=1; }
   [ "$(chain_for gpu | wc -w)" -eq 2 ] || { echo "  [FAIL] gpu chain is not 2 layers"; bad=1; }
+  [ "$(chain_for hypr-gpu | wc -w)" -eq 3 ] || { echo "  [FAIL] hypr-gpu chain is not 3 layers"; bad=1; }
   [ "$(chain_for runner-ai | wc -w)" -eq 3 ] || { echo "  [FAIL] runner-ai chain is not 3 layers"; bad=1; }
-  for cf in Containerfile.awnix Containerfile.gpu-nvidia Containerfile.awnix-runner Containerfile.awnix-runner-ai Containerfile.garg-appliance; do
+  for cf in Containerfile.awnix Containerfile.gpu-nvidia Containerfile.awnix-desktop-open Containerfile.awnix-hypr Containerfile.awnix-hypr-gpu Containerfile.awnix-runner Containerfile.awnix-runner-ai Containerfile.garg-appliance; do
     probe_cmd_for "$cf" | grep -q '_ARM64_OK' || { echo "  [FAIL] no probe for $cf"; bad=1; }
     probe_cmd_for "$cf" | grep -q 'uname -m)" = aarch64' || { echo "  [FAIL] $cf probe does not assert aarch64"; bad=1; }
   done
@@ -172,7 +183,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-CHAIN="$(chain_for "$LAYER")" || die2 "unknown --layer '$LAYER' (awnix|gpu|runner|runner-ai|garg)"
+CHAIN="$(chain_for "$LAYER")" || die2 "unknown --layer '$LAYER' (awnix|gpu|hypr-gpu|runner|runner-ai|garg)"
 case "$KIND" in hosted|spark) ;; *) die2 "unknown --runner-kind '$KIND'" ;; esac
 
 # ── preflight: native aarch64 only ──────────────────────────────────────────────

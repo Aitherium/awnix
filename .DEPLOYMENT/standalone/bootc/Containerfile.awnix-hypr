@@ -1,0 +1,374 @@
+# ==============================================================================
+# awnix-hypr -- the awnix desktop: Hyprland, one theme engine, one bindings file,
+# the agent in plain sight. PUBLIC-SAFE: no AitherDesktop, no private context --
+# check_awnix_desktop.py (AWDK006) fails the lane if a COPY ever reaches outside this
+# directory's public files, or if the licence label omits a licence an installed
+# first-party package carries.
+#
+# WHY IT IS NOT ON THE EL9 AWNIX BASE. Measured 2026-09-28 (koji + Fedora mdapi):
+#   * EPEL 9 ships no hyprland, no fuzzel, no sway, no foot -- no tiling Wayland
+#     compositor at all (desktop-open measured the same on 2026-09-26). Hyprland needs
+#     a C++23 toolchain and aquamarine/hyprutils that el9 does not carry either.
+#   * Fedora 42 (fedora-bootc:42, which awnix-desktop-open already builds on) tags
+#     hyprland-0.45.2-1.fc42, xdg-desktop-portal-hyprland-1.3.6, fuzzel-1.14.0,
+#     swaylock/swayidle/swaybg, foot-1.25, firefox, neovim-0.11.5, distrobox.
+#   * hyprlock, hypridle and hyprpaper were never in Fedora's official repos (absent
+#     from f42-updates); Hyprland itself was retired after F42 (absent from f43/f44/
+#     rawhide) and lives on only in COPR sdegler/hyprland (f43+). A COPR is a third-
+#     party signing key inside a public signed image, so this layer does not use one:
+#     swaylock + swayidle + swaybg carry lock/idle/wallpaper, and a move to F43+ is the
+#     point at which that trade gets made again.
+# So this layer builds FROM the open desktop (fedora-bootc:42 + greetd/tuigreet,
+# waybar, foot, mako, awsh, awdk, greenboot) and replaces its session with Hyprland.
+#
+# What it adds:
+#   Hyprland session via greetd/tuigreet (awnix-session), waybar, fuzzel, mako,
+#   swaylock/swayidle, pipewire + wireplumber, NetworkManager + nm-applet, bluez +
+#   blueman, grim/slurp/swappy screenshots, foot, Firefox, JetBrains Mono + Noto +
+#   Font Awesome, neovim with defaults, git, distrobox, a polkit agent.
+#   awnix-theme   4 themes (aither-dark default, tokyo-night, catppuccin-mocha,
+#                 gruvbox) rendered into hyprland/waybar/fuzzel/mako/foot/GTK/lock/
+#                 wallpaper/awkit CSS, live-reloaded. Super+Shift+T cycles.
+#   awnix-keys    bindings.toml -> Hyprland binds (generated HERE, at build) and the
+#                 Super+/ menu (read at run time) -- one file, so they cannot drift.
+#   Super+A       awsh in a floating terminal, answering from the model the first login
+#                 offers (awnix-model-select.py, the AI images' chooser): the pick is
+#                 SERVED by awnix-model.service (PrismML llama-server, 127.0.0.1:8199)
+#                 and awsh's vendor config (/usr/lib/awsh/shell.yaml) points there.
+#   Super+, / "Settings": the awnix console, bound to 127.0.0.1 only, with every CLI
+#                 its setup and tabs call (awnix-setup, awnix-update, aitheros,
+#                 awnix-endpoints, awnix-component). It follows the desktop theme.
+#   aw* stack     the agent and harness daemons awsh dials and the awnode hub, all user
+#                 units on 127.0.0.1, offline, on each user's own ports; awnode, awm and
+#                 awrise baked from the component lock, awrise.timer as the wake clock;
+#                 a waybar module saying down / local / online.
+#   Account       OPTIONAL: first login asks once ([y/N]) to run `adk login`; Living
+#                 Desktop (Super+Shift+D) and the portal (Super+Shift+P) are Firefox links.
+#
+# Build: python AitherOS/dev/tools/build_awnix_images.py --layer desktop-hypr
+# Licence: Apache-2.0 AND BUSL-1.1. Everything this file adds is Apache-2.0; the
+# awnix-desktop-open image it builds FROM installs awdk and @aitherium/awsh, both
+# BUSL-1.1, and a child image inherits its parent's installs. The label names both
+# and the texts ship in /usr/share/licenses/awnix-hypr/.
+# ==============================================================================
+FROM localhost/awnix-desktop-open:latest
+
+RUN dnf -y install --setopt=install_weak_deps=False \
+        hyprland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
+        fuzzel swappy libnotify xdg-user-dirs brightnessctl playerctl mate-polkit \
+        pipewire pipewire-pulseaudio pipewire-alsa pipewire-utils wireplumber pavucontrol \
+        NetworkManager NetworkManager-wifi NetworkManager-bluetooth network-manager-applet \
+        bluez blueman \
+        firefox \
+        jetbrains-mono-fonts-all fontawesome-6-free-fonts google-noto-sans-fonts \
+        google-noto-emoji-fonts papirus-icon-theme adwaita-icon-theme \
+        neovim git distrobox podman skopeo \
+        python3.11 openssl polkit \
+        vulkan-loader mesa-vulkan-drivers libgomp tar gzip \
+    && dnf clean all
+
+# The desktop: the theme engine + bindings tool (one stdlib package), their shims, the
+# themes and templates, the ONE bindings file, the vendor Hyprland + waybar config, the
+# session scripts, the launcher entries and the neovim defaults.
+COPY desktop-hypr/awnix_desktop /usr/lib/awnix-desktop/awnix_desktop
+COPY desktop-hypr/bin/ /usr/bin/
+COPY desktop-hypr/themes/ /usr/share/awnix/themes/
+COPY desktop-hypr/templates/ /usr/share/awnix/theme-templates/
+COPY desktop-hypr/bindings.toml desktop-hypr/hyprland.conf desktop-hypr/waybar.jsonc /usr/share/awnix/desktop/
+COPY desktop-hypr/applications/ /usr/share/applications/
+COPY desktop-hypr/awnix-session.desktop /usr/share/wayland-sessions/awnix.desktop
+COPY desktop-hypr/sysinit.vim /etc/xdg/nvim/sysinit.vim
+# The licence texts the label names, each a byte copy of its repo source (AWV013).
+COPY licenses/LICENSE.Apache-2.0 licenses/LICENSE.BUSL-1.1.awdk licenses/LICENSE.BUSL-1.1.awsh /usr/share/licenses/awnix-hypr/
+
+# The console as Settings (loopback only on this image), the `awnix` dispatcher, the
+# component CLI with this image's lock and the desktop's baked rows, and the model
+# chooser + catalogue the first login offers. This image is FROM fedora-bootc, so it
+# inherits NOTHING of Containerfile.awnix: every file the console needs is copied here.
+COPY awnix-dispatch.sh /usr/bin/awnix
+COPY awnix-component.py /usr/libexec/awnix/awnix-component
+COPY awnix-console.py /usr/libexec/awnix/awnix-console
+COPY awnix-console-issue.sh /usr/libexec/awnix/awnix-console-issue.sh
+COPY awnix_console /usr/lib/awnix-console/awnix_console
+COPY awnix-console.service /usr/lib/systemd/system/awnix-console.service
+COPY awnix-console.conf /usr/lib/awnix/console.conf
+COPY desktop-hypr/console-desktop.conf /usr/lib/awnix/console.d/desktop.conf
+COPY awnix-web/dist /usr/share/awnix-console
+COPY awnix-surfaces.yaml /usr/share/awnix/surfaces.yaml
+COPY awnix-components.lock.yaml /usr/share/awnix/components.lock.yaml
+COPY awnix-components.lock.json /usr/share/awnix/components.lock.json
+COPY awnix-components.tmpfiles.conf /usr/lib/tmpfiles.d/awnix-components.conf
+COPY awnix-component-sync.service /usr/lib/systemd/system/awnix-component-sync.service
+COPY desktop-hypr/desktop-components.yaml /usr/share/awnix/components.d/desktop.yaml
+COPY awnix-model-select.py /usr/local/sbin/awnix-model-select.py
+COPY awnix-models.yaml /usr/local/sbin/awnix-models.yaml
+
+# What the console CALLS (check_awnix_desktop.py AWDK009). The console is in setup mode
+# until /etc/awnix/setup.json exists, and only awnix_setup writes it: without the
+# package /api/setup/* is 501 and Settings never leaves the setup screen. Its tabs run
+# awnix-update, aitheros and awnix-endpoints; an absent binary is a 501 tab. So the
+# setup package and launcher, the three steps this image can answer (licence, update
+# channel, auto-apply -- not secureboot, whose CLI is not here), the activation CLI
+# with its verifier key and refresh units, the signed-update CLI with its config, and
+# the endpoints CLI with the vendor floor all ship. awnix-setup.service does NOT: it
+# owns tty1, which is greetd's here, so setup on the desktop is the browser one.
+#
+# The fourth step, `signin` (check_awnix_desktop.py AWDK014), is the OPTIONAL account
+# sign-in. It is the steps.d mechanism awnix-setup already runs, not aither-setup (a
+# private tree this public image may not COPY, AWDK006): a toggle, required:false like
+# every step, that only decides whether a person's first desktop login ASKS -- default
+# No -- to run the `adk login` device flow (desktop-hypr/bin/awnix-signin). The setup
+# step runs as root and so never signs anyone in itself; the desktop never waits on it.
+COPY awnix-setup.py /usr/bin/awnix-setup
+COPY awnix_setup /usr/lib/awnix-setup/awnix_setup
+COPY setup-steps/common/40-license.json setup-steps/common/70-updates.json setup-steps/common/71-auto-apply.json setup-steps/hypr/75-signin.json /usr/share/awnix-setup/steps.d/
+COPY aitheros-cli.py /usr/bin/aitheros
+COPY license-pubkey.pem /usr/share/aither/license-pubkey.pem
+COPY aither-license.service aither-license.timer aither-license.path /usr/lib/systemd/system/
+COPY aither-license.tmpfiles.conf /usr/lib/tmpfiles.d/aither-license.conf
+COPY awnix-update.sh /usr/libexec/awnix/awnix-update
+COPY awnix-update.conf /etc/awnix/update.conf
+COPY awnix-update.service awnix-update.timer /usr/lib/systemd/system/
+COPY awnix-signers.conf /usr/share/awnix/signers.conf
+COPY registries.d-aitherium.yaml /etc/containers/registries.d/aitherium.yaml
+COPY awnix-endpoints.py /usr/libexec/awnix/awnix-endpoints
+COPY awnix-endpoints.env /usr/lib/awnix/endpoints.env
+COPY sign-awnix-image.sh /usr/libexec/awnix/sign-awnix-image.sh
+
+# The local model's server (check_awnix_desktop.py AWDK010). The first-login chooser
+# downloads a GGUF and links it as ~/.local/share/awnix/models/current.gguf; that file
+# is only "the model awsh answers from" if something serves it and awsh dials it. The
+# catalogue's Bonsai files need the PrismML llama.cpp build (stock llama.cpp emits
+# gibberish for them), so this is the same pinned release Containerfile.awnix-runner-ai
+# bakes, the Vulkan build (NVIDIA/AMD/Intel, no CUDA runtime). Fedora 42's own glibc
+# and libstdc++ are new enough, so the el9 images' bundled loader chain is not needed.
+# awnix-model.service (a USER unit, enabled for every user, a no-op until a model is
+# chosen) runs awnix-model-serve on 127.0.0.1:8199; awsh's vendor layer names that URL.
+ARG PRISM_RELEASE=prism-b12128-d7b2896
+ARG PRISM_ASSET=
+ARG TARGETARCH
+RUN if [ -z "$PRISM_ASSET" ]; then \
+      case "${TARGETARCH:-$(uname -m)}" in \
+        amd64|x86_64) PRISM_ASSET="llama-${PRISM_RELEASE}-bin-ubuntu-vulkan-x64.tar.gz" ;; \
+        arm64|aarch64) PRISM_ASSET="llama-${PRISM_RELEASE}-bin-ubuntu-vulkan-arm64.tar.gz" ;; \
+        *) echo "awnix-hypr: no PrismML asset for arch ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
+      esac; \
+    fi \
+    && mkdir -p /opt/bonsai/bin \
+    && curl -fsSL -o /tmp/llama.tar.gz \
+        "https://github.com/PrismML-Eng/llama.cpp/releases/download/${PRISM_RELEASE}/${PRISM_ASSET}" \
+    && tar -xzf /tmp/llama.tar.gz -C /opt/bonsai/bin \
+    && rm /tmp/llama.tar.gz \
+    && find /opt/bonsai/bin -name llama-server -type f -exec chmod 0755 {} \;
+COPY desktop-hypr/awnix-model.service /usr/lib/systemd/user/awnix-model.service
+COPY awsh/shell.yaml /usr/lib/awsh/shell.yaml
+COPY awsh/awsh-offline.sh /etc/profile.d/awsh-offline.sh
+
+# The daemons awsh dials (check_awnix_desktop.py AWDK012): the SAME two user units every
+# awnix image ships (awsh/*.service: loopback, AITHER_OFFLINE=1) plus `awnix awsh`
+# (doctor, first-run), made safe for a machine several people log into.
+#   * PER-USER PORTS. The units are enabled for every user, so fixed ports made a second
+#     session fail to bind and talk to the FIRST person's daemons. 60-awnix-ports (a
+#     systemd user-environment generator) gives each uid its own block; the 20- drop-ins
+#     start each daemon on it and are skipped (ConditionEnvironment) for a uid with
+#     none. awnix-user-ports.sh hands the same values to login shells and the session,
+#     so awsh and waybar dial this user's daemons and nobody else's.
+#   * UNSAFE awdk DEFAULTS OFF in the agent's drop-in: no MCP gateway dial, loopback-only
+#     CORS, no browser handoff -- each name grepped in the INSTALLED adk/server.py below,
+#     so a drop-in that sets a variable this awdk does not read fails the build.
+#   * THE INTERPRETER. The base units name /usr/bin/python3.11; awdk is installed under
+#     Fedora's python3 (desktop-open, pinned by hash). The drop-ins carry @AWDK_PYTHON@,
+#     replaced below with the interpreter of the installed `adk` once it is proven to
+#     import both daemons.
+# The 10- drop-in orders them after awnix-model.service and turns the PyPI update check
+# off. awnix-agent-status is the waybar module (down / local / online) and the build's
+# proof that each unit starts and binds loopback only.
+COPY awsh/awsh-agent.service awsh/awsh-harness.service /usr/lib/systemd/user/
+COPY desktop-hypr/units/10-awnix-desktop.conf /usr/lib/systemd/user/awsh-agent.service.d/10-awnix-desktop.conf
+COPY desktop-hypr/units/10-awnix-desktop.conf /usr/lib/systemd/user/awsh-harness.service.d/10-awnix-desktop.conf
+COPY desktop-hypr/units/awsh-agent.service.d/20-awnix-per-user.conf /usr/lib/systemd/user/awsh-agent.service.d/20-awnix-per-user.conf
+COPY desktop-hypr/units/awsh-harness.service.d/20-awnix-per-user.conf /usr/lib/systemd/user/awsh-harness.service.d/20-awnix-per-user.conf
+COPY desktop-hypr/units/60-awnix-ports /usr/lib/systemd/user-environment-generators/60-awnix-ports
+COPY desktop-hypr/awnix-user-ports.sh /etc/profile.d/awnix-user-ports.sh
+COPY awsh/awnix-awsh.py /usr/libexec/awnix/awnix-awsh
+
+# The aw* family, out of the box (check_awnix_desktop.py AWDK013). awnode, awm and awrise
+# are BAKED from the component lock this image already carries -- the same hashed,
+# --no-deps venv `awnix component install` builds, moved into /usr
+# (/usr/lib/awnix/components/<id>, shims in /usr/bin) by awnix_desktop.components,
+# which then writes the components.d rows from what was installed. Never a bare pip
+# install. awnix-hub.service runs `awnode hub` as the one local MCP endpoint (loopback,
+# per-user token) and is SKIPPED, not failed, while the lock pins an awnode without the
+# hub; awrise.timer is the Linux wake clock the family documents only for Windows.
+COPY desktop-hypr/units/awnix-hub.service desktop-hypr/units/awrise.service desktop-hypr/units/awrise.timer /usr/lib/systemd/user/
+
+# ONE RUN proves the layer. It CR-strips every installed script (a CRLF shebang does not
+# execute), asserts the python3.11 shebangs, GENERATES the Hyprland binds from the
+# bindings file (so the menu and the keys come from the same bytes), runs every
+# self-test, validates every theme against every template, renders the default theme
+# the way a first login does, and proves the Hyprland binary runs as a normal user.
+# Hyprland 0.45.2 has no --verify-config (it arrived later upstream), so the config
+# itself is proven by check_awnix_desktop.py and a real login, not here. greetd now
+# starts awnix-session; the sway session the parent configured stays selectable in
+# tuigreet (F3) as a fallback.
+#
+# The console's CLIs are proven the way Containerfile.awnix proves them: each self-test
+# runs, the setup steps validate, the dispatcher offers each verb, and awnix_setup.api
+# imports from where the console looks for it. cosign comes from the pinned,
+# sha256-checked release (sign-awnix-image.sh), because a box without it refuses every
+# update. awnix-update.timer is NOT enabled while the variant is publish:false: there
+# is no repo to follow, and a six-hourly check would only record an error. Enabling it
+# is one of the steps awnix-variants.yaml lists for publishing. The stock
+# bootc-fetch-apply-updates.timer IS masked, now and after the flip: it pulls a tag
+# with no signature check and reboots on its own (check_awnix_desktop.py AWDK011), and
+# the menu's update action runs `awnix update`, never `bootc upgrade`. The model server is
+# proven to link and run on this base (no library missing), and the port it serves is
+# the port awsh's vendor config dials.
+#
+# The agent and harness daemons are proven the only way a daemon can be: started. After
+# ExecStart is rewritten to the interpreter that really carries awdk, awnix-agent-status
+# --build-proof runs each unit's own ExecStartPre and ExecStart with its Environment= in
+# a scratch HOME, waits for /health, and reads /proc/net/tcp to prove the port is bound
+# to loopback and nothing wider. A unit that parses but cannot start fails the build here.
+ARG AWNIX_VARIANT=awnix-hypr
+RUN set -eu; \
+    for f in /usr/bin/awnix /usr/bin/awnix-theme /usr/bin/awnix-keys /usr/bin/awnix-session \
+             /usr/bin/awnix-desktop-autostart /usr/bin/awnix-launch /usr/bin/awnix-lock \
+             /usr/bin/awnix-screenshot /usr/bin/awnix-settings /usr/bin/awnix-desktop-run \
+             /usr/bin/awnix-desktop-firstrun /usr/bin/awnix-model-serve \
+             /usr/bin/awnix-agent-status /usr/libexec/awnix/awnix-awsh /usr/bin/awnix-signin \
+             /usr/bin/awnix-setup /usr/bin/aitheros /usr/libexec/awnix/awnix-update \
+             /usr/libexec/awnix/awnix-endpoints /usr/libexec/awnix/sign-awnix-image.sh \
+             /usr/libexec/awnix/awnix-component \
+             /usr/libexec/awnix/awnix-console /usr/libexec/awnix/awnix-console-issue.sh \
+             /usr/local/sbin/awnix-model-select.py \
+             /usr/lib/systemd/user-environment-generators/60-awnix-ports; do \
+        sed -i 's/\r$//' "$f"; chmod 0755 "$f"; \
+    done; \
+    find /usr/lib/awnix-desktop /usr/lib/awnix-console /usr/share/awnix /usr/lib/awnix \
+        /usr/lib/awnix-setup /usr/share/awnix-setup /etc/awnix /usr/lib/awsh \
+        /usr/share/applications /usr/share/wayland-sessions /etc/xdg/nvim -type f \
+        -exec sed -i 's/\r$//' {} +; \
+    sed -i 's/\r$//' /usr/lib/systemd/system/aither-license.service \
+        /usr/lib/systemd/system/aither-license.timer /usr/lib/systemd/system/aither-license.path \
+        /usr/lib/systemd/system/awnix-update.service /usr/lib/systemd/system/awnix-update.timer \
+        /usr/lib/systemd/user/awnix-model.service /usr/lib/tmpfiles.d/aither-license.conf \
+        /usr/lib/systemd/user/awsh-agent.service /usr/lib/systemd/user/awsh-harness.service \
+        /usr/lib/systemd/user/awsh-agent.service.d/10-awnix-desktop.conf \
+        /usr/lib/systemd/user/awsh-harness.service.d/10-awnix-desktop.conf \
+        /usr/lib/systemd/user/awsh-agent.service.d/20-awnix-per-user.conf \
+        /usr/lib/systemd/user/awsh-harness.service.d/20-awnix-per-user.conf \
+        /usr/lib/systemd/user/awnix-hub.service /usr/lib/systemd/user/awrise.service \
+        /usr/lib/systemd/user/awrise.timer /etc/profile.d/awnix-user-ports.sh \
+        /etc/containers/registries.d/aitherium.yaml /etc/profile.d/awsh-offline.sh; \
+    for f in /usr/bin/awnix-theme /usr/bin/awnix-keys /usr/bin/awnix-agent-status \
+             /usr/libexec/awnix/awnix-awsh /usr/libexec/awnix/awnix-component \
+             /usr/libexec/awnix/awnix-console /usr/local/sbin/awnix-model-select.py \
+             /usr/bin/awnix-setup /usr/bin/aitheros /usr/libexec/awnix/awnix-endpoints; do \
+        head -1 "$f" | grep -qx '#!/usr/bin/python3.11' \
+            || { echo "FATAL: $f does not start with #!/usr/bin/python3.11" >&2; exit 1; }; \
+    done; \
+    chmod 0644 /usr/local/sbin/awnix-models.yaml; \
+    awnix-keys hyprland > /usr/share/awnix/desktop/bindings.conf; \
+    grep -q '^bind = SUPER, A, exec, ' /usr/share/awnix/desktop/bindings.conf; \
+    awnix-keys --self-test >/dev/null; \
+    awnix-keys validate; \
+    awnix-theme --self-test >/dev/null; \
+    awnix-theme validate; \
+    awnix --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-component --self-test >/dev/null; \
+    PYTHONPATH=/usr/lib/awnix-desktop python3.11 -m awnix_desktop.components --self-test >/dev/null; \
+    mkdir -p /usr/lib/awnix/components; \
+    PYTHONPATH=/usr/lib/awnix-desktop python3.11 -m awnix_desktop.components bake awnode awm awrise; \
+    for c in awnode awnode-mcp awm awrise; do \
+        sed -n 2p "/usr/bin/$c" | grep -q '^# awnix-component shim id=' \
+            || { echo "FATAL: /usr/bin/$c is not a component shim" >&2; exit 1; }; \
+    done; \
+    for c in awnode awm awrise; do \
+        /usr/libexec/awnix/awnix-component info "$c" --json | grep -q '"state": "baked"' \
+            || { echo "FATAL: awnix component does not report $c as baked" >&2; exit 1; }; \
+    done; \
+    awm --help >/dev/null; \
+    awrise --help >/dev/null; \
+    /usr/lib/awnix/components/awnode/current/bin/python -c 'import awnode'; \
+    /usr/libexec/awnix/awnix-console --self-test >/dev/null; \
+    /usr/local/sbin/awnix-model-select.py --self-test >/dev/null; \
+    mkdir -p /usr/lib/awnix; \
+    printf 'AWNIX_VARIANT=%s\nAWNIX_IMAGE_REPO=\nAWNIX_BUILD_EPOCH=%s\n' \
+        "$AWNIX_VARIANT" "${SOURCE_DATE_EPOCH:-$(date -u +%s)}" > /usr/lib/awnix/release.env; \
+    bash /usr/libexec/awnix/sign-awnix-image.sh install /usr/bin; \
+    cosign version >/dev/null; \
+    aitheros --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-update --self-test >/dev/null; \
+    /usr/libexec/awnix/awnix-endpoints --self-test >/dev/null; \
+    /usr/bin/awnix-setup --self-test >/dev/null; \
+    /usr/bin/awnix-setup --validate-steps /usr/share/awnix-setup/steps.d; \
+    PYTHONPATH=/usr/lib/awnix-setup python3.11 -c 'import awnix_setup.api'; \
+    for v in component console setup update endpoints awsh; do \
+        awnix --list-verbs | grep -qx "$v" \
+            || { echo "FATAL: awnix verb $v is not offered by the dispatcher" >&2; exit 1; }; \
+    done; \
+    llama=$(find /opt/bonsai/bin -name llama-server -type f | head -1); \
+    test -n "$llama" && test -x "$llama"; \
+    if ldd "$llama" | grep 'not found'; then \
+        echo "FATAL: llama-server has unresolved libraries on this base" >&2; exit 1; \
+    fi; \
+    "$llama" --version >/dev/null 2>&1 \
+        || { echo "FATAL: llama-server does not run on this base" >&2; exit 1; }; \
+    grep -q '^llm_url: http://127.0.0.1:8199/v1$' /usr/lib/awsh/shell.yaml; \
+    grep -q 'AWNIX_MODEL_PORT:-8199' /usr/bin/awnix-model-serve; \
+    adkpy=$(sed -n '1s/^#! *//p' "$(command -v adk)" | cut -d' ' -f1); \
+    test -x "$adkpy" \
+        || { echo "FATAL: cannot read awdk's interpreter from $(command -v adk)" >&2; exit 1; }; \
+    "$adkpy" -c 'import adk.server, adk.harnesses.daemon' \
+        || { echo "FATAL: $adkpy cannot import the awdk daemons" >&2; exit 1; }; \
+    sed -i "s#@AWDK_PYTHON@#${adkpy}#" \
+        /usr/lib/systemd/user/awsh-agent.service.d/20-awnix-per-user.conf \
+        /usr/lib/systemd/user/awsh-harness.service.d/20-awnix-per-user.conf; \
+    for u in awsh-agent:AGENT awsh-harness:HARNESS; do \
+        grep -Eq "^ExecStart=${adkpy} -m adk\.[a-z. ]+ --host 127\.0\.0\.1 --port \\\$\{AWNIX_${u#*:}_PORT\}" \
+            "/usr/lib/systemd/user/${u%%:*}.service.d/20-awnix-per-user.conf" \
+            || { echo "FATAL: ${u%%:*} does not start awdk under $adkpy on this user's loopback port" >&2; exit 1; }; \
+    done; \
+    "$adkpy" -c 'import inspect, sys, adk.server as s, adk.local_auth as la; src = inspect.getsource(s) + inspect.getsource(la); m = [v for v in ("AITHER_MCP_GATEWAY", "AITHER_CORS_ORIGINS", "AITHER_BROWSER_HANDOFF", "AITHER_LOCAL_AUTH") if chr(34) + v + chr(34) not in src]; m += [] if la.mode({"AITHER_LOCAL_AUTH": "required"}) == "required" else ["AITHER_LOCAL_AUTH=required not honoured"]; print("installed awdk reads the agent drop-in variables" if not m else "MISSING %s" % m); sys.exit(1 if m else 0)' \
+        || { echo "FATAL: the installed awdk does not read a variable the agent drop-in sets" >&2; exit 1; }; \
+    out=$(setpriv --reuid=1000 --regid=1000 --clear-groups \
+        /usr/lib/systemd/user-environment-generators/60-awnix-ports); \
+    printf '%s\n' "$out" | grep -qx 'AWNIX_AGENT_PORT=10001' \
+        && printf '%s\n' "$out" | grep -qx 'AWNIX_HARNESS_PORT=10002' \
+        || { echo "FATAL: 60-awnix-ports does not give uid 1000 its own ports" >&2; exit 1; }; \
+    test -z "$(/usr/lib/systemd/user-environment-generators/60-awnix-ports)" \
+        || { echo "FATAL: 60-awnix-ports gives root (no desktop) a port block" >&2; exit 1; }; \
+    /usr/libexec/awnix/awnix-awsh --self-test >/dev/null; \
+    awnix-agent-status --self-test >/dev/null; \
+    awnix-signin --self-test >/dev/null; \
+    test "$(awnix-signin offer)" = 1; \
+    awnix-agent-status --build-proof; \
+    mkdir -p -m 0700 /tmp/hyprcheck/xdg; \
+    HOME=/tmp/hyprcheck XDG_CONFIG_HOME=/tmp/hyprcheck/.config awnix-theme ensure; \
+    mkdir -p /tmp/hyprcheck/.config/hypr && : > /tmp/hyprcheck/.config/hypr/awnix-user.conf; \
+    test -s /tmp/hyprcheck/.config/awnix/theme/hyprland.conf; \
+    test -s /tmp/hyprcheck/.config/awnix/theme/wallpaper.png; \
+    if grep -rq --exclude='*.png' '{{' /tmp/hyprcheck/.config/awnix/theme/; then \
+        echo "FATAL: a theme placeholder survived rendering" >&2; exit 1; \
+    fi; \
+    chown -R 65534:65534 /tmp/hyprcheck; \
+    setpriv --reuid=65534 --regid=65534 --clear-groups \
+        env HOME=/tmp/hyprcheck XDG_RUNTIME_DIR=/tmp/hyprcheck/xdg Hyprland --version \
+        | grep -q 'Hyprland'; \
+    rm -rf /tmp/hyprcheck; \
+    printf '[terminal]\nvt = 1\n\n[default_session]\ncommand = "tuigreet --time --remember --remember-session --sessions /usr/share/wayland-sessions --cmd awnix-session"\nuser = "greetd"\n' \
+        > /etc/greetd/config.toml; \
+    systemctl enable awnix-console.service awnix-component-sync.service greetd.service \
+        NetworkManager.service bluetooth.service aither-license.timer aither-license.path; \
+    systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service \
+        awnix-model.service awsh-agent.service awsh-harness.service awnix-hub.service \
+        awrise.timer; \
+    systemctl mask bootc-fetch-apply-updates.timer; \
+    systemctl set-default graphical.target; \
+    bootc container lint
+
+LABEL com.aitheros.layer="awnix-hypr" \
+      com.aitheros.description="awnix desktop: Hyprland, awnix-theme, one bindings file + Super+/ menu, Super+A local agent on a served local model, loopback console" \
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1" \
+      com.aitheros.licence-note="Apache-2.0 and MIT aw* packages plus two BUSL-1.1 packages, awdk and @aitherium/awsh, each licensed by Aitherium, LLC with the Additional Use Grant that you may not use the Licensed Work for a Commercial Hosted Service. The Apache-2.0 text and both BUSL-1.1 texts ship in /usr/share/licenses/awnix-hypr/."
