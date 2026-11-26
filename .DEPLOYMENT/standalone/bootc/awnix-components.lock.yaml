@@ -1,7 +1,3 @@
-# GENERATED -- do not edit. Re-derive in hosted CI with:
-#     python AitherOS/dev/tools/gen_awnix_component_lock.py
-# awnix-components.lock.json beside it carries IDENTICAL content (AWC007) so the
-# on-box tool needs no PyYAML. Pins move only through the weekly lock-refresh PR.
 schema: 1
 generated_by: AitherOS/dev/tools/gen_awnix_component_lock.py
 catalogue_sha256: b58ce142a9a88953097a5eec5df50a54cd6fd85780ecfec5da138350448b3b15
@@ -416,7 +412,8 @@ components:
   requires_license: false
   entitlement: core
   available: false
-  reason: not a pip-installable brick (see the repo — one binary per OS from the `aitheros-v*` release)
+  reason: "not a pip-installable brick (see the repo \u2014 one binary per OS from\
+    \ the `aitheros-v*` release)"
   deps: []
 - id: awask
   name: awask
@@ -567,7 +564,8 @@ components:
   requires_license: false
   entitlement: core
   available: false
-  reason: not a pip-installable brick (see the repo — built by awdk/packaging/build_executable.py --narrow)
+  reason: "not a pip-installable brick (see the repo \u2014 built by awdk/packaging/build_executable.py\
+    \ --narrow)"
   deps: []
 - id: awdata
   name: awdata
@@ -638,7 +636,8 @@ components:
   requires_license: false
   entitlement: core
   available: false
-  reason: not a pip-installable brick (see the repo -- Electron app (npm install && npx electron .))
+  reason: not a pip-installable brick (see the repo -- Electron app (npm install &&
+    npx electron .))
   deps: []
 - id: awdiscord
   name: awdiscord
@@ -937,7 +936,8 @@ components:
   requires_license: false
   entitlement: core
   available: false
-  reason: awgym has no cp311 manylinux/any wheel on PyPI whose Requires-Python admits 3.11
+  reason: awgym has no cp311 manylinux/any wheel on PyPI whose Requires-Python admits
+    3.11
   deps: []
 - id: awiam
   name: awiam
@@ -1002,7 +1002,7 @@ components:
   requires_license: false
   entitlement: core
   available: false
-  reason: not a pip-installable brick (read it — https://aitherium.github.io/awknowledge/)
+  reason: "not a pip-installable brick (read it \u2014 https://aitherium.github.io/awknowledge/)"
   deps: []
 - id: awlab
   name: awlab
@@ -1141,7 +1141,8 @@ components:
   requires_license: false
   entitlement: core
   available: false
-  reason: not a pip-installable brick (podman build -t awnix:latest -f Containerfile .)
+  reason: not a pip-installable brick (podman build -t awnix:latest -f Containerfile
+    .)
   deps: []
 - id: awnode
   name: awnode
@@ -1624,8 +1625,8 @@ components:
   requires_license: false
   entitlement: core
   available: false
-  reason: 'npm-only brick: install with `npm i -g @aitherium/awsh`; the component installer manages pip
-    bricks'
+  reason: 'npm-only brick: install with `npm i -g @aitherium/awsh`; the component
+    installer manages pip bricks'
   deps: []
 - id: awshare
   name: awshare
@@ -3989,3 +3990,115 @@ components:
     RETRIEVAL_URL: http://127.0.0.1:8171
     KG_URL: http://127.0.0.1:8196
     EMBED_URL: http://127.0.0.1:8209
+wheels_aarch64:
+  cffi==2.1.1:
+    url: https://files.pythonhosted.org/packages/ad/66/c19feabb28485b6e0bbaaafa90837a1ef5d302e90f2178bd33f17a49879b/cffi-2.1.1-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 3311ed60d36f83378794e1009ac6258bafbf81f7888b4caa7b35a521e3f95813
+  cryptography==50.0.2:
+    url: https://files.pythonhosted.org/packages/d9/69/c9bd862c3bf43d6399c433caf002df16e2dffd4be49bdf515cda38038711/cryptography-50.0.2-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 79def8d059362e7831389ed3be0ecdf58a89386e1271e35dd9f5af84e81bffd0
+  cuda-bindings==13.5.0:
+    url: https://files.pythonhosted.org/packages/12/09/74e159fbe67b081cca842871addce6d2b493f9bb48ce85124f023eb5f1c9/cuda_bindings-13.5.0-cp311-cp311-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl
+    sha256: 71c15ed97099a8ef416515d80ddd10770e0f6339234e16855a526d2896516631
+  hf-xet==1.8.0:
+    url: https://files.pythonhosted.org/packages/35/c4/127a1548df019ea4c80f06e685f263e146075143335a02e78a3c41dbc4eb/hf_xet-1.8.0-cp38-abi3-manylinux_2_28_aarch64.whl
+    sha256: 8800e3444770f2c630b361bc6d5c6ebb770b7830646cf632fbb79d0e5bbc9e7f
+  httptools==0.9.0:
+    url: https://files.pythonhosted.org/packages/2e/a9/81795025aa1ac0ca5346917571756c3e77ae3d0aa11d70fee11b5f89f713/httptools-0.9.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl
+    sha256: 6e2780e33a58a93f27cc3bb74a55bae6f9a8278a1dbabdff392940d30d381671
+  lxml==6.1.3:
+    url: https://files.pythonhosted.org/packages/ab/29/8c24672f56807f119312f073f24204368574bd16b384ede861b5104b3a2b/lxml-6.1.3-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 4a579dfb9c835f8ab47f4b8ed33440cbc75b806b73297208e6ec2a33e903740b
+  markupsafe==3.0.4:
+    url: https://files.pythonhosted.org/packages/ca/3a/63ba10b6c1463216b3e4df669a9f0e5a3b0c3071557d2e8229e3968c79fb/markupsafe-3.0.4-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl
+    sha256: 849dd2bb0e5e4ab2b71c7191726a4a8d5aa8a610daa584728cbee0b710ddc4ef
+  numpy==2.4.6:
+    url: https://files.pythonhosted.org/packages/33/a8/6fa8c1a345a8c85dbb21932c447bee07c30a2c2a3f31e369c0a84b300147/numpy-2.4.6-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
+    sha256: 0ab0a9c4ffb1a6d95ef519fe4247dba8eb6b18ad93999f76b7f657039acabd47
+  nvidia-cublas==13.4.1.3:
+    url: https://files.pythonhosted.org/packages/d0/a0/5cd9d4b08a8320f7ca150ee0d66c97e98092922e338336cb4b62da7500c3/nvidia_cublas-13.4.1.3-py3-none-manylinux_2_27_aarch64.whl
+    sha256: 4eb1472bf92b741e7cf24da7978dde251b58ddec2092d9f6a04f3623eb4e9a15
+  nvidia-cuda-cccl==13.3.5.0.6:
+    url: https://files.pythonhosted.org/packages/81/dc/9a056ef9bd05c55ddaed3afce160702e4ce8303b9ec1b38066044c18dcd2/nvidia_cuda_cccl-13.3.5.0.6-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 6f30b8076b3e69951c459c94ae190bde51924b320076ebaec376d36848b4c76e
+  nvidia-cuda-cupti==13.2.86:
+    url: https://files.pythonhosted.org/packages/e1/ab/52414925ea803a5f86b994ae97d951e5943ed27a6f1da4a5c4ac09e308af/nvidia_cuda_cupti-13.2.86-py3-none-manylinux_2_25_aarch64.whl
+    sha256: d9a5c133f73fcb9013f3ada0da6fb54d4117618d81f3f5a0419417ea6ee829d4
+  nvidia-cuda-nvrtc==13.2.86:
+    url: https://files.pythonhosted.org/packages/13/95/029e91026e1d378cba9fb2cdb62394bb15d06de7586bab73d76397df6b7f/nvidia_cuda_nvrtc-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 1e5d7b411a2eb83f5c71c98d58133a763fc9fa86a4241ee320c5c4782d9ad1fd
+  nvidia-cuda-runtime==13.2.86:
+    url: https://files.pythonhosted.org/packages/89/d4/fa981071e3d9f29158ca16c69ee617831cd6df4dd47024149c16eec717f8/nvidia_cuda_runtime-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 37844957894bfdecf90243568d21a2cb251b66106915b71459a23c8e6ef2da69
+  nvidia-cudnn-cu13==9.26.0.51:
+    url: https://files.pythonhosted.org/packages/c5/1c/01e1dd3dec6ffe0baaff7e722b8946d867353d05a01301f128f1730fde0b/nvidia_cudnn_cu13-9.26.0.51-py3-none-manylinux_2_27_aarch64.whl
+    sha256: 8e5b4f5eccff721416f70ecf4353172fc4d5cdd8ca869fe6f983a4a5b0147b20
+  nvidia-cufft==12.2.0.57:
+    url: https://files.pythonhosted.org/packages/07/8d/f650e6d527f9d22b5ded906c000eaebb037721c06d4ecd906df62f300979/nvidia_cufft-12.2.0.57-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 1ed438568ae1088ba2c25789d10205d4104b8b140b7bd942e39a787947a0fb74
+  nvidia-cufile==1.17.1.22:
+    url: https://files.pythonhosted.org/packages/fe/fd/4b4157512a131a51e1514d40d0199b1c5b7b10c6856db274ff22e5fe15be/nvidia_cufile-1.17.1.22-py3-none-manylinux_2_27_aarch64.whl
+    sha256: bec33d7f1f12691dce330275246587569c2ed90b1ce43b0f94b3e1ce9268744b
+  nvidia-cusolver==12.2.0.11:
+    url: https://files.pythonhosted.org/packages/60/df/9e6b603f1d64040ce3e076e9bce1b78e2d588d0aabc9783f351cecd861ab/nvidia_cusolver-12.2.0.11-py3-none-manylinux_2_27_aarch64.whl
+    sha256: 8be097fca28de6be0990ab216ee9b804dd51077e1d1d83acf6c9850650bdc64d
+  nvidia-cusparse==12.7.10.12:
+    url: https://files.pythonhosted.org/packages/60/35/abbd278fb6d039fcfb5175efa10a21007a11878bec59920d84854b47d766/nvidia_cusparse-12.7.10.12-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 597eff2cd83e3ab1d1e3a0dce9c9c879d77cf64ec2659bfdb5af6a5d02e7aaa9
+  nvidia-cusparselt-cu13==0.8.1:
+    url: https://files.pythonhosted.org/packages/46/e1/cdc1797eadf82d3a9a575a19b33fdc871a97edbec42c00b5b5e914f4aff4/nvidia_cusparselt_cu13-0.8.1-py3-none-manylinux2014_aarch64.whl
+    sha256: 4dca476c50bf4780d46cd0bfbd82e2bc10a08e4fef7950917ce8d7578d22a23f
+  nvidia-nccl-cu13==2.30.7:
+    url: https://files.pythonhosted.org/packages/d1/21/a73174c6157101bdf1ffc22b517f76ff0082613989dd9bc8f43e8034caac/nvidia_nccl_cu13-2.30.7-py3-none-manylinux_2_18_aarch64.whl
+    sha256: ca786ffa5a647c75d4d1f5cc72a6c4f537947e2ba8823d7c8aaf768e7a7b9f77
+  nvidia-nvjitlink==13.5.37:
+    url: https://files.pythonhosted.org/packages/24/15/dd228f798cd01d7aeaf19d872b2b20f9aeafc1a7d8b6bfaa878b30b8d6f7/nvidia_nvjitlink-13.5.37-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 893f6f9a55b2720ed94913b5ba3332e972da8c78dfa2863d0244403dbd528ffc
+  nvidia-nvshmem-cu13==3.7.2:
+    url: https://files.pythonhosted.org/packages/81/11/1767ef120299972822a43aceffbc81ac813aad2089d817e36e4e12aa4c9c/nvidia_nvshmem_cu13-3.7.2-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 0e748308b9e0a8a8d81859353f3e6c98fbe85a85f652a915a2ba60149a0bd124
+  nvidia-nvtx==13.2.86:
+    url: https://files.pythonhosted.org/packages/52/5f/74e2d29240de30a971d59ca20f4a3c4f2720cd49752809eeb4177d385c2c/nvidia_nvtx-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: 1c6ae1be92fba569dd271f7b9b3056f99f5642726dc6c53d1b93ae4110c398fb
+  onnxruntime==1.32.0:
+    url: https://files.pythonhosted.org/packages/b7/30/103820b32e9dc1d1fcfc5b519fd2de5bd699d25a25895caf5d726350d1b5/onnxruntime-1.32.0-cp311-cp311-manylinux_2_28_aarch64.whl
+    sha256: 2303372a85299b6757b0e11e1cbf13e410ddf7e10c37f4b37e99d1c90e7daf7c
+  pillow==13.0.0:
+    url: https://files.pythonhosted.org/packages/5c/ee/229b27472483a4801ea94990815e710391836afdf987b4b722b62bd75db6/pillow-13.0.0-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
+    sha256: 7c88c10dd432f3b39ccdafc9ed81d0c21b8fd634502574da76d1bfa4fe2c76d0
+  primp==2.0.1:
+    url: https://files.pythonhosted.org/packages/bc/1b/976fa7f73d2734eec91fb2468f5f4882e23ddb5c1d41416ff25c5486f0f8/primp-2.0.1-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+    sha256: aa85a55b1c53ef8c2d14f1c61f0b7ab0ff300b349b2768a52d6c2f3f3f9ca80c
+  pydantic-core==2.50.5:
+    url: https://files.pythonhosted.org/packages/8f/bd/029b44924c3df7cf74f2127384ed628aa9070df05881582cca17e5a113c8/pydantic_core-2.50.5-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl
+    sha256: ba2b34529984a8e3cb1bc62a7687617722695a2cb4e57958de32a0eba128a07a
+  pymupdf==2.1:
+    url: https://files.pythonhosted.org/packages/10/f9/bf895749cbe37a881f4e3d6eb29b6112bedf366829f3709c94c1e3b6ac22/pymupdf-2.1-cp311-abi3-manylinux_2_28_aarch64.whl
+    sha256: 5a1a1fee36d5598013614e06eef25aaa68819d828f5401170dbcaf6f2714d1dd
+  pyyaml==6.0.4:
+    url: https://files.pythonhosted.org/packages/fa/88/d99fc8f2cfb33ab7786fb3f6da90eddc1ed9709196bffcb4a487d7f53844/pyyaml-6.0.4-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl
+    sha256: 71bb5b87465d88d1dfc577115af6d435bff9b26f2512936f610c26aa55966028
+  regex==2026.11.19:
+    url: https://files.pythonhosted.org/packages/90/da/607ce7464498aa1a4c62281684f7f25beab2270889d98b6d348078570307/regex-2026.11.19-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl
+    sha256: 3bd48fcc3222607d2b0e260be6e1a957b874f852b13af8c8643c8fbd8acf2425
+  rpds-py==2026.9.1:
+    url: https://files.pythonhosted.org/packages/6d/45/4df346410bb873d03ec60c3b891d1fceb8cabde1971d29844bbb625cc296/rpds_py-2026.9.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+    sha256: e01b3c878c8641913e688edd1b3f08658c6783d29cf6b826bd3c0d1ae7a1ffaa
+  safetensors==0.8.0:
+    url: https://files.pythonhosted.org/packages/09/7d/65a7de0af421317bb36a067241e4235fff194eed60b961ed6d3f59a3fc60/safetensors-0.8.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+    sha256: 7a46e5ff292c356d6991e60942ba7f79817682d3a2cef0702136448cb9c4d235
+  tokenizers==0.23.3:
+    url: https://files.pythonhosted.org/packages/15/fc/ae987741829b1cd547668c4c94be732ae3eefd1d74344e64c3d2ca714acd/tokenizers-0.23.3-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+    sha256: ec82e80e65a862275b97c3d90b7a523df8d9519ee48aeb4e9625b2cc909274e0
+  torch==2.15.0:
+    url: https://files.pythonhosted.org/packages/8c/06/439e6434bef959507463fa3fd21c580304f3798ea06ab3e932ef908cff1d/torch-2.15.0-cp311-cp311-manylinux_2_28_aarch64.whl
+    sha256: 58ce2ebfb3430941353109a85be63ee8e941da22f13daa2c43344eeb51c81e06
+  triton==3.9.0:
+    url: https://files.pythonhosted.org/packages/4a/0e/a2176f4ddc2a0c77796d7834cd9bb088cdba4d89e080716b36970dce4ad0/triton-3.9.0-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
+    sha256: feaaec13578ca84301d561d034cb08b3ae293d7f0b7ab6b8ddbb2d6796363716
+  uvloop==0.23.0:
+    url: https://files.pythonhosted.org/packages/25/0d/b5f69dae3736d96a8753c6ecd32d676ecd212be7ba3252e9c379ad9cc05c/uvloop-0.23.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl
+    sha256: 8fcd721113260ffb5e38bf14a8725b17d431f34209f7d1c7005b667946e630b3
+  watchfiles==1.3.0:
+    url: https://files.pythonhosted.org/packages/5a/61/f277cd5ead05f5d37b98b41fbdd0c943ee0c04d49738f62e902cb291cf43/watchfiles-1.3.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+    sha256: 4af9c464d410e8c44b58ddf1cbec7c3a02c1cb2c6c80df9c74659ba2fbda0ab5
