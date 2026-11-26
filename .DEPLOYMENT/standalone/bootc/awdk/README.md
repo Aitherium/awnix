@@ -13,7 +13,7 @@ against the box's own llama.cpp server and never reaches the network.
 | `awdk.env` (ai-full) / `awdk.env.garg` | `/usr/lib/awdk/awdk.env` | vendor environment |
 | `air_gap.yaml` | `/usr/lib/awdk/air_gap.yaml` | strict, loopback-only air-gap profile |
 | `awnix-awdk.py` | `/usr/libexec/awnix/awnix-awdk` | the `awnix awdk` verb |
-| `awdk/examples/airgap_local_agent.py` | `/usr/lib/awdk/examples/` | the example local agent |
+| `awdk/examples/airgap_local_agent.py` | `/usr/lib/awdk/examples/` (expected default path; not yet copied by the bootc Containerfiles) | the example local agent (`run-example`) |
 
 Admin overrides go in `/etc/awdk/awdk.env`. It is read after the vendor file, and the
 later value wins.

@@ -4,16 +4,17 @@ Proof-plan Steps 0-6 (`.AITHERIUM/BUSINESS/GOV/AFRL-EXTREME-COMPUTING-FY27/05-PR
 as exit-code harnesses on the node, plus a one-file offline verifier for the
 verifier laptop.
 
-| file | where it runs | install target (NOT YET INSTALLED by any image) |
+| file | where it runs | install target (installed by `Containerfile.awnix`) |
 |---|---|---|
 | `awnix-proof.py` | the awnix node | `/usr/libexec/awnix/awnix-proof` (`awnix proof <verb>`) |
 | `awnix_proof/` | the awnix node | `/usr/lib/awnix/proof/awnix_proof/` |
 | `awnix_proof_verify.py` | the node **and** the verifier laptop | `/usr/lib/awnix/proof/awnix_proof_verify.py` and a copy on the laptop |
 
-**Not installed yet.** Neither `Containerfile.awnix` nor
-`Containerfile.garg-appliance` copies this directory; until they do, run it from
-a checkout (`python3 awnix-proof.py <verb>`). APH006 reports the gap, allowlisted
-under D-2698 (the Containerfiles belong to the image workstream).
+**Installed in base and derived images.** `Containerfile.awnix` (and derived images
+including `Containerfile.garg-appliance`) copies all three paths above, runs
+`/usr/libexec/awnix/awnix-proof --self-test` during image build, and creates
+`/var/lib/proof` (`0700`) via `tmpfiles.d` (`APH006` clean; D-2698 resolved). You can
+also run the harness directly from a checkout (`python3 awnix-proof.py <verb>`).
 
 Exit codes everywhere: **0 PASS · 1 FAIL · 2 COULD-NOT-JUDGE**. A missing tool,
 file or flag is never a pass.
