@@ -4,7 +4,7 @@
 
 **[Docs](https://aitherium.github.io/awnix/)**  ·  [Source](https://github.com/Aitherium/awnix)  ·  `podman build -t awnix:latest -f Containerfile .`  ·  [The Aither World](https://aitherium.github.io/)
 
-> **The Aither World** is an operating system for agents — a Linux you can hand to one, the runtimes it works in, and the tools it works with. **awnix** is one of its 72 bricks — each installs on its own, runs offline, and needs no account. 6 more are in development and 19 are planned.
+> **The Aither World** is an operating system for agents — a Linux you can hand to one, the runtimes it works in, and the tools it works with. **awnix** is one of its 72 bricks — each installs on its own, runs offline, and needs no account. 6 more are in development and 23 are planned.
 >
 > **Start here:** Boot one throwaway box and try to make a change you cannot reproduce.
 
@@ -35,21 +35,28 @@ silently a promise about the other.
 
 ## Download and install
 
-Every build is a bootable ISO. Pick one, download it in one piece, check it, boot it.
+### Published releases
 
-| Variant | What you get | Download |
-|---|---|---|
-| **awnix-ai-full** (recommended) | the whole aw* stack + a local model sized to your hardware on first boot (Bonsai 2 2B up to Bonsai 2 27B, served text-only — no vision projector; Bonsai 1 fetchable with `--model`) | [awnix-ai-full-x86_64.iso](https://artifact.aitherium.com/awnix-ai-full-x86_64.iso) |
-| awnix-full | the whole aw* stack, no local model | [awnix-full-x86_64.iso](https://artifact.aitherium.com/awnix-full-x86_64.iso) |
-| awnix-ai | runner + local model | [awnix-ai-x86_64.iso](https://artifact.aitherium.com/awnix-ai-x86_64.iso) |
-| awnix | the immutable base + the aw* tools | [awnix-x86_64.iso](https://artifact.aitherium.com/awnix-x86_64.iso) |
-| awnix-desktop-open | a keyboard-first tiling desktop: `Super+A` opens the agent shell (no local model is bundled — point it at one with `awsh --base-url`) | [awnix-desktop-open-x86_64.iso](https://artifact.aitherium.com/awnix-desktop-open-x86_64.iso) |
+Every x86_64 build is a bootable ISO, and the base ARM64 (`aarch64`) build is a dd-able
+gzipped raw disk image. Pick one, download it in one piece, check it, boot it.
 
-Each file is the newest build of its variant, stitched from the parts of the matching
-[GitHub release](https://github.com/Aitherium/awnix/releases), which also carries the
-split parts, an assemble script and `SHA256SUMS`. As of 2026-11-22 that is
-**2026.11.22** for awnix, awnix-ai, awnix-full and awnix-ai-full, and **2026.09.27**
-for awnix-desktop-open (the newest desktop-open build).
+| Variant | Arch | What you get | Download |
+|---|---|---|---|
+| **awnix-ai-full** (recommended) | `x86_64` | the whole aw* stack + a local model sized to your hardware on first boot (Bonsai 2 2B up to Bonsai 2 27B, served text-only — no vision projector; Bonsai 1 fetchable with `--model`) | [awnix-ai-full-x86_64.iso](https://artifact.aitherium.com/awnix-ai-full-x86_64.iso) |
+| awnix-full | `x86_64` | the whole aw* stack, no local model | [awnix-full-x86_64.iso](https://artifact.aitherium.com/awnix-full-x86_64.iso) |
+| awnix-ai | `x86_64` | runner + local model | [awnix-ai-x86_64.iso](https://artifact.aitherium.com/awnix-ai-x86_64.iso) |
+| awnix | `x86_64` | the immutable base + the aw* tools | [awnix-x86_64.iso](https://artifact.aitherium.com/awnix-x86_64.iso) |
+| awnix-desktop-open | `x86_64` | a keyboard-first tiling desktop: `Super+A` opens the agent shell (no local model is bundled — point it at one with `awsh --base-url`) | [awnix-desktop-open-x86_64.iso](https://artifact.aitherium.com/awnix-desktop-open-x86_64.iso) |
+| awnix (base raw disk) | `aarch64` | immutable base as a dd-able gzipped raw disk image (1.96 GB compressed; [release `awnix-arm64-2026.11.18`](https://github.com/Aitherium/awnix/releases/tag/awnix-arm64-2026.11.18)) | [awnix-aarch64.raw.gz](https://artifact.aitherium.com/awnix-aarch64.raw.gz) |
+
+Each file is the newest published build of its variant, stitched from the parts of the
+matching [GitHub release](https://github.com/Aitherium/awnix/releases), which also
+carries the split parts, an assemble script (or `awrtifact` manifest for `aarch64`), and
+checksums. As of 2026-11-26 the latest published tags are:
+
+- **2026.11.22** (`awnix-iso-2026.11.22`, `awnix-iso-ai-2026.11.22`, `awnix-iso-full-2026.11.22`, `awnix-iso-ai-full-2026.11.22`) for the four `x86_64` server ISOs
+- **2026.09.27** (`awnix-iso-desktop-open-2026.09.27`) for `awnix-desktop-open` (`x86_64`)
+- **2026.11.18** (`awnix-arm64-2026.11.18`) for the base `aarch64` raw disk (`awnix-aarch64.raw.gz`)
 
 ```bash
 curl -LO https://artifact.aitherium.com/awnix-ai-full-x86_64.iso
@@ -59,8 +66,33 @@ sha256sum awnix-ai-full-x86_64.iso
 # file -- `install.iso` on new builds, `awnix-x86_64.iso` on older ones -- NOT the
 # served awnix-ai-full-x86_64.iso filename. Same bytes, different name: compare
 # the HASH. (There is no single artifact-root SHA256SUMS; per-variant checksums
-# live only on each release.)
+# live only on each release. For awnix-aarch64.raw.gz, compare against the
+# top-level `sha256` in awnix-aarch64.raw.gz.manifest.json on awnix-arm64-2026.11.18.)
 ```
+
+For verified bare-metal disk flashing on either `x86_64` or `aarch64`, `install.sh`
+downloads the matching base image, verifies its sha256 against the pinned release digest,
+and writes only the whole disk you explicitly name (`--dry-run` shows every step without
+writing):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Aitherium/awnix/main/install.sh \
+  | sudo sh -s -- --disk /dev/nvme0n1 --dry-run
+```
+
+### ARM64 (`aarch64`) GPU & desktop layers (workflow-built)
+
+The GPU and Hyprland desktop `aarch64` layers are **built and probed natively on
+`aarch64` via GitHub Actions** (workflow `.github/workflows/awnix-arm64.yml`, runner
+`.DEPLOYMENT/standalone/bootc/awnix-arm64-lane.sh` on branch `feat/awnix-gpu-arm64` of
+`Aitherium/awnix`). They are **not yet published** to `artifact.aitherium.com` or GitHub
+Releases — download them from workflow run artifacts or dispatch `awnix-arm64.yml`
+directly:
+
+| Workflow layer | Containerfile | Base & stack | Verified run |
+|---|---|---|---|
+| `layer=gpu` | `.DEPLOYMENT/standalone/bootc/Containerfile.gpu-nvidia` | Headless CentOS Stream 9 (`bootc` `aarch64`) + NVIDIA `rhel9/sbsa` open kernel modules + CUDA + `nvidia-container-toolkit` | green (run `45759813942`) |
+| `layer=hypr-gpu` | `.DEPLOYMENT/standalone/bootc/Containerfile.awnix-hypr-gpu` | Full Hyprland + AitherOS desktop + NVIDIA GPU on Fedora 42 `bootc` `aarch64` (Linux `6.19.14-101.fc42.aarch64`), NVIDIA `rhel10/sbsa` open kmods `620.70.10` + CUDA 13.5 + `mt7xxx-firmware` / `mt7925e` Wi-Fi 7 + `nvidia-container-toolkit` + `tailscale` + `sshd`; targets NVIDIA DGX Spark GB10 & ARM64 workstations | green (run `45786429191`: `build_exit=0`, `probe_exit=0`; OCI image 6.8 GB + dd-able raw disk 6.76 GB) |
 
 **Windows, without leaving it (WSL2) — one line, no account:**
 
@@ -73,9 +105,25 @@ It exports the public image and imports it as a WSL2 distro named `awnix`
 one-time export). `-Image` picks another variant and any dated tag, `-Force`
 replaces an existing distro of that name.
 
+**AWS, into your own account — no account with us:**
+
+```bash
+# Run from a clone of awnix (awnix/awnix-aws-ami.sh in the monorepo):
+sh awnix-aws-ami.sh --region us-east-1
+```
+
+It builds the public image into an AMI in YOUR AWS account with YOUR
+credentials: it creates or reuses the S3 bucket and the `vmimport` service role
+the EC2 import needs, runs `bootc-image-builder --type ami`, and prints the AMI
+id plus a ready `aws ec2 run-instances` command. The security group opens only
+22, plus 9443 with `--console`. `--dry-run` prints every step and the exact
+command without calling AWS; `--self-test` touches nothing. You pay AWS for the
+snapshot and any instance you launch; a one-off build is cents.
+
 Write it to a USB stick (balenaEtcher, Rufus, or `dd`) and boot it, or boot it in a VM with
-4 GB of RAM and 20 GB of disk. On first boot `awnix-setup` asks three things, all skippable:
-a hostname, which extra aw* components to add, and whether to link the box to your account.
+4 GB of RAM and 20 GB of disk. On first boot `awnix-setup` walks you through creating your
+administrator account plus optional, skippable steps: a hostname, which extra `aw*`
+components to add, and whether to link the box to your Aitherium fleet.
 
 **Updates are whole images.** `sudo bootc upgrade && sudo systemctl reboot` moves to the new
 image and keeps the old one. If the new image fails its health checks three boots in a row,
@@ -167,8 +215,9 @@ command-not-found on a machine whose whole pitch is that tooling.
 Neither image needs `pip install` to run an agent: the `awdk` runtime (the `adk`
 CLI) and the `awsh` shell are already on both, with the bundled `aither` identity and
 its packs — including the free **`aither-core` base agent pack**, "the sovereign
-orchestrator". Neither runs one for you, though: no daemon and no model answers until
-you start it.
+orchestrator". Neither runs an unconfigured workload for you: the minimal source build
+enables `awdk-daemon.service` (`/usr/local/bin/adk up`), which stays inert until you
+configure a backend, and no local model answers until you start or point it at one.
 
 ```sh
 adk pack list                  # packs bundled in the wheel (aither-core, arc-brainpack, ...)
@@ -183,7 +232,7 @@ at the model the image serves itself on `127.0.0.1:8199` — do not start a seco
 server on `:8080`; prove it with `awnix awdk health`. On **awnix-desktop-open**,
 `Super+A` opens `awsh` but that image ships no model: run `aither bonsai start`, or
 point it at a model with `awsh --base-url`. Everywhere else, start one interactively
-with `adk run` (or serve it with `adk serve`).
+with `adk run` (or serve it with `adk-serve` / `python3 -m adk.server`).
 
 `awdk` finds the `aw` tools by import — they are already on the image — so the
 agent gets leases, the call graph, messaging, scoped memory, snapshots and
@@ -299,7 +348,9 @@ podman run --rm -it --privileged \
   --type iso --local awnix:latest
 ```
 
-`--type` also takes `ami`, `qcow2`, `vmdk`, `raw`.
+`--type` also takes `ami`, `qcow2`, `vmdk`, `raw`. For `ami`, add
+`--aws-ami-name`, `--aws-bucket` and `--aws-region`; the one-liner above sets
+those up in your own account for you.
 
 ### First boot
 
@@ -415,7 +466,7 @@ Each installs on its own, works offline, and needs no account.
 | [awsettings](https://github.com/Aitherium/awsettings) | that you will remember to re-approve the same thing on every box you work from | one profile, unioned rather than overwritten, with the credentials left behind |
 | [awavatar](https://github.com/Aitherium/awavatar) | a cloud 3D vendor's opaque task id | a manifest with a sha256, a licence and a rig-audit verdict per file |
 
-**awnix** is the ground floor — A Linux you can hand to an agent — immutable base, capabilities included.
+**awnix** is the ground floor — A Linux you can hand to an agent — immutable x86_64 & ARM64 (aarch64) base, capabilities included.
 
 ## The Aitherium ecosystem
 
@@ -449,7 +500,7 @@ Every repository here is public. Each publishes an `aither-manifest.json` beside
 | [awnest](https://github.com/Aitherium/awnest) | Prove there is a human before you let them into the nest | [docs](https://aitherium.github.io/awnest/) |
 | [awrena](https://github.com/Aitherium/awrena) | Put two agents head to head and get a verdict you can check | [docs](https://aitherium.github.io/awrena/) |
 | [awnboard](https://github.com/Aitherium/awnboard) | A front gate you can put in front of anything, and hand someone the key to | [docs](https://aitherium.github.io/awnboard/) |
-| **awnix** _(you are here)_ | A Linux you can hand to an agent — immutable base, capabilities included | [docs](https://aitherium.github.io/awnix/) |
+| **awnix** _(you are here)_ | A Linux you can hand to an agent — immutable x86_64 & ARM64 (aarch64) base, capabilities included | [docs](https://aitherium.github.io/awnix/) |
 | [awrecover](https://github.com/Aitherium/awrecover) | Labelled snapshots with an all-or-nothing restore | [docs](https://aitherium.github.io/awrecover/) |
 | [awstorage](https://github.com/Aitherium/awstorage) | Every drive on every node, indexed, classified and diffed -- so you can see what you own before you delete it | [docs](https://aitherium.github.io/awstorage/) |
 | [awrelay](https://github.com/Aitherium/awrelay) | Portable agent messaging — findings, alerts, coordination | [docs](https://aitherium.github.io/awrelay/) |

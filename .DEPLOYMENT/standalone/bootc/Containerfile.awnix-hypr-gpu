@@ -1,0 +1,104 @@
+# ==============================================================================
+# awnix-hypr-gpu -- Full AitherOS / awnix Hyprland desktop + NVIDIA open GPU
+# stack (SBSA/GB10 on arm64, x86_64 on amd64) + Wi-Fi 7 (mt7925e) firmware +
+# Tailscale + SSH on Fedora 42 bootc (Linux 6.14+ kernel).
+#
+# Built FROM localhost/awnix-hypr:latest (which builds FROM awnix-desktop-open /
+# fedora-bootc:42). Solves the DGX Spark (GB10) hardware gap: EL9's 5.14 kernel
+# lacks both MediaTek mt7925e (Wi-Fi 7) and modern GB10 support, whereas Fedora
+# 42 ships Linux 6.14+ with mt7925e in-tree and accepts NVIDIA's rhel10/sbsa
+# open kernel modules (580+ / 620+) + CUDA 13 + Container Toolkit + CDI.
+#
+# Build:
+#   podman build --platform linux/arm64 --build-arg TARGETARCH=arm64 \
+#       -t localhost/awnix-hypr-gpu:latest -f Containerfile.awnix-hypr-gpu .
+# ==============================================================================
+FROM localhost/awnix-hypr:latest
+
+ARG AWNIX_REQUIRE_SIGNED=0
+ARG TARGETARCH
+
+# ── Networking, Wi-Fi 7 firmware (mt7925e), SSH, and Tailscale ────────────────
+# DGX Spark uses MediaTek MT7925 (14c3:7925, driver mt7925e) for Wi-Fi 7 and
+# Tailscale/Headscale for mesh reachability. Bake firmware + sshd + tailscaled
+# so a booted Spark comes online immediately once credentials are seeded.
+RUN curl -fsSL -o /etc/yum.repos.d/tailscale.repo \
+        https://pkgs.tailscale.com/stable/fedora/tailscale.repo && \
+    dnf install -y --setopt=install_weak_deps=False \
+        linux-firmware mt7xxx-firmware \
+        iw ethtool openssh-server tailscale \
+    && dnf clean all && \
+    systemctl enable sshd.service tailscaled.service
+
+# ── NVIDIA Open GPU Stack (rhel10/sbsa on arm64, rhel10/x86_64 on amd64) ──────
+# Blackwell (RTX 50xx, GB10) requires the OPEN kernel modules (kmod-nvidia-open-dkms).
+# Fedora 42's fedora42/sbsa repo has no driver RPMs; NVIDIA's official rhel10/sbsa
+# repo carries nvidia-driver + kmod-nvidia-open-dkms (580-620+) + CUDA 13.
+RUN case "${TARGETARCH:-$(uname -m)}" in \
+      amd64|x86_64) CUDA_REPO_ARCH=x86_64 ;; \
+      arm64|aarch64) CUDA_REPO_ARCH=sbsa ;; \
+      *) echo "awnix-hypr-gpu: unsupported arch ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL -o /etc/yum.repos.d/cuda-rhel10.repo \
+        "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/${CUDA_REPO_ARCH}/cuda-rhel10.repo" && \
+    KVER="$(ls /usr/lib/modules | head -n1)" && \
+    KARCH="${KVER##*.}" && \
+    KBASE="${KVER%.*}" && \
+    KUP="${KBASE%%-*}" && \
+    KREL="${KBASE#*-}" && \
+    (dnf install -y --disablerepo=updates-archive --setopt=install_weak_deps=False \
+        "kernel-devel-${KVER}" "kernel-devel-matched-${KVER}" || \
+        dnf install -y --disablerepo=updates-archive --setopt=install_weak_deps=False \
+            "https://kojipkgs.fedoraproject.org/packages/kernel/${KUP}/${KREL}/${KARCH}/kernel-devel-${KVER}.rpm" \
+            "https://kojipkgs.fedoraproject.org/packages/kernel/${KUP}/${KREL}/${KARCH}/kernel-devel-matched-${KVER}.rpm") && \
+    dnf install -y --disablerepo=updates-archive --setopt=install_weak_deps=False \
+        dkms gcc make elfutils-libelf-devel openssl mokutil xz zstd \
+        nvidia-driver nvidia-driver-cuda nvidia-driver-libs kmod-nvidia-open-dkms \
+        cuda-toolkit \
+    && dnf clean all
+
+# Compile NVIDIA open kernel modules against the IMAGE kernel (never build host `uname -r`).
+RUN KVER="$(ls /usr/lib/modules | head -n1)" && \
+    dkms autoinstall -k "${KVER}" && \
+    find "/usr/lib/modules/${KVER}" -name 'nvidia*.ko*' | grep -q . \
+    || { echo "awnix-hypr-gpu: dkms produced no nvidia modules for ${KVER}" >&2; exit 1; }
+
+# Sign kmods if MOK secret is mounted; record kmod-manifest.json either way.
+COPY sign-nvidia-kmods.sh /usr/libexec/awnix/sign-nvidia-kmods
+RUN --mount=type=secret,id=awnix-mok-key,target=/run/secrets/awnix-mok-key \
+    --mount=type=secret,id=awnix-mok-cert,target=/run/secrets/awnix-mok-cert \
+    sed -i 's/\r$//' /usr/libexec/awnix/sign-nvidia-kmods && \
+    chmod 0755 /usr/libexec/awnix/sign-nvidia-kmods && \
+    AWNIX_REQUIRE_SIGNED="${AWNIX_REQUIRE_SIGNED}" /usr/libexec/awnix/sign-nvidia-kmods && \
+    rm -f /usr/libexec/awnix/sign-nvidia-kmods && \
+    test -s /usr/share/awnix/secureboot/kmod-manifest.json
+
+# Secure Boot CLI + status unit
+COPY awnix-secureboot.py /usr/libexec/awnix/awnix-secureboot
+COPY awnix-secureboot.service /usr/lib/systemd/system/awnix-secureboot.service
+COPY setup-steps/common/45-secureboot.json /usr/share/awnix-setup/steps.d/45-secureboot.json
+RUN sed -i 's/\r$//' /usr/libexec/awnix/awnix-secureboot /usr/lib/systemd/system/awnix-secureboot.service && \
+    chmod 0755 /usr/libexec/awnix/awnix-secureboot && \
+    /usr/libexec/awnix/awnix-secureboot --self-test && \
+    systemctl enable awnix-secureboot.service
+
+# NVIDIA Container Toolkit + CDI
+RUN curl -fsSL -o /etc/yum.repos.d/nvidia-container-toolkit.repo \
+        https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo && \
+    dnf install -y --setopt=install_weak_deps=False nvidia-container-toolkit && \
+    dnf clean all && \
+    mkdir -p /etc/cdi && \
+    nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml 2>/dev/null || true
+
+# Wayland / Hyprland NVIDIA environment defaults
+RUN mkdir -p /etc/environment.d && \
+    printf '%s\n' \
+        'LIBVA_DRIVER_NAME=nvidia' \
+        '__GLX_VENDOR_LIBRARY_NAME=nvidia' \
+        'NVD_BACKEND=direct' \
+        > /etc/environment.d/50-nvidia-wayland.conf && \
+    bootc container lint
+
+LABEL com.aitheros.layer="awnix-hypr-gpu" \
+      com.aitheros.description="awnix Hyprland desktop + NVIDIA open kmods (GB10/SBSA) + CDI + Wi-Fi 7 (mt7925e) + Tailscale" \
+      org.opencontainers.image.licenses="Apache-2.0 AND BUSL-1.1"

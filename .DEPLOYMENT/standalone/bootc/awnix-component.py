@@ -63,6 +63,7 @@ import hashlib
 import json
 import secrets as _secrets
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -579,9 +580,14 @@ class Tool:
 
     def _requirements(self, row: dict, wheelhouse: str | None) -> str:
         wheels = self.lock.get("wheels") or {}
+        arch_wheels = (
+            (self.lock.get("wheels_aarch64") or {})
+            if platform.machine().lower() in ("aarch64", "arm64")
+            else {}
+        )
         lines = []
         for key in row.get("deps") or []:
-            w = wheels.get(key)
+            w = arch_wheels.get(key) or wheels.get(key)
             if not w:
                 raise ValueError(f"lock names dep {key} but carries no hash for it")
             name, ver = key.split("==", 1)

@@ -29,9 +29,9 @@ on:
   workflow_dispatch:
     inputs:
       layer:
-        description: 'Top of the chain (layers below are built too). runner-ai and garg FAIL at build until their Containerfiles pick arm64 assets (check_awnix_multiarch.py AMA001/AMA003)'
+        description: 'Top of the chain (layers below are built too). gpu = headless EL9+sbsa; hypr-gpu = Fedora 42 Hyprland desktop + rhel10/sbsa open NVIDIA kmods + mt7925e Wi-Fi 7 + Tailscale (Spark).'
         type: choice
-        options: [awnix, runner, runner-ai, garg]
+        options: [awnix, gpu, hypr-gpu, runner, runner-ai, garg]
         default: awnix
       runner:
         description: 'hosted = ubuntu-24.04-arm; spark = the DGX Spark (rootless, own store, no media)'

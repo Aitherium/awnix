@@ -19,9 +19,10 @@ proof ended PASS with `agent_reboots_on_n2=0` and `--evidence` exit 0, and the n
 control ended NO-AUTO-FALLBACK with exit 1. See the Record below. The measured claim is
 "greenboot plus `awnix-greenboot-fallback` return a node from a faulty N+2 to N with no
 outside reboot, on centos-bootc:stream9 in a KVM VM". `fallback_reboot=added` in that
-run: the unit came from this harness, because neither product Containerfile ships it
-yet. For awnix and garg the unattended fallback stays BUILT-UNMEASURED until they
-install it and a `--base` run passes. The images come from a local registry, so no credential is
+2026-09-28 run because the unit came from this harness at the time; `Containerfile.awnix`
+(and derived images including `Containerfile.garg-appliance`) now install
+`awnix-greenboot-fallback.{sh,service,conf}`, while unattended fallback on awnix and garg
+stays BUILT-UNMEASURED until a `--base` product run passes. The images come from a local registry, so no credential is
 needed. The last proof, `../upgrade-proof.sh`, ended AUTH-WALL because it needed a
 ghcr token.
 
@@ -93,7 +94,7 @@ carry a different manifest digest from the one pushed, so the pushed digest is k
 
 ## Running it
 
-In hosted CI (the normal route):
+In CI (the normal route; `.github/workflows/awnix-g6-proof.yml` currently targets `[self-hosted, Linux, X64, aws]`):
 
 ```bash
 gh workflow run awnix-g6-proof.yml --ref <branch>                          # proof + nothing else
